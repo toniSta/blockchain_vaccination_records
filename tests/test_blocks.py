@@ -12,11 +12,12 @@ def resource():
 
 def test_genesis_block_header(resource):
     assert resource.index == 0, 'Index of genesis must be 0'
-    assert resource.previous_block == 0, 'Genesis has no previous block'
+    assert resource.previous_block == str(0), 'Genesis has no previous block'
 
 
 def test_new_block_references_old_one(resource):
     new_block = Block(resource.get_block_information())
     assert new_block.previous_block == resource.hash,\
         "New block does not reference previous one"
-    assert new_block.merkle == resource.merkle, "Merkle is always the same"
+    assert new_block.merkle_root == resource.merkle_root,\
+        "Merkle is always the same"

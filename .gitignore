@@ -1,3 +1,6 @@
+# Blockchain persistency related files
+blockchain/blockchain_files/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

@@ -1,4 +1,7 @@
+"""This class represents a block in the blockchain."""
+
 import logging
+import os
 from hashlib import sha256
 from time import time
 
@@ -12,15 +15,28 @@ logger = logging.getLogger('blockchain')
 
 
 class Block(object):
-    def __init__(self, dictionary):
+    def __init__(self, previous_block):
         logger.debug('Creating new block')
+        self.index = previous_block['index'] + 1
+        self.previous_block = previous_block['hash']
+        self.merkle_root = previous_block['merkle_root']
         self.version = CONFIG['version']
-        self.previous_block = dictionary['hash']
-        self.merkle = dictionary['merkle']
-        self.timestamp = int(time())
-        self.index = dictionary['index'] + 1
+        self.timestamp = str(int(time()))
         self.transactions = []
         self.hash = ''
+
+    def __repr__(self):
+        """Create a string representation of the current block for hashing."""
+        fields = [str(self.index), self.previous_block, self.merkle_root,
+                  self.version, self.timestamp]
+        if self.hash != '':
+            fields.append(self.hash)
+        header = CONFIG['serializaton']['separator'].join(fields)
+        header += CONFIG['serializaton']['line_terminator']
+        block = header
+        for transaction in self.transactions:
+            block += transaction + CONFIG['serializaton']['line_terminator']
+        return block
 
     def __str__(self):
         return ('=======================\n'
@@ -31,19 +47,9 @@ class Block(object):
                 '  hash: {}\n'
                 '=======================').format(self.index,
                                                   self.previous_block,
-                                                  self.merkle,
+                                                  self.merkle_root,
                                                   len(self.transactions),
                                                   self.hash)
-
-    def _get_relevant_data_for_hashing(self):
-        return {
-            'version': self.version,
-            'index': self.index,
-            'previous_block': self.previous_block,
-            'timestamp': self.timestamp,
-            'merkle': self.merkle,
-            'transactions': [tx for tx in self.transactions]
-        }
 
     def add_transaction(self, transaction):
         self.transactions.append(transaction)
@@ -55,24 +61,41 @@ class Block(object):
             'index': self.index,
             'previous_block': self.previous_block,
             'timestamp': self.timestamp,
-            'merkle': self.merkle,
+            'merkle_root': self.merkle_root,
             'hash': self.hash
         }
 
-    # Add hash to the final state of the block
+    def persist(self):
+        """Write the block into a file for persistency."""
+        blockchain_folder = 'blockchain'
+        persistence_folder = os.path.join(blockchain_folder,
+                                          CONFIG['persistance_folder'])
+        os.makedirs(persistence_folder, exist_ok=True)
+        file_path = os.path.join(persistence_folder, str(self.index))
+        with open(file_path, 'w') as block_file:
+            block_file.write(repr(self))
+        logging.debug('Block {} written to disk.'.format(self.index))
+
     def update_hash(self):
+        """Add hash to the final state of the block."""
         sha = sha256()
-        sha.update(str(self._get_relevant_data_for_hashing()).encode('utf-8'))
+        sha.update(repr(self).encode('utf-8'))
         self.hash = sha.hexdigest()
         logger.debug('Finished creation of block:\n{}'.format(str(self)))
 
 
+def deserialize(self):
+    pass
+
+
 def create_initial_block():
-    '''Creates the genesis block.'''
+    """Create the genesis block."""
     logger.info('Creating new genesis block')
+    merkle_root = sha256()
+    # We hash the first index to get a constant merkle root
+    merkle_root.update(str(0).encode('utf-8'))
     return Block({
-        'previous_block': 0,
-        'merkle': 0,
+        'merkle_root': merkle_root.hexdigest(),
         'index': -1,
-        'hash': 0
+        'hash': str(0)
     })
