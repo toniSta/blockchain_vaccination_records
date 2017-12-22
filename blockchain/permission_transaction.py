@@ -4,7 +4,7 @@ from Crypto.PublicKey import RSA
 from time import time
 from enum import Enum
 
-from config import CONFIG
+from .config import CONFIG
 
 # Needs to be moved later
 logging.basicConfig(level=logging.DEBUG,
