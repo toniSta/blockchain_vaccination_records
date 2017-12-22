@@ -1,5 +1,5 @@
 import logging
-import cryptography as crypto
+import blockchain.cryptography as crypto
 from Crypto.PublicKey import RSA
 from time import time
 from enum import Enum
