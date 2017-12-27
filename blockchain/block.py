@@ -15,11 +15,34 @@ logger = logging.getLogger('blockchain')
 
 
 class Block(object):
-    def __init__(self, previous_block):
+    def __init__(self, data):
+        if type(data) == dict:
+            self._from_dictionary(data)
+        elif type(data) == str:
+            self._from_string(data)
+        else:
+            raise ValueError('Given argument is neither string nor dict!')
+
+    def _from_string(self, data):
+        fields = ['index', 'previous_block', 'merkle_root', 'version', 'timestamp', 'hash']
+        header, transactions = data.split(CONFIG['serializaton']['line_terminator'], 1)
+        header_information = dict(zip(fields, header.split(CONFIG['serializaton']['separator'])))
+        assert len(fields) == len(header_information), "Wrong header format!"
+        self.index = header_information['index']
+        self.previous_block = header_information['previous_block']
+        self.merkle_root = header_information['merkle_root']
+        self.version = header_information['version']
+        self.timestamp = header_information['timestamp']
+        # Have to remove last tx since empty
+        self.transactions = transactions.split(CONFIG['serializaton']['line_terminator'])[:-1]
+
+        self.hash = header_information['hash']
+
+    def _from_dictionary(self, data):
         logger.debug('Creating new block')
-        self.index = previous_block['index'] + 1
-        self.previous_block = previous_block['hash']
-        self.merkle_root = previous_block['merkle_root']
+        self.index = data['index'] + 1
+        self.previous_block = data['hash']
+        self.merkle_root = data['merkle_root']
         self.version = CONFIG['version']
         self.timestamp = str(int(time()))
         self.transactions = []
@@ -31,9 +54,8 @@ class Block(object):
                   self.version, self.timestamp]
         if self.hash != '':
             fields.append(self.hash)
-        header = CONFIG['serializaton']['separator'].join(fields)
-        header += CONFIG['serializaton']['line_terminator']
-        block = header
+        block = CONFIG['serializaton']['separator'].join(fields)
+        block += CONFIG['serializaton']['line_terminator']
         for transaction in self.transactions:
             block += transaction + CONFIG['serializaton']['line_terminator']
         return block
@@ -82,10 +104,6 @@ class Block(object):
         sha.update(repr(self).encode('utf-8'))
         self.hash = sha.hexdigest()
         logger.debug('Finished creation of block:\n{}'.format(str(self)))
-
-
-def deserialize(self):
-    pass
 
 
 def create_initial_block():
