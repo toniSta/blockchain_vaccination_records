@@ -1,4 +1,10 @@
-"""This class represents a block in the blockchain."""
+"""This module implements block functionality.
+
+The block class provides necessary methods for block creation and
+serialization. Furthermore, the creation of the genesis block is
+implemented here.
+Block validation is not and will not be implemented in here.
+"""
 
 import logging
 import os
@@ -15,7 +21,12 @@ logger = logging.getLogger('blockchain')
 
 
 class Block(object):
+    """This class represents a block in the blockchain."""
+
     def __init__(self, data):
+        # data object can be:
+        #   1. header information of the previous block
+        #   2. string representation of a block
         if type(data) == dict:
             self._from_dictionary(data)
         elif type(data) == str:
@@ -24,7 +35,17 @@ class Block(object):
             raise ValueError('Given argument is neither string nor dict!')
 
     def _from_string(self, data):
-        fields = ['index', 'previous_block', 'merkle_root', 'version', 'timestamp', 'hash']
+        """Recreate a block by its string representation.
+
+        Recreate a block object based on a given string representation
+        of a block. This will create a new object with the same attributes.
+        """
+        fields = ['index',
+                  'previous_block',
+                  'merkle_root',
+                  'version',
+                  'timestamp',
+                  'hash']
         header, transactions = data.split(CONFIG['serializaton']['line_terminator'], 1)
         header_information = dict(zip(fields, header.split(CONFIG['serializaton']['separator'])))
         assert len(fields) == len(header_information), "Wrong header format!"
@@ -33,12 +54,15 @@ class Block(object):
         self.merkle_root = header_information['merkle_root']
         self.version = header_information['version']
         self.timestamp = header_information['timestamp']
-        # Have to remove last tx since empty
-        self.transactions = transactions.split(CONFIG['serializaton']['line_terminator'])[:-1]
+        # Block ends with \n. Thus, splitting by line terminator will create
+        # an empty string. We have to ignore this at this point.
+        self.transactions = transactions.split(
+            CONFIG['serializaton']['line_terminator'])[:-1]
 
         self.hash = header_information['hash']
 
     def _from_dictionary(self, data):
+        """Create a successor block based on header information."""
         logger.debug('Creating new block')
         self.index = data['index'] + 1
         self.previous_block = data['hash']
@@ -77,7 +101,7 @@ class Block(object):
         self.transactions.append(transaction)
 
     def get_block_information(self):
-        '''Returns the necessary information for creating a new block.'''
+        """Return the necessary information for creating a new block."""
         return {
             'version': self.version,
             'index': self.index,
