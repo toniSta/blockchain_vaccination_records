@@ -15,6 +15,21 @@ def test_genesis_block_header(genesis):
     assert genesis.previous_block == str(0), 'Genesis has no previous block'
 
 
+def test_creation_of_successor_block(genesis):
+    assert Block(genesis.get_block_information()),\
+        "Error at creation of successor block"
+    with pytest.raises(Exception) as excinfo:
+        Block(tuple())
+    assert excinfo.type == ValueError
+
+
+def test_block_creation_with_wrong_input():
+    with pytest.raises(Exception):
+        Block('')
+    with pytest.raises(Exception):
+        Block({})
+
+
 @pytest.fixture()
 def new_block(genesis):
     new_block = Block(genesis.get_block_information())
@@ -29,6 +44,11 @@ def test_new_block_references_old_one(genesis, new_block):
         "New block does not reference previous one"
     assert new_block.merkle_root == genesis.merkle_root,\
         "Merkle is always the same"
+
+
+def test_block_recreation(new_block):
+    assert Block(repr(new_block)),\
+        "Error at recreation of block by string representation"
 
 
 def test_serialization_deserialization(new_block):

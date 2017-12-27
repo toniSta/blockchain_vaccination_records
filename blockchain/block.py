@@ -46,8 +46,10 @@ class Block(object):
                   'version',
                   'timestamp',
                   'hash']
-        header, transactions = data.split(CONFIG['serializaton']['line_terminator'], 1)
-        header_information = dict(zip(fields, header.split(CONFIG['serializaton']['separator'])))
+        header, transactions = data.split(
+            CONFIG['serializaton']['line_terminator'], 1)
+        header_content = header.split(CONFIG['serializaton']['separator'])
+        header_information = dict(zip(fields, header_content))
         assert len(fields) == len(header_information), "Wrong header format!"
         self.index = header_information['index']
         self.previous_block = header_information['previous_block']
