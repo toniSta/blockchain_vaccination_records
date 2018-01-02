@@ -6,7 +6,6 @@ import pytest
 @pytest.fixture()
 def genesis():
     genesis = create_initial_block()
-    genesis.update_hash()
     yield genesis
 
 
