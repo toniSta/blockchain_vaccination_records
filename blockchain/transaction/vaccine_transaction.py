@@ -1,11 +1,5 @@
 import logging
-import blockchain.helper.cryptography as crypto
-from Crypto.PublicKey import RSA
-from time import time
-from enum import Enum
 from blockchain.transaction.transaction import TransactionBase
-
-from blockchain.config import CONFIG
 
 # Needs to be moved later
 logging.basicConfig(level=logging.DEBUG,
@@ -19,7 +13,6 @@ class VaccineTransaction(TransactionBase):
     def __init__(self, **kwargs):
         super(VaccineTransaction, self).__init__(**kwargs)
         self.vaccine = kwargs.get('vaccine')
-        self.timestamp = kwargs.get('timestamp') or int(time())
         self.signature = kwargs.get('signature')
 
     def validate(self):  # TODO

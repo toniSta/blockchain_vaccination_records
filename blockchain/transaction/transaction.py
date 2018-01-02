@@ -1,11 +1,13 @@
 from abc import ABCMeta, abstractmethod
 from blockchain.config import CONFIG
 from blockchain.helper.cryptography import hexify
+from time import time
 
 class TransactionBase(metaclass=ABCMeta):
 
     def __init__(self, *args, **kwargs):
         self.version = kwargs.get('version') or CONFIG['version']
+        self.timestamp = kwargs.get('timestamp') or int(time())
 
     @abstractmethod
     def validate(self):
