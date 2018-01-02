@@ -3,6 +3,7 @@ import blockchain.helper.cryptography as crypto
 from Crypto.PublicKey import RSA
 from time import time
 from enum import Enum
+from blockchain.transaction.transaction import TransactionBase
 
 from blockchain.config import CONFIG
 from blockchain.helper.cryptography import hexify
@@ -19,28 +20,14 @@ class Permission(Enum):
     admission = "admission"
     doctor = "doctor"
 
-
-class PermissionTransaction(object):
+# TODO The Constructor should be able to load a complete transaction (see __repr__ of base class)
+class PermissionTransaction(TransactionBase):
     def __init__(self, requested_permission, sender_pubkey):
+        super(PermissionTransaction, self).__init__()
         logger.debug('Creating new permission transaction')
-        self.version = CONFIG['version']
-        self.timestamp = int(time())
         self.requested_permission = requested_permission
         self.sender_pubkey = sender_pubkey.exportKey("DER")
         self.signature = None
-
-    def __str__(self):
-        return ('-----------------------\n'
-                '  Transaction: {}\n'
-                '  Permission Request: {}\n'
-                '  Sender: {}\n'
-                '  Signature: {}\n'
-                '  Timestamp: {}\n'
-                '-----------------------').format(type(self).__name__,
-                                                  self.requested_permission,
-                                                  hexify(self.sender_pubkey),
-                                                  hexify(self.signature),
-                                                  self.timestamp)
 
     def get_transaction_information(self):
         return {
