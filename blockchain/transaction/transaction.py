@@ -12,11 +12,24 @@ class TransactionBase(metaclass=ABCMeta):
         raise NotImplementedError("Transaction must offer a validity check")
 
     def __str__(self):
+        """
+        This method returns a string representation of the object such that it is readable by human.
+        The Class attributes will be ordered
+        e.g. -----------------------
+              Transaction: VaccineTransaction
+              Signature: sfefsdf
+              Timestamp: 1514903576
+              Vaccine: 61
+              Version: 0.0.1
+            -----------------------
+        """
         list = []
         for item in vars(self).items():
             if type(item[1]).__name__ == 'bytes':
-                item[1] = hexify(item[1])
-            list.append(item)
+                list.append((item[0].title(), hexify(item[1])))
+                continue
+
+            list.append((item[0].title(), item[1]))
         list.sort(key=lambda tup: tup[0])
 
         string = '-----------------------\n'
