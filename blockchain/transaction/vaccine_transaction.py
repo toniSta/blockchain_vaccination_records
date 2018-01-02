@@ -24,11 +24,11 @@ class VaccineTransaction(TransactionBase):
         return self._verify_signature(pubKey) # TODO check other requirements
 
     def _verify_signature(self, pupKey):
-        message = crypto.get_bytes(repr(self.get_informations_for_hashing()))
+        message = crypto.get_bytes(repr(self.__get_informations_for_hashing()))
         return crypto.verify(message, self.signature, pupKey)
 
     def _create_signature(self, private_key):
-        message = crypto.get_bytes(repr(self.get_informations_for_hashing()))
+        message = crypto.get_bytes(repr(self.__get_informations_for_hashing()))
         return crypto.sign(message, private_key)
 
     def sign(self, private_key):
@@ -38,7 +38,7 @@ class VaccineTransaction(TransactionBase):
             return
         self.signature = self._create_signature(private_key)
 
-    def get_informations_for_hashing(self):
+    def __get_informations_for_hashing(self):
         tuples = []
         for tuple in vars(self).items():
             if tuple[0] != 'signature':
@@ -55,8 +55,7 @@ if __name__ == "__main__":
     PRIVATE_KEY = RSA.import_key(open(".." + os.sep + ".." + os.sep + "tests" + os.sep + "testkey_priv.bin", "rb").read())
     trans = VaccineTransaction(vaccine='a')
     print(repr(trans))
-    print(trans.get_informations_for_hashing())
     trans.sign(PRIVATE_KEY)
     print(repr(trans))
-    print(trans.get_informations_for_hashing())
     print(trans.validate(PUBLIC_KEY))
+    print(eval(repr(trans)))
