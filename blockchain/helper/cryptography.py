@@ -34,3 +34,10 @@ def verify(message, signature, public_key):
     digest = SHA256.new()
     digest.update(message)
     return signer.verify(digest, signature)
+
+
+def hexify(s):
+    if s is None:
+        return ""
+    else:
+        return s.hex()

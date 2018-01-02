@@ -5,6 +5,7 @@ from time import time
 from enum import Enum
 
 from blockchain.config import CONFIG
+from blockchain.helper.cryptography import hexify
 
 # Needs to be moved later
 logging.basicConfig(level=logging.DEBUG,
@@ -12,11 +13,6 @@ logging.basicConfig(level=logging.DEBUG,
                     datefmt="%Y-%m-%d %H:%M:%S")
 logger = logging.getLogger('blockchain')
 
-def hexify(s):
-    if s is None:
-        return ""
-    else:
-        return s.hex()
 
 class Permission(Enum):
     patient = "patient"
@@ -35,15 +31,16 @@ class PermissionTransaction(object):
 
     def __str__(self):
         return ('-----------------------\n'
-                '  Transaction: \n'
+                '  Transaction: {}\n'
                 '  Permission Request: {}\n'
                 '  Sender: {}\n'
                 '  Signature: {}\n'
                 '  Timestamp: {}\n'
-                '-----------------------').format(self.requested_permission,
-                        self.sender_pubkey.hex(),
-                        hexify(self.signature),
-                        self.timestamp)
+                '-----------------------').format(type(self).__name__,
+                                                  self.requested_permission,
+                                                  hexify(self.sender_pubkey),
+                                                  hexify(self.signature),
+                                                  self.timestamp)
 
     def get_transaction_information(self):
         return {
