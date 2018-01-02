@@ -20,9 +20,9 @@ class TransactionBase(metaclass=ABCMeta):
         list.sort(key=lambda tup: tup[0])
 
         string = '-----------------------\n'
-        string = string + '  Transaction: %s\n' % (type(self).__name__)
+        string = string + '  Transaction: {}\n'.format(type(self).__name__)
         for tuple in list:
-            string = string + '  %s: %s\n' % (tuple)
+            string = string + '  {}: {}\n'.format(*tuple)
         string = string + '-----------------------'
         return string
 
@@ -37,7 +37,8 @@ class TransactionBase(metaclass=ABCMeta):
         for item in vars(self).items():
             list.append(item)
         list.sort(key=lambda tup: tup[0])
-        return '%s(%s)' % (
+
+        return '{!s}({!s})'.format(
             type(self).__name__,
-            ', '.join('%s=%r' % item for item in list)
+            ', '.join(['{!s}={!r}'.format(*item) for item in list])
         )
