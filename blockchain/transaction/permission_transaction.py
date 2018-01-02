@@ -1,10 +1,10 @@
 import logging
-import blockchain.cryptography as crypto
+import blockchain.helper.cryptography as crypto
 from Crypto.PublicKey import RSA
 from time import time
 from enum import Enum
 
-from .config import CONFIG
+from blockchain.config import CONFIG
 
 # Needs to be moved later
 logging.basicConfig(level=logging.DEBUG,

@@ -1,6 +1,5 @@
 from Crypto.PublicKey import RSA
-from blockchain.cryptography import generate_keypair
-from blockchain.permission_transaction import Permission, PermissionTransaction
+from blockchain.transaction.permission_transaction import Permission, PermissionTransaction
 
 import pytest
 import os
