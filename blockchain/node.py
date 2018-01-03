@@ -31,7 +31,7 @@ class Node(object):
         if self.chain.last_block() == last_block_remote:
             # blockchain is up-to-date
             return
-
+        # TODO: implement synchronization
         if last_block_remote.index == self.chain.last_block().index and \
            last_block_remote.hash != self.chain.last_block().hash:
             # at least last block is wrong
@@ -40,8 +40,6 @@ class Node(object):
         if last_block_remote.index == self.chain.last_block().index:
             # chain is outdated
             pass
-
-        # TODO
 
     def create_next_block(self):
         new_block = Block(self.chain.last_block().get_block_information())
@@ -71,6 +69,7 @@ class Node(object):
         if block:
             self.chain.add_block(block)
             self._broadcast_block(block)
+            block.persist()
 
     def _get_status_from_different_node(self, node):
         pass
