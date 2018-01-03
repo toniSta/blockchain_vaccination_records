@@ -34,6 +34,31 @@ class Block(object):
         else:
             raise ValueError('Given argument is neither string nor dict!')
 
+    def __repr__(self):
+        """Create a string representation of the current block for hashing."""
+        fields = [str(self.index), self.previous_block, self.merkle_root,
+                  self.version, self.timestamp]
+        if self.hash != '':
+            fields.append(self.hash)
+        block = CONFIG['serializaton']['separator'].join(fields)
+        block += CONFIG['serializaton']['line_terminator']
+        for transaction in self.transactions:
+            block += transaction + CONFIG['serializaton']['line_terminator']
+        return block
+
+    def __str__(self):
+        return ('=======================\n'
+                '  Block {}\n'
+                '  Previous block: {}\n'
+                '  Merkle root: {}\n'
+                '  Number of transactions: {}\n'
+                '  hash: {}\n'
+                '=======================').format(self.index,
+                                                  self.previous_block,
+                                                  self.merkle_root,
+                                                  len(self.transactions),
+                                                  self.hash)
+
     def _from_string(self, data):
         """Recreate a block by its string representation.
 
@@ -74,31 +99,6 @@ class Block(object):
         self.transactions = []
         self.hash = ''
 
-    def __repr__(self):
-        """Create a string representation of the current block for hashing."""
-        fields = [str(self.index), self.previous_block, self.merkle_root,
-                  self.version, self.timestamp]
-        if self.hash != '':
-            fields.append(self.hash)
-        block = CONFIG['serializaton']['separator'].join(fields)
-        block += CONFIG['serializaton']['line_terminator']
-        for transaction in self.transactions:
-            block += transaction + CONFIG['serializaton']['line_terminator']
-        return block
-
-    def __str__(self):
-        return ('=======================\n'
-                '  Block {}\n'
-                '  Previous block: {}\n'
-                '  Merkle root: {}\n'
-                '  Number of transactions: {}\n'
-                '  hash: {}\n'
-                '=======================').format(self.index,
-                                                  self.previous_block,
-                                                  self.merkle_root,
-                                                  len(self.transactions),
-                                                  self.hash)
-
     def add_transaction(self, transaction):
         self.transactions.append(transaction)
 
@@ -138,8 +138,10 @@ def create_initial_block():
     merkle_root = sha256()
     # We hash the first index to get a constant merkle root
     merkle_root.update(str(0).encode('utf-8'))
-    return Block({
+    genesis = Block({
         'merkle_root': merkle_root.hexdigest(),
         'index': -1,
         'hash': str(0)
     })
+    genesis.update_hash()
+    return genesis
