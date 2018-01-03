@@ -13,16 +13,25 @@ logger = logging.getLogger('blockchain')
 class VaccineTransaction(TransactionBase):
     """This class depicts a registration of a vaccine."""
 
-    def __init__(self, vaccine, signature=None, **kwargs):
-        super(VaccineTransaction, self).__init__(vaccine=vaccine, signature=signature, **kwargs)
+    def __init__(self, vaccine, senderPubKey, signature=None, **kwargs):
+        super(VaccineTransaction, self).__init__(
+            vaccine=vaccine, signature=signature, senderPubKey=senderPubKey, **kwargs
+        )
+
+        if type(senderPubKey).__name__ == 'RsaKey':
+            senderPubKey = senderPubKey.exportKey("DER")
+
         self.vaccine = vaccine
+        self.senderPubKey = senderPubKey
         self.signature = signature
 
-    def validate(self, pubKey): # TODO Where does the key come from in the future?
+    def validate(self): # TODO Where does the key come from in the future?
         """
         checks if the transaction fulfills the requirements
         """
-        return self._verify_signature(pubKey) # TODO check other requirements
+        #TODO Does the sender have permission to add vaccines?
+        in_sender_key = RSA.import_key(self.senderPubKey)
+        return self._verify_signature(in_sender_key) # TODO check other requirements
 
     def sign(self, private_key):
         """creates a signature and adds it to the transaction"""
@@ -54,9 +63,9 @@ if __name__ == "__main__":
     import os
     PUBLIC_KEY = RSA.import_key(open(".." + os.sep + ".." + os.sep + "tests" + os.sep + "testkey_pub.bin", "rb").read())
     PRIVATE_KEY = RSA.import_key(open(".." + os.sep + ".." + os.sep + "tests" + os.sep + "testkey_priv.bin", "rb").read())
-    trans = VaccineTransaction(vaccine='a vaccine', timestamp=1234, version='1')
+    trans = VaccineTransaction(vaccine='a vaccine', senderPubKey=PUBLIC_KEY, timestamp=1234, version='1')
     print(repr(trans))
     trans.sign(PRIVATE_KEY)
     print(repr(trans))
-    print(trans.validate(PUBLIC_KEY))
+    print(trans.validate())
     print(eval(repr(trans)))
