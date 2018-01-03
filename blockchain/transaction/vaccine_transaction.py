@@ -11,6 +11,7 @@ logger = logging.getLogger('blockchain')
 
 
 class VaccineTransaction(TransactionBase):
+    """This class depicts a registration of a vaccine."""
 
     def __init__(self, vaccine, signature=None, **kwargs):
         super(VaccineTransaction, self).__init__(vaccine=vaccine, signature=signature, **kwargs)
