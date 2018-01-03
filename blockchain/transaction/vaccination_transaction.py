@@ -29,6 +29,12 @@ class VaccinationTransaction(TransactionBase):
         self.doctorPubKey = doctorPubKey
         self.patientPubKey = patientPubKey
 
+    def sign(self, doctor_private_key, patient_private_key):
+        """creates a signature and adds it to the transaction"""
+        # TODO Finally the patient privatekey should be given by the patient
+        self.doctorSignature = self._create_doctor_signature(doctor_private_key)
+        self.patientSignature = self._create_patient_signature(patient_private_key)
+
     def validate(self): # TODO Where does the key come from in the future?
         """
         checks if the transaction fulfills the requirements
@@ -43,14 +49,6 @@ class VaccinationTransaction(TransactionBase):
         patient_signature = self._verify_patient_signature(bin_patient_key)
 
         return doctor_signature and patient_signature
-
-    def _verify_doctor_signature(self, pup_key):
-        message = crypto.get_bytes(self._get_informations_for_hashing(True))
-        return crypto.verify(message, self.doctorSignature, pup_key)
-
-    def _verify_patient_signature(self, pup_key):
-        message = crypto.get_bytes(self._get_informations_for_hashing(False))
-        return crypto.verify(message, self.patientSignature, pup_key)
 
     def _create_doctor_signature(self, private_key):
         if self.doctorSignature:
@@ -79,11 +77,13 @@ class VaccinationTransaction(TransactionBase):
             print("No valid input. Abort...")
             return None
 
-    def sign(self, doctor_private_key, patient_private_key):
-        """creates a signature and adds it to the transaction"""
-        # TODO Finally the patient privatekey should be given by the patient
-        self.doctorSignature = self._create_doctor_signature(doctor_private_key)
-        self.patientSignature = self._create_patient_signature(patient_private_key)
+    def _verify_doctor_signature(self, pup_key):
+        message = crypto.get_bytes(self._get_informations_for_hashing(True))
+        return crypto.verify(message, self.doctorSignature, pup_key)
+
+    def _verify_patient_signature(self, pup_key):
+        message = crypto.get_bytes(self._get_informations_for_hashing(False))
+        return crypto.verify(message, self.patientSignature, pup_key)
 
     def _get_informations_for_hashing(self, as_doctor):
         tuples = []

@@ -24,14 +24,6 @@ class VaccineTransaction(TransactionBase):
         """
         return self._verify_signature(pubKey) # TODO check other requirements
 
-    def _verify_signature(self, pupKey):
-        message = crypto.get_bytes(self.__get_informations_for_hashing())
-        return crypto.verify(message, self.signature, pupKey)
-
-    def _create_signature(self, private_key):
-        message = crypto.get_bytes(self.__get_informations_for_hashing())
-        return crypto.sign(message, private_key)
-
     def sign(self, private_key):
         """creates a signature and adds it to the transaction"""
         if self.signature:
@@ -39,7 +31,15 @@ class VaccineTransaction(TransactionBase):
             return
         self.signature = self._create_signature(private_key)
 
-    def __get_informations_for_hashing(self):
+    def _verify_signature(self, pupKey):
+        message = crypto.get_bytes(self._get_informations_for_hashing())
+        return crypto.verify(message, self.signature, pupKey)
+
+    def _create_signature(self, private_key):
+        message = crypto.get_bytes(self._get_informations_for_hashing())
+        return crypto.sign(message, private_key)
+
+    def _get_informations_for_hashing(self):
         tuples = []
         for tuple in vars(self).items():
             if tuple[0] != 'signature':
