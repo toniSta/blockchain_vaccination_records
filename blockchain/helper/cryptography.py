@@ -37,7 +37,4 @@ def verify(message, signature, public_key):
 
 
 def hexify(s):
-    if s is None:
-        return ""
-    else:
-        return s.hex()
+    return s.hex() if s else ''
