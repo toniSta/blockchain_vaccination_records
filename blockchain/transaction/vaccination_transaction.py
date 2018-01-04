@@ -86,17 +86,17 @@ class VaccinationTransaction(TransactionBase):
         return crypto.verify(message, self.patientSignature, pup_key)
 
     def _get_informations_for_hashing(self, as_doctor):
-        tuples = []
+        instance_member = []
         for tuple in vars(self).items():
             if tuple[0] != 'patientSignature':
                 if not as_doctor:
-                    tuples.append(tuple)
+                    instance_member.append(tuple)
                 if as_doctor and tuple[0] != 'doctorSignature':
-                    tuples.append(tuple)
+                    instance_member.append(tuple)
 
         return '{!s}({!s})'.format(
             type(self).__name__,
-            ', '.join(['{!s}={!r}'.format(*item) for item in tuples])
+            ', '.join(['{!s}={!r}'.format(*item) for item in instance_member])
         )
 
 

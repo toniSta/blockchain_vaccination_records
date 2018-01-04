@@ -25,18 +25,18 @@ class TransactionBase(metaclass=ABCMeta):
               Version: 0.0.1
             -----------------------
         """
-        list = []
+        instance_member_list = []
         for item in vars(self).items():
             if type(item[1]).__name__ == 'bytes':
-                list.append((item[0].title(), hexify(item[1])))
+                instance_member_list.append((item[0].title(), hexify(item[1])))
                 continue
 
-            list.append((item[0].title(), item[1]))
-        list.sort(key=lambda tup: tup[0])
+            instance_member_list.append((item[0].title(), item[1]))
+        instance_member_list.sort(key=lambda tup: tup[0])
 
         string = '-----------------------\n'
         string = string + '  Transaction: {}\n'.format(type(self).__name__)
-        for tuple in list:
+        for tuple in instance_member_list:
             string = string + '  {}: {}\n'.format(*tuple)
         string = string + '-----------------------'
         return string
@@ -48,12 +48,12 @@ class TransactionBase(metaclass=ABCMeta):
         The Class attributes will be ordered
         e.g. Class(attribute1='String', attribute2=3)
         """
-        list =[]
+        instance_member_list =[]
         for item in vars(self).items():
-            list.append(item)
-        list.sort(key=lambda tup: tup[0])
+            instance_member_list.append(item)
+        instance_member_list.sort(key=lambda tup: tup[0])
 
         return '{!s}({!s})'.format(
             type(self).__name__,
-            ', '.join(['{!s}={!r}'.format(*item) for item in list])
+            ', '.join(['{!s}={!r}'.format(*item) for item in instance_member_list])
         )

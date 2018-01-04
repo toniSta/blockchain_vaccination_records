@@ -49,13 +49,13 @@ class VaccineTransaction(TransactionBase):
         return crypto.sign(message, private_key)
 
     def _get_informations_for_hashing(self):
-        tuples = []
+        instance_member = []
         for tuple in vars(self).items():
             if tuple[0] != 'signature':
-                tuples.append(tuple)
+                instance_member.append(tuple)
         return '{!s}({!s})'.format(
             type(self).__name__,
-            ', '.join(['{!s}={!r}'.format(*item) for item in tuples])
+            ', '.join(['{!s}={!r}'.format(*item) for item in instance_member])
         )
 
 
