@@ -13,6 +13,8 @@ logger = logging.getLogger('blockchain')
 
 
 class Permission(Enum):
+    """This class represents the available permissions"""
+
     patient = "patient"
     doctor = "doctor"
     admission = "admission"
@@ -22,6 +24,7 @@ class Permission(Enum):
 
 
 class PermissionTransaction(TransactionBase):
+    """This class represents the transaction of wallet permissions"""
 
     def __init__(self, requested_permission, sender_pubkey, signature=None, **kwargs):
         logger.debug('Creating new permission transaction')
@@ -37,22 +40,22 @@ class PermissionTransaction(TransactionBase):
         self.signature = signature
 
     def _get_informations_for_hashing(self):
-        tuples = []
-        for tuple in vars(self).items():
-            if tuple[0] != 'signature':
-                tuples.append(tuple)
-        return '{!s}({!s})'.format(
-            type(self).__name__,
-            ', '.join(['{!s}={!r}'.format(*item) for item in tuples])
-        )
+        """Return a string representation of the contained data for hashing"""
+        return str({
+            'requested_permission': self.requested_permission,
+            'sender_pubkey': self.sender_pubkey,
+            'timestamp': self.timestamp,
+            'version': self.version
+        })
 
     def validate(self):
+        """Check if the transaction fulfills the requirements.
+
+        Check if signarure matches,
+        if enough positive votes were cast for an admission,
+        etc.
         """
-        checks if the transaction fulfills the requirements
-        e.g. if enough positive votes were cast for an admission,
-        signature matches, etc.
-        """
-        return self._verify_signature() # TODO check other requirements
+        return self._verify_signature()  # TODO check other requirements
 
     def _verify_signature(self):
         message = crypto.get_bytes(self._get_informations_for_hashing())
@@ -63,26 +66,8 @@ class PermissionTransaction(TransactionBase):
         return crypto.sign(message, private_key)
 
     def sign(self, private_key):
-        """creates a signature and adds it to the transaction"""
+        """Create cryptographic signature and add it to the transaction."""
         if self.signature:
-            logger.debug('Signature exists. Quit signing process.')
+            logger.debug('Signature exists. Aborting signing process.')
             return
         self.signature = self._create_signature(private_key)
-
-
-if __name__ == "__main__":
-    import os
-    PUBLIC_KEY = RSA.import_key(open(".." + os.sep + ".." + os.sep + "tests" + os.sep + "testkey_pub.bin", "rb").read())
-    PRIVATE_KEY = RSA.import_key(open(".." + os.sep + ".." + os.sep + "tests" + os.sep + "testkey_priv.bin", "rb").read())
-    trans = PermissionTransaction(requested_permission=Permission.doctor, sender_pubkey=PUBLIC_KEY, timestamp=1234, version='1')
-    print("REPRESENTATION:")
-    print(repr(trans))
-    # print(trans)
-    trans.sign(PRIVATE_KEY)
-    print("REPRESENTATION AFTER SIGNING:")
-    print(repr(trans))
-    # print(trans)
-    print("TRANSACTION VALIDATION:")
-    print(trans.validate())
-    print("EVALUATED REPRESENTATION:")
-    print(eval(repr(trans)))
