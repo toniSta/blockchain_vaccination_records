@@ -41,6 +41,6 @@ def test_find_block_by_hash(chain_with_blocks):
 
 
 def test_find_with_wrong_parameters(chain_with_blocks):
-    assert chain_with_blocks.find_block_by_hash('some random hash') is None
+    assert chain_with_blocks.find_block_by_hash("some random hash") is None
     assert chain_with_blocks.find_block_by_index(-1) is None
     assert chain_with_blocks.find_block_by_index(50) is None

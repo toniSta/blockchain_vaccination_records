@@ -11,8 +11,8 @@ def genesis():
 
 
 def test_genesis_block_header(genesis):
-    assert genesis.index == 0, 'Index of genesis must be 0'
-    assert genesis.previous_block == str(0), 'Genesis has no previous block'
+    assert genesis.index == 0, "Index of genesis must be 0"
+    assert genesis.previous_block == str(0), "Genesis has no previous block"
 
 
 def test_creation_of_successor_block(genesis):
@@ -25,7 +25,7 @@ def test_creation_of_successor_block(genesis):
 
 def test_block_creation_with_wrong_input():
     with pytest.raises(Exception):
-        Block('')
+        Block("")
     with pytest.raises(Exception):
         Block({})
 
@@ -33,8 +33,8 @@ def test_block_creation_with_wrong_input():
 @pytest.fixture()
 def new_block(genesis):
     new_block = Block(genesis.get_block_information())
-    new_block.add_transaction('tx1')
-    new_block.add_transaction('tx2')
+    new_block.add_transaction("tx1")
+    new_block.add_transaction("tx2")
     new_block.update_hash()
     yield new_block
 
