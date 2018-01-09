@@ -7,9 +7,9 @@ from blockchain.transaction.transaction import TransactionBase
 
 # Needs to be moved later
 logging.basicConfig(level=logging.DEBUG,
-                    format='[ %(asctime)s ] %(levelname)-7s %(name)-s: %(message)s',
+                    format="[ %(asctime)s ] %(levelname)-7s %(name)-s: %(message)s",
                     datefmt="%Y-%m-%d %H:%M:%S")
-logger = logging.getLogger('blockchain')
+logger = logging.getLogger("blockchain")
 
 
 class Permission(Enum):
@@ -27,12 +27,12 @@ class PermissionTransaction(TransactionBase):
     """This class represents the transaction of wallet permissions"""
 
     def __init__(self, requested_permission, sender_pubkey, signature=None, **kwargs):
-        logger.debug('Creating new permission transaction')
+        logger.debug("Creating new permission transaction")
         super(PermissionTransaction, self).__init__(
                 requested_permission=requested_permission, sender_pubkey=sender_pubkey,  signature=signature, **kwargs
         )
 
-        if type(sender_pubkey).__name__ == 'RsaKey':
+        if type(sender_pubkey).__name__ == "RsaKey":
             sender_pubkey = sender_pubkey.exportKey("DER")
 
         self.requested_permission = requested_permission
@@ -42,10 +42,10 @@ class PermissionTransaction(TransactionBase):
     def _get_informations_for_hashing(self):
         """Return a string representation of the contained data for hashing"""
         return str({
-            'requested_permission': self.requested_permission,
-            'sender_pubkey': self.sender_pubkey,
-            'timestamp': self.timestamp,
-            'version': self.version
+            "requested_permission": self.requested_permission,
+            "sender_pubkey": self.sender_pubkey,
+            "timestamp": self.timestamp,
+            "version": self.version
         })
 
     def validate(self):
@@ -68,6 +68,6 @@ class PermissionTransaction(TransactionBase):
     def sign(self, private_key):
         """Create cryptographic signature and add it to the transaction."""
         if self.signature:
-            logger.debug('Signature exists. Aborting signing process.')
+            logger.debug("Signature exists. Aborting signing process.")
             return
         self.signature = self._create_signature(private_key)
