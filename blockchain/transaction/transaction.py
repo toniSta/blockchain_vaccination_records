@@ -30,6 +30,10 @@ class TransactionBase(metaclass=ABCMeta):
             if type(item[1]).__name__ == 'bytes':
                 instance_member_list.append((item[0].title(), hexify(item[1])))
                 continue
+            if type(item[1]).__name__ == 'list':
+                hex_list = [hexify(e) for (e, _) in item[1] if type(e) == "bytes"]
+                instance_member_list.append((item[0].title(), hex_list))
+                continue
 
             instance_member_list.append((item[0].title(), item[1]))
         instance_member_list.sort(key=lambda tup: tup[0])

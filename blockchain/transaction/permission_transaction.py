@@ -26,10 +26,11 @@ class Permission(Enum):
 class PermissionTransaction(TransactionBase):
     """This class represents the transaction of wallet permissions"""
 
-    def __init__(self, requested_permission, sender_pubkey, signature=None, **kwargs):
+    def __init__(self, requested_permission, sender_pubkey, approvals=[], signature=None, **kwargs):
         logger.debug("Creating new permission transaction")
         super(PermissionTransaction, self).__init__(
-                requested_permission=requested_permission, sender_pubkey=sender_pubkey,  signature=signature, **kwargs
+                requested_permission=requested_permission, sender_pubkey=sender_pubkey,
+                approvals=approvals, signature=signature, **kwargs
         )
 
         if type(sender_pubkey).__name__ == "RsaKey":
@@ -37,6 +38,7 @@ class PermissionTransaction(TransactionBase):
 
         self.requested_permission = requested_permission
         self.sender_pubkey = sender_pubkey
+        self.approvals = approvals
         self.signature = signature
 
     def _get_informations_for_hashing(self):
@@ -44,9 +46,13 @@ class PermissionTransaction(TransactionBase):
         return str({
             "requested_permission": self.requested_permission,
             "sender_pubkey": self.sender_pubkey,
+            "approvals": self.approvals,
             "timestamp": self.timestamp,
             "version": self.version
         })
+
+    def get_permission(self):  # just for debugging
+        return self.requested_permission
 
     def validate(self):
         """Check if the transaction fulfills the requirements.
@@ -55,7 +61,36 @@ class PermissionTransaction(TransactionBase):
         if enough positive votes were cast for an admission,
         etc.
         """
-        return self._verify_signature()  # TODO check other requirements
+        if self.requested_permission == Permission.patient:
+            return self._verify_signature()
+        else:
+            return self._verify_signature() and self._validate_approvals()
+
+    def _validate_approvals(self):
+        """Validate the includeded approvals of the transaction.
+
+        Checks if a sufficient number of approvals is present,
+        if the approval signatures are valid and
+        if the approval was sent by a real admission nodes.
+        """
+        if len(self.approvals) != len(set(self.approvals)):
+            logger.debug("Transaction contains duplicate approvals.")
+            return False
+        if len(self.approvals) < 3:
+            logger.debug("Transaction does not have enough approvals.")
+            return False
+        valid_sig_approvals = [a for a in self.approvals if self._verify_approval_signature(a)]
+        if len(valid_sig_approvals) != len(self.approvals):
+            logger.debug("Transaction contains invalid approvals.")
+            return False
+        return True
+
+    def _verify_approval_signature(self, approval):
+        approving_pubkey, signature = approval
+        #print("pubkey: {}".format(approving_pubkey))
+        #bytes_pubkey = crypto.get_bytes(approving_pubkey)
+        #print("bytes_pubkey: {}".format(bytes_pubkey))
+        return crypto.verify(approving_pubkey, signature, RSA.import_key(approving_pubkey))
 
     def _verify_signature(self):
         message = crypto.get_bytes(self._get_informations_for_hashing())
@@ -71,3 +106,4 @@ class PermissionTransaction(TransactionBase):
             logger.debug("Signature exists. Aborting signing process.")
             return
         self.signature = self._create_signature(private_key)
+
