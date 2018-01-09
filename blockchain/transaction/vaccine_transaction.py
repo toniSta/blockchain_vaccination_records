@@ -5,24 +5,24 @@ from Crypto.PublicKey import RSA
 
 # Needs to be moved later
 logging.basicConfig(level=logging.DEBUG,
-                    format='[ %(asctime)s ] %(levelname)-7s %(name)-s: %(message)s',
+                    format="[ %(asctime)s ] %(levelname)-7s %(name)-s: %(message)s",
                     datefmt="%Y-%m-%d %H:%M:%S")
-logger = logging.getLogger('blockchain')
+logger = logging.getLogger("blockchain")
 
 
 class VaccineTransaction(TransactionBase):
     """This class depicts a registration of a vaccine."""
 
-    def __init__(self, vaccine, senderPubKey, signature=None, **kwargs):
+    def __init__(self, vaccine, sender_pub_key, signature=None, **kwargs):
         super(VaccineTransaction, self).__init__(
-            vaccine=vaccine, signature=signature, senderPubKey=senderPubKey, **kwargs
+            vaccine=vaccine, signature=signature, sender_pub_key=sender_pub_key, **kwargs
         )
 
-        if type(senderPubKey).__name__ == 'RsaKey':
-            senderPubKey = senderPubKey.exportKey("DER")
+        if type(sender_pub_key).__name__ == "RsaKey":
+            sender_pub_key = sender_pub_key.exportKey("DER")
 
         self.vaccine = vaccine
-        self.senderPubKey = senderPubKey
+        self.sender_pub_key = sender_pub_key
         self.signature = signature
 
     def validate(self): # TODO Where does the key come from in the future?
@@ -30,13 +30,13 @@ class VaccineTransaction(TransactionBase):
         checks if the transaction fulfills the requirements
         """
         #TODO Does the sender have permission to add vaccines?
-        in_sender_key = RSA.import_key(self.senderPubKey)
+        in_sender_key = RSA.import_key(self.sender_pub_key)
         return self._verify_signature(in_sender_key) # TODO check other requirements
 
     def sign(self, private_key):
         """creates a signature and adds it to the transaction"""
         if self.signature:
-            logger.debug('Signature exists. Quit signing process.')
+            logger.debug("Signature exists. Quit signing process.")
             return
         self.signature = self._create_signature(private_key)
 
@@ -49,21 +49,21 @@ class VaccineTransaction(TransactionBase):
         return crypto.sign(message, private_key)
 
     def _get_informations_for_hashing(self):
-        instance_member = []
-        for tuple in vars(self).items():
-            if tuple[0] != 'signature':
-                instance_member.append(tuple)
-        return '{!s}({!s})'.format(
+        string = "{}(version={}, timestamp={}, vaccine={}, sender_pub_key={})".format(
             type(self).__name__,
-            ', '.join(['{!s}={!r}'.format(*item) for item in instance_member])
+            self.version,
+            self.timestamp,
+            self.vaccine,
+            self.sender_pub_key
         )
+        return string
 
 
 if __name__ == "__main__":
     import os
     PUBLIC_KEY = RSA.import_key(open(".." + os.sep + ".." + os.sep + "tests" + os.sep + "testkey_pub.bin", "rb").read())
     PRIVATE_KEY = RSA.import_key(open(".." + os.sep + ".." + os.sep + "tests" + os.sep + "testkey_priv.bin", "rb").read())
-    trans = VaccineTransaction(vaccine='a vaccine', senderPubKey=PUBLIC_KEY, timestamp=1234, version='1')
+    trans = VaccineTransaction(vaccine="a vaccine", sender_pub_key=PUBLIC_KEY, timestamp=1234, version="1")
     print(repr(trans))
     trans.sign(PRIVATE_KEY)
     print(repr(trans))
