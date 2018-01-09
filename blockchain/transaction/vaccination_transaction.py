@@ -6,34 +6,34 @@ import sys
 
 # Needs to be moved later
 logging.basicConfig(level=logging.DEBUG,
-                    format='[ %(asctime)s ] %(levelname)-7s %(name)-s: %(message)s',
+                    format="[ %(asctime)s ] %(levelname)-7s %(name)-s: %(message)s",
                     datefmt="%Y-%m-%d %H:%M:%S")
-logger = logging.getLogger('blockchain')
+logger = logging.getLogger("blockchain")
 
 
 class VaccinationTransaction(TransactionBase):
     """This class depicts a vaccination of a patient."""
 
-    def __init__(self, doctorPubKey, patientPubKey, vaccine, doctorSignature=None, patientSignature=None, **kwargs):
+    def __init__(self, doctor_pub_key, patient_pub_key, vaccine, doctor_signature=None, patient_signature=None, **kwargs):
         super(VaccinationTransaction, self).__init__(
-            vaccine=vaccine, doctorSignature=doctorSignature, patientSignature=patientSignature, **kwargs
+            vaccine=vaccine, doctor_signature=doctor_signature, patient_signature=patient_signature, **kwargs
         )
-        if type(doctorPubKey).__name__ == 'RsaKey':
-            doctorPubKey = doctorPubKey.exportKey("DER")
-        if type(patientPubKey).__name__ == 'RsaKey':
-            patientPubKey = patientPubKey.exportKey("DER")
+        if type(doctor_pub_key).__name__ == "RsaKey":
+            doctor_pub_key = doctor_pub_key.exportKey("DER")
+        if type(patient_pub_key).__name__ == "RsaKey":
+            patient_pub_key = patient_pub_key.exportKey("DER")
 
         self.vaccine = vaccine
-        self.doctorSignature = doctorSignature
-        self.patientSignature = patientSignature
-        self.doctorPubKey = doctorPubKey
-        self.patientPubKey = patientPubKey
+        self.doctor_signature = doctor_signature
+        self.patient_signature = patient_signature
+        self.doctor_pub_key = doctor_pub_key
+        self.patient_pub_key = patient_pub_key
 
     def sign(self, doctor_private_key, patient_private_key):
         """creates a signature and adds it to the transaction"""
         # TODO Finally the patient privatekey should be given by the patient
-        self.doctorSignature = self._create_doctor_signature(doctor_private_key)
-        self.patientSignature = self._create_patient_signature(patient_private_key)
+        self.doctor_signature = self._create_doctor_signature(doctor_private_key)
+        self.patient_signature = self._create_patient_signature(patient_private_key)
 
     def validate(self): # TODO Where does the key come from in the future?
         """
@@ -41,25 +41,25 @@ class VaccinationTransaction(TransactionBase):
         """
         # TODO doctor key has doctor permission?
         # TODO vaccine is registered?
-        # TODO patient key is registered -> won't implement
-        bin_doctor_key = RSA.import_key(self.doctorPubKey)
+        # TODO patient key is registered -> won"t implement
+        bin_doctor_key = RSA.import_key(self.doctor_pub_key)
         doctor_signature = self._verify_doctor_signature(bin_doctor_key)
 
-        bin_patient_key = RSA.import_key(self.patientPubKey)
+        bin_patient_key = RSA.import_key(self.patient_pub_key)
         patient_signature = self._verify_patient_signature(bin_patient_key)
 
         return doctor_signature and patient_signature
 
     def _create_doctor_signature(self, private_key):
-        if self.doctorSignature:
-            logger.debug('Doctor signature exists. Quit signing process.')
+        if self.doctor_signature:
+            logger.debug("Doctor signature exists. Quit signing process.")
             return
         message = crypto.get_bytes(self._get_informations_for_hashing(True))
         return crypto.sign(message, private_key)
 
     def _create_patient_signature(self, private_key):
-        if self.patientSignature:
-            logger.debug('Patient signature exists. Quit signing process.')
+        if self.patient_signature:
+            logger.debug("Patient signature exists. Quit signing process.")
             return
 
         print(str(self))
@@ -67,10 +67,10 @@ class VaccinationTransaction(TransactionBase):
         reply = sys.stdin.read(1)
         reply = str(reply).lower()
 
-        if reply == 'n':
+        if reply == "n":
             print("Aborting...")
             return None
-        elif reply == 'y':
+        elif reply == "y":
             message = crypto.get_bytes(self._get_informations_for_hashing(False))
             return crypto.sign(message, private_key)
         else:
@@ -79,32 +79,34 @@ class VaccinationTransaction(TransactionBase):
 
     def _verify_doctor_signature(self, pup_key):
         message = crypto.get_bytes(self._get_informations_for_hashing(True))
-        return crypto.verify(message, self.doctorSignature, pup_key)
+        return crypto.verify(message, self.doctor_signature, pup_key)
 
     def _verify_patient_signature(self, pup_key):
         message = crypto.get_bytes(self._get_informations_for_hashing(False))
-        return crypto.verify(message, self.patientSignature, pup_key)
+        return crypto.verify(message, self.patient_signature, pup_key)
 
     def _get_informations_for_hashing(self, as_doctor):
-        instance_member = []
-        for tuple in vars(self).items():
-            if tuple[0] != 'patientSignature':
-                if not as_doctor:
-                    instance_member.append(tuple)
-                if as_doctor and tuple[0] != 'doctorSignature':
-                    instance_member.append(tuple)
-
-        return '{!s}({!s})'.format(
+        string = "{}(version={}, timestamp={}, vaccine={}, doctor_pub_key={}, patient_pub_key={}".format(
             type(self).__name__,
-            ', '.join(['{!s}={!r}'.format(*item) for item in instance_member])
+            self.version,
+            self.timestamp,
+            self.vaccine,
+            self.doctor_pub_key,
+            self.patient_pub_key
         )
+        if not as_doctor:
+            string = string + ", doctor_signature={}".format(self.doctor_signature)
+
+        string = string + ")"
+
+        return string
 
 
 if __name__ == "__main__":
     import os
     PUBLIC_KEY = RSA.import_key(open(".." + os.sep + ".." + os.sep + "tests" + os.sep + "testkey_pub.bin", "rb").read())
     PRIVATE_KEY = RSA.import_key(open(".." + os.sep + ".." + os.sep + "tests" + os.sep + "testkey_priv.bin", "rb").read())
-    trans = VaccinationTransaction(PUBLIC_KEY, PUBLIC_KEY, 'polio', timestamp=1234, version='1')
+    trans = VaccinationTransaction(PUBLIC_KEY, PUBLIC_KEY, "polio", timestamp=1234, version="1")
     print(repr(trans))
     trans.sign(PRIVATE_KEY, PRIVATE_KEY)
     print(repr(trans))
