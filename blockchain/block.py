@@ -43,7 +43,7 @@ class Block(object):
         block = CONFIG["serializaton"]["separator"].join(fields)
         block += CONFIG["serializaton"]["line_terminator"]
         for transaction in self.transactions:
-            block += transaction + CONFIG["serializaton"]["line_terminator"]
+            block += repr(transaction) + CONFIG["serializaton"]["line_terminator"]
         return block
 
     def __str__(self):
@@ -83,9 +83,9 @@ class Block(object):
         self.timestamp = header_information["timestamp"]
         # Block ends with \n. Thus, splitting by line terminator will create
         # an empty string. We have to ignore this at this point.
-        self.transactions = transactions.split(
+        transaction_list = transactions.split(
             CONFIG["serializaton"]["line_terminator"])[:-1]
-
+        self.transactions = [eval(tx) for tx in transaction_list]
         self.hash = header_information["hash"]
 
     def _from_dictionary(self, data):
