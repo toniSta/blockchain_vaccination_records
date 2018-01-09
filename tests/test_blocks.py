@@ -41,8 +41,6 @@ def new_block(genesis):
 def test_new_block_references_old_one(genesis, new_block):
     assert new_block.previous_block == genesis.hash,\
         "New block does not reference previous one"
-    assert new_block.merkle_root == genesis.merkle_root,\
-        "Merkle is always the same"
 
 
 def test_block_recreation(new_block):

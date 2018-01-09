@@ -36,8 +36,8 @@ class Block(object):
 
     def __repr__(self):
         """Create a string representation of the current block for hashing."""
-        fields = [str(self.index), self.previous_block, self.merkle_root,
-                  self.version, self.timestamp]
+        fields = [str(self.index), self.previous_block, self.version,
+                  self.timestamp]
         if self.hash != "":
             fields.append(self.hash)
         block = CONFIG["serializaton"]["separator"].join(fields)
@@ -50,12 +50,10 @@ class Block(object):
         return ("=======================\n"
                 "  Block {}\n"
                 "  Previous block: {}\n"
-                "  Merkle root: {}\n"
                 "  Number of transactions: {}\n"
                 "  hash: {}\n"
                 "=======================").format(self.index,
                                                   self.previous_block,
-                                                  self.merkle_root,
                                                   len(self.transactions),
                                                   self.hash)
 
@@ -67,7 +65,6 @@ class Block(object):
         """
         fields = ["index",
                   "previous_block",
-                  "merkle_root",
                   "version",
                   "timestamp",
                   "hash"]
@@ -78,7 +75,6 @@ class Block(object):
         assert len(fields) == len(header_information), "Wrong header format!"
         self.index = header_information["index"]
         self.previous_block = header_information["previous_block"]
-        self.merkle_root = header_information["merkle_root"]
         self.version = header_information["version"]
         self.timestamp = header_information["timestamp"]
         # Block ends with \n. Thus, splitting by line terminator will create
@@ -93,7 +89,6 @@ class Block(object):
         logger.debug("Creating new block")
         self.index = data["index"] + 1
         self.previous_block = data["hash"]
-        self.merkle_root = data["merkle_root"]
         self.version = CONFIG["version"]
         self.timestamp = str(int(time()))
         self.transactions = []
@@ -109,7 +104,6 @@ class Block(object):
             "index": self.index,
             "previous_block": self.previous_block,
             "timestamp": self.timestamp,
-            "merkle_root": self.merkle_root,
             "hash": self.hash
         }
 
@@ -135,11 +129,7 @@ class Block(object):
 def create_initial_block():
     """Create the genesis block."""
     logger.info("Creating new genesis block")
-    merkle_root = sha256()
-    # We hash the first index to get a constant merkle root
-    merkle_root.update(str(0).encode("utf-8"))
     genesis = Block({
-        "merkle_root": merkle_root.hexdigest(),
         "index": -1,
         "hash": str(0)
     })
