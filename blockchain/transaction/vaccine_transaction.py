@@ -41,9 +41,9 @@ class VaccineTransaction(TransactionBase):
         self.signature = self._create_signature(private_key)
         return self
 
-    def _verify_signature(self, pupKey):
+    def _verify_signature(self, pup_key):
         message = crypto.get_bytes(self._get_informations_for_hashing())
-        return crypto.verify(message, self.signature, pupKey)
+        return crypto.verify(message, self.signature, pup_key)
 
     def _create_signature(self, private_key):
         message = crypto.get_bytes(self._get_informations_for_hashing())

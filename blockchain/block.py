@@ -12,6 +12,7 @@ from hashlib import sha256
 from time import time
 
 from .config import CONFIG
+from blockchain.transaction import *
 
 # Needs to be moved later
 logging.basicConfig(level=logging.DEBUG,
