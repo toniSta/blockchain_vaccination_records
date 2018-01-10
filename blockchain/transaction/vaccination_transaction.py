@@ -34,6 +34,7 @@ class VaccinationTransaction(TransactionBase):
         # TODO Finally the patient privatekey should be given by the patient
         self.doctor_signature = self._create_doctor_signature(doctor_private_key)
         self.patient_signature = self._create_patient_signature(patient_private_key)
+        return self
 
     def validate(self): # TODO Where does the key come from in the future?
         """
@@ -100,15 +101,3 @@ class VaccinationTransaction(TransactionBase):
         string = string + ")"
 
         return string
-
-
-if __name__ == "__main__":
-    import os
-    PUBLIC_KEY = RSA.import_key(open(".." + os.sep + ".." + os.sep + "tests" + os.sep + "testkey_pub.bin", "rb").read())
-    PRIVATE_KEY = RSA.import_key(open(".." + os.sep + ".." + os.sep + "tests" + os.sep + "testkey_priv.bin", "rb").read())
-    trans = VaccinationTransaction(PUBLIC_KEY, PUBLIC_KEY, "polio", timestamp=1234, version="1")
-    print(repr(trans))
-    trans.sign(PRIVATE_KEY, PRIVATE_KEY)
-    print(repr(trans))
-    print(trans.validate())
-    print(eval(repr(trans)))
