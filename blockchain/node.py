@@ -1,6 +1,7 @@
 import logging
 
 import random
+from orderedset import OrderedSet
 from .block import Block
 from .chain import Chain
 from .config import CONFIG
@@ -13,7 +14,7 @@ class Node(object):
         self.nodes = [1, 2, 3]
         self.chain = Chain()
         # Transaction set needs to be implemented, right out it is just a set
-        self.transaction_set = set()
+        self.transaction_set = OrderedSet()
         self.invalid_transactions = set()
 
         # self.synchronize_blockchain()
@@ -72,4 +73,7 @@ class Node(object):
             block.persist()
 
     def _get_status_from_different_node(self, node):
+        pass
+
+    def recover_after_shutdown():
         pass
