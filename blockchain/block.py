@@ -88,7 +88,7 @@ class Block(object):
     def _from_dictionary(self, data):
         """Create a successor block based on header information."""
         logger.debug("Creating new block")
-        self.index = data["index"] + 1
+        self.index = int(data["index"]) + 1
         self.previous_block = data["hash"]
         self.version = CONFIG["version"]
         self.timestamp = str(int(time()))
