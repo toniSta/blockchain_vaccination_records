@@ -1,17 +1,27 @@
 """This file is for playing around. Feel free to alter it."""
 
 from blockchain.block import *
+from blockchain.transaction import *
+from Crypto.PublicKey import RSA
+
 
 if __name__ == "__main__":
+    with open("tests" + os.sep + "testkey_pub.bin", "rb") as public_key, open("tests" + os.sep + "testkey_priv.bin", "rb") as private_key:
+        PUBLIC_KEY = RSA.import_key(public_key.read())
+        PRIVATE_KEY = RSA.import_key(private_key.read())
     genesis = create_initial_block()
-    genesis.add_transaction("tx1")
-    genesis.add_transaction("tx2")
+    new_transaction = VaccineTransaction('a vaccine', PUBLIC_KEY).sign(PRIVATE_KEY)
+    genesis.add_transaction(new_transaction)
+    new_transaction = PermissionTransaction(Permission.doctor,PUBLIC_KEY).sign(PRIVATE_KEY)
+    genesis.add_transaction(new_transaction)
     genesis.update_hash()
     # print(repr(asd))
     genesis.persist()
+    blockchain_folder = "blockchain"
+    persistence_folder = os.path.join(blockchain_folder,
+                                      CONFIG["persistance_folder"])
+    with open(os.path.join(persistence_folder, '0'), 'r') as file:
+        recreated_block = Block(file.read())
 
-    blockstring = """0,0,5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9,0.0.1,1514293020,75b7361ae525937dac17337af4d1d82aee8bd5019c179b9e86750b7bc63f57ee
-tx1
-tx2"""
-
-    deserialize(blockstring)
+    print(genesis)
+    print(recreated_block)
