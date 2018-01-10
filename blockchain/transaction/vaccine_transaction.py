@@ -58,15 +58,3 @@ class VaccineTransaction(TransactionBase):
             self.sender_pub_key
         )
         return string
-
-
-if __name__ == "__main__":
-    import os
-    PUBLIC_KEY = RSA.import_key(open(".." + os.sep + ".." + os.sep + "tests" + os.sep + "testkey_pub.bin", "rb").read())
-    PRIVATE_KEY = RSA.import_key(open(".." + os.sep + ".." + os.sep + "tests" + os.sep + "testkey_priv.bin", "rb").read())
-    trans = VaccineTransaction(vaccine="a vaccine", sender_pub_key=PUBLIC_KEY, timestamp=1234, version="1")
-    print(repr(trans))
-    trans.sign(PRIVATE_KEY)
-    print(repr(trans))
-    print(trans.validate())
-    print(eval(repr(trans)))
