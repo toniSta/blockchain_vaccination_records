@@ -71,3 +71,4 @@ class PermissionTransaction(TransactionBase):
             logger.debug("Signature exists. Aborting signing process.")
             return
         self.signature = self._create_signature(private_key)
+        return self

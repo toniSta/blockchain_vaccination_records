@@ -34,6 +34,7 @@ class VaccinationTransaction(TransactionBase):
         # TODO Finally the patient privatekey should be given by the patient
         self.doctor_signature = self._create_doctor_signature(doctor_private_key)
         self.patient_signature = self._create_patient_signature(patient_private_key)
+        return self
 
     def validate(self): # TODO Where does the key come from in the future?
         """

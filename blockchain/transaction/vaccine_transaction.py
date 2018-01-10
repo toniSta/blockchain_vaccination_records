@@ -39,6 +39,7 @@ class VaccineTransaction(TransactionBase):
             logger.debug("Signature exists. Quit signing process.")
             return
         self.signature = self._create_signature(private_key)
+        return self
 
     def _verify_signature(self, pupKey):
         message = crypto.get_bytes(self._get_informations_for_hashing())
