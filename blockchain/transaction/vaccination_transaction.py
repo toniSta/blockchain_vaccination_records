@@ -31,9 +31,10 @@ class VaccinationTransaction(TransactionBase):
 
     def sign(self, doctor_private_key, patient_private_key):
         """creates a signature and adds it to the transaction"""
-        # TODO Finally the patient privatekey should be given by the patient
+        # TODO Finally the patient privatekey should be given by the patient. More precisely, the key shouldn't even leave the patient's device.
         self.doctor_signature = self._create_doctor_signature(doctor_private_key)
         self.patient_signature = self._create_patient_signature(patient_private_key)
+        return self
 
     def validate(self): # TODO Where does the key come from in the future?
         """
@@ -77,13 +78,13 @@ class VaccinationTransaction(TransactionBase):
             print("No valid input. Abort...")
             return None
 
-    def _verify_doctor_signature(self, pup_key):
+    def _verify_doctor_signature(self, pub_key):
         message = crypto.get_bytes(self._get_informations_for_hashing(True))
-        return crypto.verify(message, self.doctor_signature, pup_key)
+        return crypto.verify(message, self.doctor_signature, pub_key)
 
-    def _verify_patient_signature(self, pup_key):
+    def _verify_patient_signature(self, pub_key):
         message = crypto.get_bytes(self._get_informations_for_hashing(False))
-        return crypto.verify(message, self.patient_signature, pup_key)
+        return crypto.verify(message, self.patient_signature, pub_key)
 
     def _get_informations_for_hashing(self, as_doctor):
         string = "{}(version={}, timestamp={}, vaccine={}, doctor_pub_key={}, patient_pub_key={}".format(
@@ -100,15 +101,3 @@ class VaccinationTransaction(TransactionBase):
         string = string + ")"
 
         return string
-
-
-if __name__ == "__main__":
-    import os
-    PUBLIC_KEY = RSA.import_key(open(".." + os.sep + ".." + os.sep + "tests" + os.sep + "testkey_pub.bin", "rb").read())
-    PRIVATE_KEY = RSA.import_key(open(".." + os.sep + ".." + os.sep + "tests" + os.sep + "testkey_priv.bin", "rb").read())
-    trans = VaccinationTransaction(PUBLIC_KEY, PUBLIC_KEY, "polio", timestamp=1234, version="1")
-    print(repr(trans))
-    trans.sign(PRIVATE_KEY, PRIVATE_KEY)
-    print(repr(trans))
-    print(trans.validate())
-    print(eval(repr(trans)))

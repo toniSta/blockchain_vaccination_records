@@ -39,10 +39,11 @@ class VaccineTransaction(TransactionBase):
             logger.debug("Signature exists. Quit signing process.")
             return
         self.signature = self._create_signature(private_key)
+        return self
 
-    def _verify_signature(self, pupKey):
+    def _verify_signature(self, pub_key):
         message = crypto.get_bytes(self._get_informations_for_hashing())
-        return crypto.verify(message, self.signature, pupKey)
+        return crypto.verify(message, self.signature, pub_key)
 
     def _create_signature(self, private_key):
         message = crypto.get_bytes(self._get_informations_for_hashing())
@@ -57,15 +58,3 @@ class VaccineTransaction(TransactionBase):
             self.sender_pub_key
         )
         return string
-
-
-if __name__ == "__main__":
-    import os
-    PUBLIC_KEY = RSA.import_key(open(".." + os.sep + ".." + os.sep + "tests" + os.sep + "testkey_pub.bin", "rb").read())
-    PRIVATE_KEY = RSA.import_key(open(".." + os.sep + ".." + os.sep + "tests" + os.sep + "testkey_priv.bin", "rb").read())
-    trans = VaccineTransaction(vaccine="a vaccine", sender_pub_key=PUBLIC_KEY, timestamp=1234, version="1")
-    print(repr(trans))
-    trans.sign(PRIVATE_KEY)
-    print(repr(trans))
-    print(trans.validate())
-    print(eval(repr(trans)))
