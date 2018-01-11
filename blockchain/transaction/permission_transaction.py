@@ -51,9 +51,6 @@ class PermissionTransaction(TransactionBase):
             "version": self.version
         })
 
-    def get_permission(self):  # just for debugging
-        return self.requested_permission
-
     def validate(self):
         """Check if the transaction fulfills the requirements.
 
