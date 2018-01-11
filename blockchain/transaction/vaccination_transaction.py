@@ -31,7 +31,7 @@ class VaccinationTransaction(TransactionBase):
 
     def sign(self, doctor_private_key, patient_private_key):
         """creates a signature and adds it to the transaction"""
-        # TODO Finally the patient privatekey should be given by the patient
+        # TODO Finally the patient privatekey should be given by the patient. More precisely, the key shouldn't even leave the patient's device.
         self.doctor_signature = self._create_doctor_signature(doctor_private_key)
         self.patient_signature = self._create_patient_signature(patient_private_key)
         return self
