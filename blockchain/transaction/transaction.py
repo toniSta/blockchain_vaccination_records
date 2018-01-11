@@ -30,9 +30,23 @@ class TransactionBase(metaclass=ABCMeta):
             if type(item[1]).__name__ == "bytes":
                 instance_member_list.append((item[0].title(), hexify(item[1])))
                 continue
+
             if type(item[1]).__name__ == "list":
-                hex_list = [hexify(e) for (e, _) in item[1] if type(e) == "bytes"]
-                instance_member_list.append((item[0].title(), hex_list))
+                modified_list = []
+                for list_elem in item[1]:
+                    if type(list_elem).__name__ == "tuple":
+                        modified_tuple = []
+                        for tuple_elem in list_elem:
+                            if type(tuple_elem).__name__ == "bytes":
+                                bytes_tuple_elem = hexify(tuple_elem)
+                                modified_tuple.append(bytes_tuple_elem)
+                            else:
+                                modified_tuple.append(tuple_elem)
+                        new_tuple = tuple(modified_tuple)
+                        modified_list.append(new_tuple)
+                    else:
+                        modified_list.append(list_elem)
+                instance_member_list.append((item[0].title(), modified_list))
                 continue
 
             instance_member_list.append((item[0].title(), item[1]))
@@ -40,8 +54,8 @@ class TransactionBase(metaclass=ABCMeta):
 
         string = "-----------------------\n"
         string = string + "  Transaction: {}\n".format(type(self).__name__)
-        for tuple in instance_member_list:
-            string = string + "  {}: {}\n".format(*tuple)
+        for tuple_member in instance_member_list:
+            string = string + "  {}: {}\n".format(*tuple_member)
         string = string + "-----------------------"
         return string
 
