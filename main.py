@@ -2,11 +2,32 @@
 
 from blockchain.block import *
 from blockchain.chain import Chain
+from blockchain.node import Node
 from blockchain.transaction import *
 from Crypto.PublicKey import RSA
+import requests
 
 
 if __name__ == "__main__":
+
+    response = requests.get('http://127.0.0.1:9001/latest_block')
+    resp_json = response.json()
+
+    print("Block index is:" + str(resp_json["index"]))
+    print("Block hash is:" + resp_json["hash"])
+
+    with open("tests" + os.sep + "testkey_pub.bin", "rb") as public_key, open("tests" + os.sep + "testkey_priv.bin", "rb") as private_key:
+        PUBLIC_KEY = RSA.import_key(public_key.read())
+        PRIVATE_KEY = RSA.import_key(private_key.read())
+    new_transaction = VaccineTransaction("a vaccine", PUBLIC_KEY).sign(PRIVATE_KEY)
+    requests.post('http://127.0.0.1:9001/new_transaction', data=repr(new_transaction))
+
+    node = Node()
+    node.synchronize_blockchain()
+
+
+
+def blocks():
     with open("tests" + os.sep + "testkey_pub.bin", "rb") as public_key, open("tests" + os.sep + "testkey_priv.bin", "rb") as private_key:
         PUBLIC_KEY = RSA.import_key(public_key.read())
         PRIVATE_KEY = RSA.import_key(private_key.read())

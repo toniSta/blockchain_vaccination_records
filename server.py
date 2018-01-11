@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request
 import os
 
 from blockchain.node import Node
@@ -9,27 +9,20 @@ node = Node()
 
 @app.route('/new_block', methods=['POST'])
 def new_block():
-    import pdb; pdb.set_trace()
     return "Hello World!"
 
 
 @app.route('/new_transaction', methods=['POST'])
 def new_transaction():
-    import pdb; pdb.set_trace()
-    return "Hello World!"
+    new_transaction = request.data
+    node.handle_new_transaction(new_transaction)
+    return "success"
 
 
 @app.route('/latest_block', methods=['GET'])
 def latest_block():
     block = node.chain.last_block()
-    response = {
-        "index": block.index,
-        "hash": block.hash
-    }
-    return jsonify(response)
-
-
-# requests.get('https://api.github.com/events')
+    return repr(block)
 
 
 if __name__ == '__main__':
