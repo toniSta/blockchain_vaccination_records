@@ -12,6 +12,7 @@ from hashlib import sha256
 from time import time
 
 from .config import CONFIG
+from blockchain.transaction import *
 
 # Needs to be moved later
 logging.basicConfig(level=logging.DEBUG,
@@ -87,7 +88,7 @@ class Block(object):
     def _from_dictionary(self, data):
         """Create a successor block based on header information."""
         logger.debug("Creating new block")
-        self.index = data["index"] + 1
+        self.index = int(data["index"]) + 1
         self.previous_block = data["hash"]
         self.version = CONFIG["version"]
         self.timestamp = str(int(time()))
@@ -134,4 +135,5 @@ def create_initial_block():
         "hash": str(0)
     })
     genesis.update_hash()
+    genesis.persist()
     return genesis
