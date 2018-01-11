@@ -78,13 +78,13 @@ class VaccinationTransaction(TransactionBase):
             print("No valid input. Abort...")
             return None
 
-    def _verify_doctor_signature(self, pup_key):
+    def _verify_doctor_signature(self, pub_key):
         message = crypto.get_bytes(self._get_informations_for_hashing(True))
-        return crypto.verify(message, self.doctor_signature, pup_key)
+        return crypto.verify(message, self.doctor_signature, pub_key)
 
-    def _verify_patient_signature(self, pup_key):
+    def _verify_patient_signature(self, pub_key):
         message = crypto.get_bytes(self._get_informations_for_hashing(False))
-        return crypto.verify(message, self.patient_signature, pup_key)
+        return crypto.verify(message, self.patient_signature, pub_key)
 
     def _get_informations_for_hashing(self, as_doctor):
         string = "{}(version={}, timestamp={}, vaccine={}, doctor_pub_key={}, patient_pub_key={}".format(
