@@ -87,9 +87,6 @@ class PermissionTransaction(TransactionBase):
 
     def _verify_approval_signature(self, approval):
         approving_pubkey, signature = approval
-        #print("pubkey: {}".format(approving_pubkey))
-        #bytes_pubkey = crypto.get_bytes(approving_pubkey)
-        #print("bytes_pubkey: {}".format(bytes_pubkey))
         return crypto.verify(approving_pubkey, signature, RSA.import_key(approving_pubkey))
 
     def _verify_signature(self):
