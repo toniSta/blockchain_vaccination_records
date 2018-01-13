@@ -7,10 +7,10 @@ import blockchain.helper.cryptography as crypto
 
 class TransactionBase(metaclass=ABCMeta):
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, signature=None, *args, **kwargs):
         self.version = kwargs.get("version") or CONFIG["version"]
         self.timestamp = kwargs.get("timestamp") or int(time())
-        self.signature = None
+        self.signature = signature
 
     @abstractmethod
     def validate(self):
@@ -31,7 +31,6 @@ class TransactionBase(metaclass=ABCMeta):
     def sign(self, private_key):
         """Create cryptographic signature and add it to the transaction."""
         if self.signature:
-            #logger.debug("Signature exists. Aborting signing process.")
             return
         self.signature = self._create_signature(private_key)
         return self
@@ -50,6 +49,9 @@ class TransactionBase(metaclass=ABCMeta):
         """
         instance_member_list = []
         for item in vars(self).items():
+            if item[1] == None and "signature" not in item[0]:
+                continue
+
             if type(item[1]).__name__ == "bytes":
                 instance_member_list.append((item[0].title(), hexify(item[1])))
                 continue

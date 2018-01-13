@@ -24,14 +24,7 @@ class Permission(Enum):
 
 
 class PermissionTransaction(TransactionBase):
-    """This class represents the transaction of wallet permissions
-    def __init__(self, requested_permission, sender_pubkey, approvals=[], signature=None, **kwargs):
-        logger.debug("Creating new permission transaction")
-        super(PermissionTransaction, self).__init__(
-                requested_permission=requested_permission, sender_pubkey=sender_pubkey,
-                approvals=approvals, signature=signature, **kwargs
-        )
-    """
+    """This class represents the transaction of wallet permissions"""
     def __init__(self, requested_permission, sender_pubkey, approvals=[], **kwargs):
         logger.debug("Creating new permission transaction")
         super(PermissionTransaction, self).__init__(

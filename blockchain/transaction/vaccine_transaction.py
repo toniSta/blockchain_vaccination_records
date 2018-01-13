@@ -13,16 +13,16 @@ logger = logging.getLogger("blockchain")
 class VaccineTransaction(TransactionBase):
     """This class depicts a registration of a vaccine."""
 
-    def __init__(self, vaccine, sender_pub_key, signature=None, **kwargs):
+    def __init__(self, vaccine, sender_pubkey, signature=None, **kwargs):
         super(VaccineTransaction, self).__init__(
-            vaccine=vaccine, signature=signature, sender_pub_key=sender_pub_key, **kwargs
+            vaccine=vaccine, signature=signature, sender_pubkey=sender_pubkey, **kwargs
         )
 
-        if type(sender_pub_key).__name__ == "RsaKey":
-            sender_pub_key = sender_pub_key.exportKey("DER")
+        if type(sender_pubkey).__name__ == "RsaKey":
+            sender_pubkey = sender_pubkey.exportKey("DER")
 
         self.vaccine = vaccine
-        self.sender_pub_key = sender_pub_key
+        self.sender_pubkey = sender_pubkey
         self.signature = signature
 
     def validate(self): # TODO Where does the key come from in the future?
@@ -30,7 +30,7 @@ class VaccineTransaction(TransactionBase):
         checks if the transaction fulfills the requirements
         """
         #TODO Does the sender have permission to add vaccines?
-        in_sender_key = RSA.import_key(self.sender_pub_key)
+        in_sender_key = RSA.import_key(self.sender_pubkey)
         return self._verify_signature(in_sender_key) # TODO check other requirements
 
     def sign(self, private_key):
@@ -55,6 +55,6 @@ class VaccineTransaction(TransactionBase):
             self.version,
             self.timestamp,
             self.vaccine,
-            self.sender_pub_key
+            self.sender_pubkey
         )
         return string
