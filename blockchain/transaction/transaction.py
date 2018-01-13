@@ -2,16 +2,39 @@ from abc import ABCMeta, abstractmethod
 from blockchain.config import CONFIG
 from blockchain.helper.cryptography import hexify
 from time import time
+from Crypto.PublicKey import RSA
+import blockchain.helper.cryptography as crypto
 
 class TransactionBase(metaclass=ABCMeta):
 
     def __init__(self, *args, **kwargs):
         self.version = kwargs.get("version") or CONFIG["version"]
         self.timestamp = kwargs.get("timestamp") or int(time())
+        self.signature = None
 
     @abstractmethod
     def validate(self):
         raise NotImplementedError("Transaction must offer a validity check")
+
+    @abstractmethod
+    def _get_informations_for_hashing(self):
+        raise NotImplementedError("Transaction must offer informations to be hashable")
+
+    def _create_signature(self, private_key):
+        message = crypto.get_bytes(self._get_informations_for_hashing())
+        return crypto.sign(message, private_key)
+
+    def _verify_signature(self):
+        message = crypto.get_bytes(self._get_informations_for_hashing())
+        return crypto.verify(message, self.signature, RSA.import_key(self.sender_pubkey))
+
+    def sign(self, private_key):
+        """Create cryptographic signature and add it to the transaction."""
+        if self.signature:
+            #logger.debug("Signature exists. Aborting signing process.")
+            return
+        self.signature = self._create_signature(private_key)
+        return self
 
     def __str__(self):
         """
