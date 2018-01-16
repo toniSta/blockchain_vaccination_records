@@ -6,8 +6,10 @@ FROM python:3.6
 WORKDIR /app
 
 # Copy the current directory contents into the container at /app
-ADD . /app
+COPY blockchain blockchain
+COPY requirements.txt .
+COPY server.py .
 
 RUN pip install --trusted-host pypi.python.org -r requirements.txt
 
-CMD bash
+CMD python server.py
