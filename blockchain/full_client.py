@@ -9,8 +9,8 @@ from .config import CONFIG
 from .transaction import *
 
 
-class Node(object):
-    """docstring for Node"""
+class FullClient(object):
+    """docstring for FullClient"""
     def __init__(self):
         # Mock nodes by hard coding
         self.nodes = ["http://127.0.0.1:9000"]

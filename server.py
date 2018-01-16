@@ -1,10 +1,10 @@
 from flask import Flask, request
 import os
 
-from blockchain.node import Node
+from blockchain.full_client import FullClient
 
 app = Flask(__name__)
-node = Node()
+full_client = FullClient()
 
 
 @app.route('/new_block', methods=['POST'])
@@ -15,13 +15,13 @@ def new_block():
 @app.route('/new_transaction', methods=['POST'])
 def new_transaction():
     new_transaction = request.data
-    node.handle_new_transaction(new_transaction)
+    full_client.handle_new_transaction(new_transaction)
     return "success"
 
 
 @app.route('/latest_block', methods=['GET'])
 def latest_block():
-    block = node.chain.last_block()
+    block = full_client.chain.last_block()
     return repr(block)
 
 
