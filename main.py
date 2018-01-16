@@ -6,24 +6,34 @@ from blockchain.full_client import FullClient
 from blockchain.transaction import *
 from Crypto.PublicKey import RSA
 import requests
+import logging
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.DEBUG,
+                        format="[ %(asctime)s ] %(levelname)-7s %(name)-s: %(message)s",
+                        datefmt="%Y-%m-%d %H:%M:%S")
+    logger = logging.getLogger("blockchain")
 
-    response = requests.get('http://127.0.0.1:9000/latest_block')
+    neighbors_list = os.getenv('NEIGHBORS_HOST_PORT')
+    neighbors_list = map(str.strip, neighbors_list.split(","))
+    nodes = ["http://" + neighbor for neighbor in neighbors_list]
+
+    response = requests.get(nodes[0] + '/latest_block')
+
     content = response.text
 
     block = Block(content)
 
 
-    print("Block index is:" + str(block.index))
-    print("Block hash is:" + block.hash)
+    logger.info("Block index is:" + str(block.index))
+    logger.info("Block hash is:" + block.hash)
 
     with open("tests" + os.sep + "testkey_pub.bin", "rb") as public_key, open("tests" + os.sep + "testkey_priv.bin", "rb") as private_key:
         PUBLIC_KEY = RSA.import_key(public_key.read())
         PRIVATE_KEY = RSA.import_key(private_key.read())
     new_transaction = VaccineTransaction("a vaccine", PUBLIC_KEY).sign(PRIVATE_KEY)
-    requests.post('http://127.0.0.1:9000/new_transaction', data=repr(new_transaction))
+    requests.post(nodes[0] + '/new_transaction', data=repr(new_transaction))
 
     full_client = FullClient()
     full_client.synchronize_blockchain()
