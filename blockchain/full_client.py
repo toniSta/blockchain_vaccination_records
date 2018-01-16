@@ -2,6 +2,7 @@ import logging
 
 import random
 import requests
+import os
 from orderedset import OrderedSet
 from .block import Block
 from .chain import Chain
@@ -13,7 +14,12 @@ class FullClient(object):
     """docstring for FullClient"""
     def __init__(self):
         # Mock nodes by hard coding
-        self.nodes = ["http://127.0.0.1:9000"]
+        if os.getenv('NEIGHBORS_HOST_PORT'):
+            neighbors_list = os.getenv('NEIGHBORS_HOST_PORT')
+            neighbors_list = map(str.strip, neighbors_list.split(","))
+            self.nodes = ["http://" + neighbor for neighbor in neighbors_list]
+        else:
+            self.nodes = ["http://127.0.0.1:9000"]
         self.chain = Chain()
         # Transaction set needs to be implemented, right out it is just a set
         self.transaction_set = OrderedSet()

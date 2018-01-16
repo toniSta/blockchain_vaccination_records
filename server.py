@@ -27,6 +27,6 @@ def latest_block():
 
 if __name__ == '__main__':
     port = 9000
-    if os.getenv('PORT'):
-        port = int(os.getenv('PORT'))
+    if os.getenv('SERVER_PORT'):
+        port = int(os.getenv('SERVER_PORT'))
     app.run(port=port)

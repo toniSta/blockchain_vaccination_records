@@ -12,4 +12,9 @@ COPY server.py .
 
 RUN pip install --trusted-host pypi.python.org -r requirements.txt
 
+VOLUME ["/app/blockchain/blockchain_files"]
+
+ENV SERVER_PORT 9000
+ENV NEIGHBORS_HOST_PORT 127.0.0.1:9000
+
 CMD python server.py
