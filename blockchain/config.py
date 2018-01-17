@@ -8,5 +8,5 @@ CONFIG = {
         "separator": ",",
         "line_terminator": "\n"
     },
-    "BLOCK_SIZE": 1024,
+    'block_size': 1024,
 }

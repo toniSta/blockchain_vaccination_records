@@ -74,7 +74,7 @@ class Block(object):
         header_content = header.split(CONFIG["serializaton"]["separator"])
         header_information = dict(zip(fields, header_content))
         assert len(fields) == len(header_information), "Wrong header format!"
-        self.index = header_information["index"]
+        self.index = int(header_information["index"])
         self.previous_block = header_information["previous_block"]
         self.version = header_information["version"]
         self.timestamp = header_information["timestamp"]

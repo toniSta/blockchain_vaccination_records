@@ -6,8 +6,6 @@ FROM python:3.6
 WORKDIR /app
 
 # Copy the current directory contents into the container at /app
-ADD . /app
+COPY ./requirements.txt .
 
 RUN pip install --trusted-host pypi.python.org -r requirements.txt
-
-CMD bash

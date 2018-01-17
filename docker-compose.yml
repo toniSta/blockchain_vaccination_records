@@ -1,0 +1,23 @@
+version: '3.0'
+
+services:
+  full_client1:
+    build:
+      context: .
+      dockerfile: Full_Client.Dockerfile
+    volumes:
+      - ./blockchain/blockchain_files:/app/blockchain/blockchain_files
+    environment:
+      SERVER_PORT: 9000
+      NEIGHBORS_HOST_PORT: 127.0.0.1:9000
+    ports:
+      - "9000"
+
+  main_test:
+    build:
+      context: .
+      dockerfile: main_test.Dockerfile
+    environment:
+      NEIGHBORS_HOST_PORT: full_client1:9000
+    depends_on:
+      - full_client1
