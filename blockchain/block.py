@@ -114,9 +114,7 @@ class Block(object):
 
     def persist(self):
         """Write the block into a file for persistency."""
-        blockchain_folder = "blockchain"
-        persistence_folder = os.path.join(blockchain_folder,
-                                          CONFIG["persistance_folder"])
+        persistence_folder = CONFIG["persistance_folder"]
         os.makedirs(persistence_folder, exist_ok=True)
         file_path = os.path.join(persistence_folder, str(self.index))
         with open(file_path, "w") as block_file:

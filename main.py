@@ -49,10 +49,7 @@ def blocks():
     new_block.persist()
 
     # read file from disk
-    blockchain_folder = "blockchain"
-    persistence_folder = os.path.join(blockchain_folder,
-                                      CONFIG["persistance_folder"])
-    with open(os.path.join(persistence_folder, "1"), "r") as file:
+    with open(os.path.join(CONFIG["persistance_folder"], "1"), "r") as file:
         recreated_block = Block(file.read())
 
     print(chain.find_block_by_index(0))

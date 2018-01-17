@@ -8,16 +8,16 @@ class Chain(object):
 
     __instance = None
 
-    def __new__(cls):
+    def __new__(cls, pub_key):
         """Create a singleton instance of the chain."""
         if not Chain.__instance:
             logging.info("Creating initial chain")
             Chain.__instance = object.__new__(cls)
         return Chain.__instance
 
-    def __init__(self):
+    def __init__(self, pub_key):
         """Create initial chain with genesis block."""
-        self.chain = [create_initial_block()]
+        self.chain = [create_initial_block(pub_key)]
 
     def add_block(self, block):
         """Add a block to the blockchain."""

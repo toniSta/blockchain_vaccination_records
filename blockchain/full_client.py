@@ -14,7 +14,8 @@ class FullClient(object):
     def __init__(self):
         # Mock nodes by hard coding
         self.nodes = ["http://127.0.0.1:9000"]
-        self.chain = Chain()
+        self.public_key = "123"
+        self.chain = Chain(self.public_key)
         # Transaction set needs to be implemented, right out it is just a set
         self.transaction_set = OrderedSet()
         self.invalid_transactions = set()
