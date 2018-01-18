@@ -2,11 +2,10 @@ from blockchain.block import Block, create_initial_block
 
 import pytest
 
-PUBLIC_KEY = "123"
 
 @pytest.fixture()
 def genesis():
-    genesis = create_initial_block(PUBLIC_KEY)
+    genesis = create_initial_block()
     yield genesis
 
 
@@ -16,7 +15,7 @@ def test_genesis_block_header(genesis):
 
 
 def test_creation_of_successor_block(genesis):
-    assert Block(genesis.get_block_information(), PUBLIC_KEY),\
+    assert Block(genesis.get_block_information()),\
         "Error at creation of successor block"
     with pytest.raises(Exception) as excinfo:
         Block(tuple())
@@ -32,7 +31,7 @@ def test_block_creation_with_wrong_input():
 
 @pytest.fixture()
 def new_block(genesis):
-    new_block = Block(genesis.get_block_information(), PUBLIC_KEY)
+    new_block = Block(genesis.get_block_information())
     new_block.add_transaction("tx1")
     new_block.add_transaction("tx2")
     new_block.update_hash()
