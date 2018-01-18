@@ -3,17 +3,23 @@ import logging
 import random
 import requests
 from transaction_set import TransactionSet
+import os
 from .block import Block
 from .chain import Chain
 from .config import CONFIG
 from .transaction import *
 
 
-class Node(object):
-    """docstring for Node"""
+class FullClient(object):
+    """docstring for FullClient"""
     def __init__(self):
         # Mock nodes by hard coding
-        self.nodes = ["http://127.0.0.1:9000"]
+        if os.getenv('NEIGHBORS_HOST_PORT'):
+            neighbors_list = os.getenv('NEIGHBORS_HOST_PORT')
+            neighbors_list = map(str.strip, neighbors_list.split(","))
+            self.nodes = ["http://" + neighbor for neighbor in neighbors_list]
+        else:
+            self.nodes = ["http://127.0.0.1:9000"]
         self.chain = Chain()
         self.transaction_set = TransactionSet()
         self.invalid_transactions = set()
