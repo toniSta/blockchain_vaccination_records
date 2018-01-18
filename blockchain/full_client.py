@@ -2,16 +2,11 @@ import logging
 import os
 import random
 import requests
-<<<<<<< HEAD
 import sched
 import time
 from threading import Thread
-from orderedset import OrderedSet
 
-=======
 from transaction_set import TransactionSet
-import os
->>>>>>> master
 from .block import Block
 from .chain import Chain
 from .config import CONFIG
