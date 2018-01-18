@@ -14,22 +14,20 @@ from time import time
 from .config import CONFIG
 from blockchain.transaction import *
 
-# Needs to be moved later
-logging.basicConfig(level=logging.DEBUG,
-                    format="[ %(asctime)s ] %(levelname)-7s %(name)-s: %(message)s",
-                    datefmt="%Y-%m-%d %H:%M:%S")
 logger = logging.getLogger("blockchain")
 
 
 class Block(object):
     """This class represents a block in the blockchain."""
 
-    def __init__(self, data):
+    def __init__(self, data, public_key=None):
         # data object can be:
         #   1. header information of the previous block
         #   2. string representation of a block
         if type(data) == dict:
             self._from_dictionary(data)
+            assert public_key
+            self.public_key = public_key.exportKey("DER").hex()
         elif type(data) == str:
             self._from_string(data)
         else:
@@ -38,7 +36,7 @@ class Block(object):
     def __repr__(self):
         """Create a string representation of the current block for hashing."""
         fields = [str(self.index), self.previous_block, self.version,
-                  self.timestamp]
+                  self.timestamp, self.public_key]
         if self.hash != "":
             fields.append(self.hash)
         block = CONFIG["serializaton"]["separator"].join(fields)
@@ -52,10 +50,12 @@ class Block(object):
                 "  Block {}\n"
                 "  Previous block: {}\n"
                 "  Number of transactions: {}\n"
+                "  Public key: {}\n"
                 "  hash: {}\n"
                 "=======================").format(self.index,
                                                   self.previous_block,
                                                   len(self.transactions),
+                                                  self.public_key,
                                                   self.hash)
 
     def _from_string(self, data):
@@ -68,6 +68,7 @@ class Block(object):
                   "previous_block",
                   "version",
                   "timestamp",
+                  "public_key",
                   "hash"]
         header, transactions = data.split(
             CONFIG["serializaton"]["line_terminator"], 1)
@@ -78,6 +79,7 @@ class Block(object):
         self.previous_block = header_information["previous_block"]
         self.version = header_information["version"]
         self.timestamp = header_information["timestamp"]
+        self.public_key = header_information["public_key"]
         # Block ends with \n. Thus, splitting by line terminator will create
         # an empty string. We have to ignore this at this point.
         transaction_list = transactions.split(
@@ -110,9 +112,7 @@ class Block(object):
 
     def persist(self):
         """Write the block into a file for persistency."""
-        blockchain_folder = "blockchain"
-        persistence_folder = os.path.join(blockchain_folder,
-                                          CONFIG["persistance_folder"])
+        persistence_folder = CONFIG["persistance_folder"]
         os.makedirs(persistence_folder, exist_ok=True)
         file_path = os.path.join(persistence_folder, str(self.index))
         with open(file_path, "w") as block_file:
@@ -126,14 +126,18 @@ class Block(object):
         self.hash = sha.hexdigest()
         logger.debug("Finished creation of block:\n{}".format(str(self)))
 
+    def validate(self):
+        # TODO: implement block validation
+        return True
 
-def create_initial_block():
+
+def create_initial_block(public_key):
     """Create the genesis block."""
     logger.info("Creating new genesis block")
     genesis = Block({
         "index": -1,
         "hash": str(0)
-    })
+    }, public_key)
     genesis.update_hash()
     genesis.persist()
     return genesis
