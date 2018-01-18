@@ -6,7 +6,7 @@ import sched
 import time
 from threading import Thread
 
-from transaction_set import TransactionSet
+from .transaction_set import TransactionSet
 from .block import Block
 from .chain import Chain
 from .config import CONFIG
