@@ -49,9 +49,6 @@ class TransactionBase(metaclass=ABCMeta):
         """
         instance_member_list = []
         for item in vars(self).items():
-            if item[1] == None and "signature" not in item[0]:
-                continue
-
             if type(item[1]).__name__ == "bytes":
                 instance_member_list.append((item[0].title(), hexify(item[1])))
                 continue
