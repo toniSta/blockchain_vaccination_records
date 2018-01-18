@@ -135,4 +135,5 @@ def create_initial_block():
         "hash": str(0)
     })
     genesis.update_hash()
+    genesis.persist()
     return genesis
