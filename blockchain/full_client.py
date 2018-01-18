@@ -3,6 +3,9 @@ import os
 
 import random
 import requests
+import sched
+import time
+from threading import Thread
 from orderedset import OrderedSet
 from .block import Block
 from .chain import Chain
@@ -12,6 +15,7 @@ from .helper.cryptography import generate_keypair
 from Crypto.PublicKey import RSA
 
 logger = logging.getLogger("client")
+scheduler = sched.scheduler(time.time, time.sleep)
 
 
 class FullClient(object):
@@ -19,14 +23,35 @@ class FullClient(object):
     def __init__(self):
         # Mock nodes by hard coding
         self.nodes = ["http://127.0.0.1:9000"]
-        # self._setup_public_key()
-        # self.chain = Chain(self.public_key.exportKey("DER"))
-        self.chain = Chain("asd")
-        # Transaction set needs to be implemented, right out it is just a set
+        self._setup_public_key()
+
+        self.chain = Chain(self.public_key)
+
         self.transaction_set = OrderedSet()
         self.invalid_transactions = set()
 
         self.recover_after_shutdown()
+        self._start_runner()
+
+    def _start_runner(self):
+        """Spawn thread for block creation."""
+        thread = Thread(target=self._schedule)
+        thread.start()
+
+    def _schedule(self):
+        """Start scheduler."""
+        scheduler.enter(CONFIG["block_time"], 1, self._create_block, (scheduler,))
+        scheduler.run()
+
+    def _create_block(self, sc):
+        """Create block and schedule next event."""
+        self.determine_block_creation_node()
+        scheduler.enter(CONFIG["block_time"], 1, self._create_block, (sc,))
+
+    def determine_block_creation_node(self):
+        # TODO: implement node selection algorithm
+        new_block = self.create_next_block()
+        self.submit_block(new_block)
 
     def _setup_public_key(self):
         """Create new key pair if necessary.
@@ -40,15 +65,15 @@ class FullClient(object):
             os.makedirs(CONFIG["key_folder"], exist_ok=True)
 
             logger.info("Generating new public/private key pair")
-            public_key, private_key = generate_keypair()
+            self.public_key, self.private_key = generate_keypair()
 
             path = os.path.join(key_folder, CONFIG["key_file_names"][0])
             with open(path, "wb") as key_file:
-                key_file.write(public_key.exportKey())
+                key_file.write(self.public_key.exportKey())
 
             path = os.path.join(key_folder, CONFIG["key_file_names"][1])
             with open(path, "wb") as key_file:
-                key_file.write(private_key.exportKey())
+                key_file.write(self.private_key.exportKey())
 
         elif set(os.listdir(key_folder)) != set(CONFIG["key_file_names"]):
             # One key is missing
@@ -94,7 +119,7 @@ class FullClient(object):
 
     def create_next_block(self):
         new_block = Block(self.chain.last_block().get_block_information(),
-                          self.public_key.exportKey().decode("UTF-8"))
+                          self.public_key)
 
         for _ in range(CONFIG["block_size"]):
             if len(self.transaction_set):
@@ -112,7 +137,7 @@ class FullClient(object):
     def submit_block(self, block):
         if block.validate():
             self.chain.add_block(block)
-            self._broadcast_new_block(block)
+            # self._broadcast_new_block()
             block.persist()
         else:
             # TODO: define behaviour

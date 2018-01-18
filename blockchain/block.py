@@ -27,7 +27,7 @@ class Block(object):
         if type(data) == dict:
             self._from_dictionary(data)
             assert public_key
-            self.public_key = public_key
+            self.public_key = public_key.exportKey("DER").hex()
         elif type(data) == str:
             self._from_string(data)
         else:
@@ -50,10 +50,12 @@ class Block(object):
                 "  Block {}\n"
                 "  Previous block: {}\n"
                 "  Number of transactions: {}\n"
+                "  Public key: {}\n"
                 "  hash: {}\n"
                 "=======================").format(self.index,
                                                   self.previous_block,
                                                   len(self.transactions),
+                                                  self.public_key,
                                                   self.hash)
 
     def _from_string(self, data):

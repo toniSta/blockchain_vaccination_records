@@ -9,6 +9,8 @@ CONFIG = {
         "line_terminator": "\n"
     },
     "block_size": 1024,
+    # Create a block every n seconds
+    "block_time": 5,
     "key_folder": "blockchain/keys",
     "key_file_names": ["public_key.bin", "private_key.bin"]
 }

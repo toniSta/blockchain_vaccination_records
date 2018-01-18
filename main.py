@@ -8,10 +8,31 @@ from Crypto.PublicKey import RSA
 import requests
 
 
+import sched, time
+from threading import Thread
+
+s = sched.scheduler(time.time, time.sleep)
+
+def do_something(sc): 
+    print("Doing stuff...")
+    # do your stuff
+    s.enter(1, 1, do_something, (sc,))
+
+
+
 def main():
+    # s = sched.scheduler(time.time, time.sleep)
+    t = Thread(target=schedu)
+    t.start()
+    network()
+
+def schedu():
+    s.enter(1, 1, do_something, (s,))
+    s.run()
+
     # full_client = FullClient()
     # full_client.synchronize_blockchain()
-    network()
+    # network()
 
 
 def network():
