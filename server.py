@@ -10,7 +10,7 @@ full_client = FullClient()
 
 @app.route('/new_block', methods=['POST'])
 def new_block():
-    full_client.received_new_block(request.data)
+    full_client.received_new_block(request.data.decode("utf-8") )
     return "success"
 
 

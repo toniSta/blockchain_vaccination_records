@@ -96,16 +96,6 @@ class FullClient(object):
             with open(path, "rb") as key_file:
                 self.private_key = RSA.import_key(key_file.read())
 
-    def handle_new_transaction(self, transaction):
-        transaction_object = eval(transaction)
-        # We only want to broadcast a tx if it is neither in the queue nor in the chain
-        try:
-            self.transaction_set.index(transaction_object)
-        except ValueError:
-            self.transaction_set.add(transaction_object)
-            # TODO: check if it is in the chain already
-            self._broadcast_new_transaction(transaction)
-
     def synchronize_blockchain(self):
         random_node = random.choice(self.nodes)
         last_block_remote = self._get_status_from_different_node(random_node)
@@ -143,8 +133,8 @@ class FullClient(object):
     def submit_block(self, block):
         if block.validate():
             self.chain.add_block(block)
-            # self._broadcast_new_block()
             block.persist()
+            self._broadcast_new_block(block)
         else:
             # TODO: define behaviour
             pass
@@ -153,14 +143,14 @@ class FullClient(object):
         logger.debug("Received new block: {}".format(repr(block_representation)))
         new_block = Block(block_representation)
         if new_block.validate():
-            self.chain.add_block(block)
-            self._broadcast_new_block(block)
-            block.persist()
+            self.chain.add_block(new_block)
+            self._broadcast_new_block(new_block)
+            new_block.persist()
 
     def _broadcast_new_block(self, block):
         for node in self.nodes:
             route = node + "/new_block"
-            requests.post(route, data=repr(block))
+            requests.post(route, data=repr(block), timeout=5)
 
     def _get_status_from_different_node(self, node):
         random_node = random.choice(self.nodes)
@@ -242,4 +232,3 @@ class FullClient(object):
                 print("Invalid option {}, aborting.".format(sign_now))
         else:
             print("Invalid option {}, aborting.".format(transaction_type))
-

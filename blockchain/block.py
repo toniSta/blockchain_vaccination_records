@@ -117,7 +117,7 @@ class Block(object):
         file_path = os.path.join(persistence_folder, str(self.index))
         with open(file_path, "w") as block_file:
             block_file.write(repr(self))
-        logging.debug("Block {} written to disk.".format(self.index))
+        logger.debug("Block {} written to disk.".format(self.index))
 
     def update_hash(self):
         """Add hash to the final state of the block."""
