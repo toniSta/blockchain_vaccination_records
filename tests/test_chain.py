@@ -9,14 +9,14 @@ PUBLIC_KEY = RSA.import_key(open("tests" + os.sep + "testkey_pub.bin", "rb").rea
 
 
 def test_chain_is_singleton():
-    chain_1 = Chain(PUBLIC_KEY)
-    chain_2 = Chain(PUBLIC_KEY)
+    chain_1 = Chain()
+    chain_2 = Chain()
     assert id(chain_1) == id(chain_2)
 
 
 @pytest.fixture()
 def chain():
-    chain = Chain(PUBLIC_KEY)
+    chain = Chain()
     yield chain
 
 
@@ -27,11 +27,10 @@ def test_initial_chain_contains_genesis(chain):
 
 @pytest.fixture()
 def chain_with_blocks(chain):
-    block_information = chain.find_block_by_index(0).get_block_information()
-    next_block = Block(block_information, PUBLIC_KEY)
+    next_block = Block(chain.find_block_by_index(0).get_block_information())
     next_block.update_hash()
     chain.add_block(next_block)
-    successor = Block(next_block.get_block_information(), PUBLIC_KEY)
+    successor = Block(next_block.get_block_information())
     successor.update_hash()
     chain.add_block(successor)
     yield chain

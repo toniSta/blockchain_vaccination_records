@@ -1,4 +1,3 @@
-import logging
 from flask import Flask, request
 import os
 
@@ -40,12 +39,6 @@ def latest_block():
 
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.DEBUG,
-                        format="[ %(asctime)s ] %(levelname)-7s %(name)-s: %(message)s",
-                        datefmt="%Y-%m-%d %H:%M:%S")
-    werkzeug_logger = logging.getLogger('werkzeug')
-    werkzeug_logger.setLevel(logging.WARNING)
-
     port = 9000
     if os.getenv('SERVER_PORT'):
         port = int(os.getenv('SERVER_PORT'))
