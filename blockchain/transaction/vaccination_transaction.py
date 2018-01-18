@@ -18,6 +18,9 @@ class VaccinationTransaction(TransactionBase):
         super(VaccinationTransaction, self).__init__(
             vaccine=vaccine, doctor_signature=doctor_signature, patient_signature=patient_signature, **kwargs
         )
+
+        del self.signature  # remove the base classes single signature
+
         if type(doctor_pub_key).__name__ == "RsaKey":
             doctor_pub_key = doctor_pub_key.exportKey("DER")
         if type(patient_pub_key).__name__ == "RsaKey":

@@ -2,11 +2,16 @@ import logging
 import os
 import random
 import requests
+<<<<<<< HEAD
 import sched
 import time
 from threading import Thread
 from orderedset import OrderedSet
 
+=======
+from transaction_set import TransactionSet
+import os
+>>>>>>> master
 from .block import Block
 from .chain import Chain
 from .config import CONFIG
@@ -33,8 +38,7 @@ class FullClient(object):
         self._setup_public_key()
 
         self.chain = Chain(self.public_key)
-
-        self.transaction_set = OrderedSet()
+        self.transaction_set = TransactionSet()
         self.invalid_transactions = set()
 
         self.recover_after_shutdown()
@@ -163,11 +167,6 @@ class FullClient(object):
             route = node + "/new_block"
             requests.post(route, data=repr(block))
 
-    def _broadcast_new_transaction(self, transaction):
-        for node in self.nodes:
-            route = node + "/new_transaction"
-            requests.post(route, data=repr(transaction))
-
     def _get_status_from_different_node(self, node):
         random_node = random.choice(self.nodes)
         route = random_node + "/latest_block"
@@ -179,3 +178,73 @@ class FullClient(object):
         #   1. read in files from disk -> maybe in __init__ of chain
         #   2. sync with other node(s)
         pass
+
+    def handle_new_transaction(self, transaction, created_by_self):
+        transaction_object = eval(transaction)
+        if self.transaction_set.contains(transaction_object):
+            return  # Transaction was already received
+        else:
+            # TODO: check if it is in the chain already
+            self.transaction_set.add(transaction_object)
+            if created_by_self:
+                self._broadcast_new_transaction(transaction)
+
+    def _broadcast_new_transaction(self, transaction):
+        """Broadcast transaction to required number of admission nodes."""
+        # TODO: send to admissions only
+        for node in self.nodes:
+            route = node + "/new_transaction"
+            requests.post(route, data=repr(transaction))
+
+    def create_transaction(self):
+        transaction_type = input("What kind of transaction should be created? (Vaccination/Vaccine/Permission)").lower()
+        if transaction_type == "vaccination":
+            vaccine = input("Which vaccine was given?").lower()
+            doctor_pubkey = input("Enter doctors public key")
+            patient_pubkey = input("Enter patients public key")
+            transaction = VaccinationTransaction(doctor_pubkey, patient_pubkey, vaccine)
+            print(transaction)
+            sign_now = input("Sign transaction now? (Y/N)").lower()
+            if sign_now == "y":
+                doctor_privkey = input("Enter doctors private key")
+                patient_privkey = input("Enter patients private key")
+                transaction.sign(doctor_privkey, patient_privkey)
+                print(transaction)
+                return transaction
+            elif sign_now == "n":
+                return transaction
+            else:
+                print("Invalid option {}, aborting.".format(sign_now))
+        elif transaction_type == "vaccine":
+            vaccine = input("Which vaccine should be registered?").lower()
+            admission_pubkey = input("Enter admissions public key")
+            transaction = VaccineTransaction(vaccine, admission_pubkey)
+            print(transaction)
+            sign_now = input("Sign transaction now? (Y/N)").lower()
+            if sign_now == "y":
+                admission_privkey = input("Enter admission private key")
+                transaction.sign(admission_privkey)
+                print(transaction)
+                return transaction
+            elif sign_now == "n":
+                return transaction
+            else:
+                print("Invalid option {}, aborting.".format(sign_now))
+        elif transaction_type == "permission":
+            permission_name = input("Which permission should be granted? (Patient/Doctor/Admission)").lower()
+            permission = Permission[permission_name]
+            sender_pubkey = input("Enter sender public key")
+            transaction = PermissionTransaction(permission, sender_pubkey)
+            print(transaction)
+            if sign_now == "y":
+                sender_privkey = input("Enter sender private key")
+                transaction.sign(sender_privkey)
+                print(transaction)
+                return transaction
+            elif sign_now == "n":
+                return transaction
+            else:
+                print("Invalid option {}, aborting.".format(sign_now))
+        else:
+            print("Invalid option {}, aborting.".format(transaction_type))
+
