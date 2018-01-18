@@ -1,4 +1,5 @@
 import logging
+import os
 
 import random
 import requests
@@ -7,6 +8,10 @@ from .block import Block
 from .chain import Chain
 from .config import CONFIG
 from .transaction import *
+from .helper.cryptography import generate_keypair
+from Crypto.PublicKey import RSA
+
+logger = logging.getLogger("client")
 
 
 class FullClient(object):
@@ -14,17 +19,55 @@ class FullClient(object):
     def __init__(self):
         # Mock nodes by hard coding
         self.nodes = ["http://127.0.0.1:9000"]
-        self.public_key = "123"
-        self.chain = Chain(self.public_key)
+        # self._setup_public_key()
+        # self.chain = Chain(self.public_key.exportKey("DER"))
+        self.chain = Chain("asd")
         # Transaction set needs to be implemented, right out it is just a set
         self.transaction_set = OrderedSet()
         self.invalid_transactions = set()
 
         self.recover_after_shutdown()
 
+    def _setup_public_key(self):
+        """Create new key pair if necessary.
+
+        Create a public/private key pair on setup and save them in files. If
+        the full client restarts, file will be read in.
+        """
+        key_folder = CONFIG["key_folder"]
+        if not os.path.isdir(key_folder) or os.listdir(key_folder) == []:
+            # No keys present, so generate new pair
+            os.makedirs(CONFIG["key_folder"], exist_ok=True)
+
+            logger.info("Generating new public/private key pair")
+            public_key, private_key = generate_keypair()
+
+            path = os.path.join(key_folder, CONFIG["key_file_names"][0])
+            with open(path, "wb") as key_file:
+                key_file.write(public_key.exportKey())
+
+            path = os.path.join(key_folder, CONFIG["key_file_names"][1])
+            with open(path, "wb") as key_file:
+                key_file.write(private_key.exportKey())
+
+        elif set(os.listdir(key_folder)) != set(CONFIG["key_file_names"]):
+            # One key is missing
+            logger.error("Public or Private key are not existent!")
+            assert os.listdir(key_folder) == CONFIG["key_file_names"]
+
+        else:
+            # Keys are present
+            path = os.path.join(key_folder, CONFIG["key_file_names"][0])
+            with open(path, "rb") as key_file:
+                self.public_key = RSA.import_key(key_file.read())
+
+            path = os.path.join(key_folder, CONFIG["key_file_names"][1])
+            with open(path, "rb") as key_file:
+                self.private_key = RSA.import_key(key_file.read())
+
     def handle_new_transaction(self, transaction):
         transaction_object = eval(transaction)
-        # We only want to broadcast a tx if it already is in the queue or in the chain
+        # We only want to broadcast a tx if it is neither in the queue nor in the chain
         try:
             self.transaction_set.index(transaction_object)
         except ValueError:
@@ -50,14 +93,13 @@ class FullClient(object):
             pass
 
     def create_next_block(self):
-        new_block = Block(self.chain.last_block().get_block_information())
+        new_block = Block(self.chain.last_block().get_block_information(),
+                          self.public_key.exportKey().decode("UTF-8"))
 
         for _ in range(CONFIG["block_size"]):
-            # TODO: transaction validation
-            # or do we want it before we add it to the transaction set
             if len(self.transaction_set):
                 transaction = self.transaction_set.pop()
-                if transaction:
+                if transaction.validate():
                     new_block.add_transaction(transaction)
                 else:
                     self.invalid_transactions.add(transaction)
@@ -68,8 +110,18 @@ class FullClient(object):
         return new_block
 
     def submit_block(self, block):
-        # TODO: block validation
-        if block:
+        if block.validate():
+            self.chain.add_block(block)
+            self._broadcast_new_block(block)
+            block.persist()
+        else:
+            # TODO: define behaviour
+            pass
+
+    def received_new_block(self, block_representation):
+        logger.debug("Received new block: {}".format(repr(block_representation)))
+        new_block = Block(block_representation)
+        if new_block.validate():
             self.chain.add_block(block)
             self._broadcast_new_block(block)
             block.persist()

@@ -8,5 +8,7 @@ CONFIG = {
         "separator": ",",
         "line_terminator": "\n"
     },
-    'block_size': 1024,
+    "block_size": 1024,
+    "key_folder": "blockchain/keys",
+    "key_file_names": ["public_key.bin", "private_key.bin"]
 }

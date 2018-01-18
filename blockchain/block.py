@@ -14,10 +14,6 @@ from time import time
 from .config import CONFIG
 from blockchain.transaction import *
 
-# Needs to be moved later
-logging.basicConfig(level=logging.DEBUG,
-                    format="[ %(asctime)s ] %(levelname)-7s %(name)-s: %(message)s",
-                    datefmt="%Y-%m-%d %H:%M:%S")
 logger = logging.getLogger("blockchain")
 
 
@@ -127,6 +123,10 @@ class Block(object):
         sha.update(repr(self).encode("utf-8"))
         self.hash = sha.hexdigest()
         logger.debug("Finished creation of block:\n{}".format(str(self)))
+
+    def validate(self):
+        # TODO: implement block validation
+        return True
 
 
 def create_initial_block(public_key):

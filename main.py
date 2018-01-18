@@ -8,13 +8,17 @@ from Crypto.PublicKey import RSA
 import requests
 
 
-if __name__ == "__main__":
+def main():
+    # full_client = FullClient()
+    # full_client.synchronize_blockchain()
+    network()
 
+
+def network():
     response = requests.get('http://127.0.0.1:9000/latest_block')
     content = response.text
 
     block = Block(content)
-
 
     print("Block index is:" + str(block.index))
     print("Block hash is:" + block.hash)
@@ -23,11 +27,12 @@ if __name__ == "__main__":
         PUBLIC_KEY = RSA.import_key(public_key.read())
         PRIVATE_KEY = RSA.import_key(private_key.read())
     new_transaction = VaccineTransaction("a vaccine", PUBLIC_KEY).sign(PRIVATE_KEY)
-    requests.post('http://127.0.0.1:9000/new_transaction', data=repr(new_transaction))
+    # requests.post('http://127.0.0.1:9000/new_transaction', data=repr(new_transaction))
 
-    full_client = FullClient()
-    full_client.synchronize_blockchain()
+    # requests.post('http://127.0.0.1:9000/new_block', data=repr(block))
+    resp = requests.get('http://127.0.0.1:9000/request_block/index/0')
 
+    print(repr(Block(resp.text)))
 
 
 def blocks():
@@ -36,10 +41,13 @@ def blocks():
         PRIVATE_KEY = RSA.import_key(private_key.read())
 
     # Create chain, already contains empty genesis
-    chain = Chain()
+
+    PUBLIC_KEY = "asd"
+
+    chain = Chain("asd")
 
     # new Block with transactions
-    new_block = Block(chain.last_block().get_block_information())
+    new_block = Block(chain.last_block().get_block_information(), PUBLIC_KEY)
     new_transaction = VaccineTransaction("a vaccine", PUBLIC_KEY).sign(PRIVATE_KEY)
     new_block.add_transaction(new_transaction)
     new_transaction = PermissionTransaction(Permission.doctor, PUBLIC_KEY).sign(PRIVATE_KEY)
@@ -53,8 +61,12 @@ def blocks():
         recreated_block = Block(file.read())
 
     print(chain.find_block_by_index(0))
+
     print(new_block)
     print(recreated_block)
 
     # can build new block based on recreated block
-    Block(recreated_block.get_block_information())
+    Block(recreated_block.get_block_information(), PUBLIC_KEY)
+
+if __name__ == "__main__":
+    main()
