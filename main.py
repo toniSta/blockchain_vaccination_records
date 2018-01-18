@@ -6,54 +6,38 @@ from blockchain.full_client import FullClient
 from blockchain.transaction import *
 from Crypto.PublicKey import RSA
 import requests
+import logging
 
 
-import sched, time
-from threading import Thread
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.DEBUG,
+                        format="[ %(asctime)s ] %(levelname)-7s %(name)-s: %(message)s",
+                        datefmt="%Y-%m-%d %H:%M:%S")
+    logger = logging.getLogger("blockchain")
 
-s = sched.scheduler(time.time, time.sleep)
+    neighbors_list = os.getenv('NEIGHBORS_HOST_PORT')
+    neighbors_list = map(str.strip, neighbors_list.split(","))
+    nodes = ["http://" + neighbor for neighbor in neighbors_list]
 
-def do_something(sc): 
-    print("Doing stuff...")
-    # do your stuff
-    s.enter(1, 1, do_something, (sc,))
+    response = requests.get(nodes[0] + '/latest_block')
 
-
-
-def main():
-    # s = sched.scheduler(time.time, time.sleep)
-    t = Thread(target=schedu)
-    t.start()
-    network()
-
-def schedu():
-    s.enter(1, 1, do_something, (s,))
-    s.run()
-
-    # full_client = FullClient()
-    # full_client.synchronize_blockchain()
-    # network()
-
-
-def network():
-    response = requests.get('http://127.0.0.1:9000/latest_block')
     content = response.text
 
     block = Block(content)
 
-    print("Block index is:" + str(block.index))
-    print("Block hash is:" + block.hash)
+
+    logger.info("Block index is:" + str(block.index))
+    logger.info("Block hash is:" + block.hash)
 
     with open("tests" + os.sep + "testkey_pub.bin", "rb") as public_key, open("tests" + os.sep + "testkey_priv.bin", "rb") as private_key:
         PUBLIC_KEY = RSA.import_key(public_key.read())
         PRIVATE_KEY = RSA.import_key(private_key.read())
     new_transaction = VaccineTransaction("a vaccine", PUBLIC_KEY).sign(PRIVATE_KEY)
-    # requests.post('http://127.0.0.1:9000/new_transaction', data=repr(new_transaction))
+    requests.post(nodes[0] + '/new_transaction', data=repr(new_transaction))
 
-    # requests.post('http://127.0.0.1:9000/new_block', data=repr(block))
-    resp = requests.get('http://127.0.0.1:9000/request_block/index/0')
+    full_client = FullClient()
+    full_client.synchronize_blockchain()
 
-    print(repr(Block(resp.text)))
 
 
 def blocks():
@@ -62,13 +46,10 @@ def blocks():
         PRIVATE_KEY = RSA.import_key(private_key.read())
 
     # Create chain, already contains empty genesis
-
-    PUBLIC_KEY = "asd"
-
-    chain = Chain("asd")
+    chain = Chain()
 
     # new Block with transactions
-    new_block = Block(chain.last_block().get_block_information(), PUBLIC_KEY)
+    new_block = Block(chain.last_block().get_block_information())
     new_transaction = VaccineTransaction("a vaccine", PUBLIC_KEY).sign(PRIVATE_KEY)
     new_block.add_transaction(new_transaction)
     new_transaction = PermissionTransaction(Permission.doctor, PUBLIC_KEY).sign(PRIVATE_KEY)
@@ -78,16 +59,15 @@ def blocks():
     new_block.persist()
 
     # read file from disk
-    with open(os.path.join(CONFIG["persistance_folder"], "1"), "r") as file:
+    blockchain_folder = "blockchain"
+    persistence_folder = os.path.join(blockchain_folder,
+                                      CONFIG["persistance_folder"])
+    with open(os.path.join(persistence_folder, "1"), "r") as file:
         recreated_block = Block(file.read())
 
     print(chain.find_block_by_index(0))
-
     print(new_block)
     print(recreated_block)
 
     # can build new block based on recreated block
-    Block(recreated_block.get_block_information(), PUBLIC_KEY)
-
-if __name__ == "__main__":
-    main()
+    Block(recreated_block.get_block_information())

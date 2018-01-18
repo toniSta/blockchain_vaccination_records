@@ -4,3 +4,4 @@ orderedset
 flask
 pycryptodome
 mock
+requests

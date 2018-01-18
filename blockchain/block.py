@@ -139,4 +139,5 @@ def create_initial_block(public_key):
         "hash": str(0)
     }, public_key)
     genesis.update_hash()
+    genesis.persist()
     return genesis

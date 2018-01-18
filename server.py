@@ -47,6 +47,6 @@ if __name__ == '__main__':
     werkzeug_logger.setLevel(logging.WARNING)
 
     port = 9000
-    if os.getenv('PORT'):
-        port = int(os.getenv('PORT'))
-    app.run(port=port)
+    if os.getenv('SERVER_PORT'):
+        port = int(os.getenv('SERVER_PORT'))
+    app.run(host='0.0.0.0', port=port)

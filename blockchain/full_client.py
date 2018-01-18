@@ -1,12 +1,12 @@
 import logging
 import os
-
 import random
 import requests
 import sched
 import time
 from threading import Thread
 from orderedset import OrderedSet
+
 from .block import Block
 from .chain import Chain
 from .config import CONFIG
@@ -22,7 +22,14 @@ class FullClient(object):
     """docstring for FullClient"""
     def __init__(self):
         # Mock nodes by hard coding
-        self.nodes = ["http://127.0.0.1:9000"]
+
+        if os.getenv('NEIGHBORS_HOST_PORT'):
+            neighbors_list = os.getenv('NEIGHBORS_HOST_PORT')
+            neighbors_list = map(str.strip, neighbors_list.split(","))
+            self.nodes = ["http://" + neighbor for neighbor in neighbors_list]
+        else:
+            self.nodes = ["http://127.0.0.1:9000"]
+
         self._setup_public_key()
 
         self.chain = Chain(self.public_key)
