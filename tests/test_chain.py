@@ -1,9 +1,11 @@
+from Crypto.PublicKey import RSA
 from blockchain.chain import Chain
 from blockchain.block import Block
 
 import pytest
+import os
 
-PUBLIC_KEY = "123"
+PUBLIC_KEY = RSA.import_key(open("tests" + os.sep + "testkey_pub.bin", "rb").read())
 
 
 def test_chain_is_singleton():

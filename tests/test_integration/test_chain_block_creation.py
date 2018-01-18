@@ -10,11 +10,11 @@ def test_chain_and_block_creation():
         PRIVATE_KEY = RSA.import_key(private_key.read())
 
     # Create chain, already contains empty genesis
-    chain = Chain(str(PUBLIC_KEY))
+    chain = Chain(PUBLIC_KEY)
     assert chain.size() == 1
 
     # new Block with transactions
-    new_block = Block(chain.last_block().get_block_information(), str(PUBLIC_KEY))
+    new_block = Block(chain.last_block().get_block_information(), PUBLIC_KEY)
     new_transaction = VaccineTransaction("a vaccine", PUBLIC_KEY).sign(PRIVATE_KEY)
     new_block.add_transaction(new_transaction)
     new_transaction = PermissionTransaction(Permission.doctor, PUBLIC_KEY).sign(PRIVATE_KEY)
@@ -30,4 +30,4 @@ def test_chain_and_block_creation():
     assert repr(new_block) == repr(recreated_block), \
         "Recreated block must have same representation as initial one."
     # can build new block based on recreated block
-    Block(recreated_block.get_block_information(), str(PUBLIC_KEY))
+    Block(recreated_block.get_block_information(), PUBLIC_KEY)

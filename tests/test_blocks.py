@@ -1,8 +1,10 @@
+from Crypto.PublicKey import RSA
+import pytest
+import os
+
 from blockchain.block import Block, create_initial_block
 
-import pytest
-
-PUBLIC_KEY = "123"
+PUBLIC_KEY = RSA.import_key(open("tests" + os.sep + "testkey_pub.bin", "rb").read())
 
 @pytest.fixture()
 def genesis():
