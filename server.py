@@ -15,7 +15,7 @@ def new_block():
 @app.route('/new_transaction', methods=['POST'])
 def new_transaction():
     new_transaction = request.data
-    full_client.handle_new_transaction(new_transaction)
+    full_client.handle_new_transaction(new_transaction, False)
     return "success"
 
 

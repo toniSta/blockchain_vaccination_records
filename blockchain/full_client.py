@@ -85,16 +85,19 @@ class FullClient(object):
         #   2. sync with other node(s)
         pass
 
-    def handle_new_transaction(self, transaction):
+    def handle_new_transaction(self, transaction, created_by_self):
         transaction_object = eval(transaction)
         if self.transaction_set.contains(transaction_object):
             return  # Transaction was already received
         else:
             # TODO: check if it is in the chain already
             self.transaction_set.add(transaction_object)
-            self._broadcast_new_transaction(transaction)
+            if created_by_self:
+                self._broadcast_new_transaction(transaction)
 
     def _broadcast_new_transaction(self, transaction):
+        """Broadcast transaction to required number of admission nodes."""
+        # TODO: send to admissions only
         for node in self.nodes:
             route = node + "/new_transaction"
             requests.post(route, data=repr(transaction))
