@@ -150,7 +150,8 @@ class FullClient(object):
     def _broadcast_new_block(self, block):
         for node in self.nodes:
             route = node + "/new_block"
-            requests.post(route, data=repr(block), timeout=5)
+            # TODO: this doesnt work, if we send it to the same node
+            # requests.post(route, data=repr(block), timeout=5)
 
     def _get_status_from_different_node(self, node):
         random_node = random.choice(self.nodes)
