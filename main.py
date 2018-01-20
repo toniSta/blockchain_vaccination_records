@@ -8,8 +8,12 @@ from Crypto.PublicKey import RSA
 import requests
 import logging
 
+with open("tests" + os.sep + "testkey_pub.bin", "rb") as public_key, open("tests" + os.sep + "testkey_priv.bin", "rb") as private_key:
+    PUBLIC_KEY = RSA.import_key(public_key.read())
+    PRIVATE_KEY = RSA.import_key(private_key.read())
 
-if __name__ == "__main__":
+
+def main():
     logging.basicConfig(level=logging.DEBUG,
                         format="[ %(asctime)s ] %(levelname)-7s %(name)-s: %(message)s",
                         datefmt="%Y-%m-%d %H:%M:%S")
@@ -39,14 +43,29 @@ if __name__ == "__main__":
     full_client.synchronize_blockchain()
 
 
+def network():
+    chain = Chain(PUBLIC_KEY)
+    new_block = Block(chain.last_block().get_block_information(), PUBLIC_KEY)
+    new_transaction = VaccineTransaction("a vaccine", PUBLIC_KEY).sign(PRIVATE_KEY)
+    new_block.add_transaction(new_transaction)
+    new_block.update_hash()
+
+    requests.post("http://127.0.0.1:9000/new_block", data=str(repr(new_block)))
+
+    latest = requests.get("http://127.0.0.1:9000/latest_block")
+    block_by_index = requests.get("http://127.0.0.1:9000/request_block/index/" + str(new_block.index))
+    block_by_hash = requests.get("http://127.0.0.1:9000/request_block/hash/" + str(new_block.hash))
+
+    # To make this working, delete all existing blocks on disk
+    assert repr(Block(latest.text)) == repr(new_block)
+    assert repr(Block(block_by_index.text)) == repr(new_block)
+    assert repr(Block(block_by_hash.text)) == repr(new_block)
+
 
 def blocks():
-    with open("tests" + os.sep + "testkey_pub.bin", "rb") as public_key, open("tests" + os.sep + "testkey_priv.bin", "rb") as private_key:
-        PUBLIC_KEY = RSA.import_key(public_key.read())
-        PRIVATE_KEY = RSA.import_key(private_key.read())
 
     # Create chain, already contains empty genesis
-    chain = Chain()
+    chain = Chain(PUBLIC_KEY)
 
     # new Block with transactions
     new_block = Block(chain.last_block().get_block_information())
@@ -71,3 +90,6 @@ def blocks():
 
     # can build new block based on recreated block
     Block(recreated_block.get_block_information())
+
+if __name__ == '__main__':
+    main()
