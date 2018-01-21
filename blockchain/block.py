@@ -24,6 +24,7 @@ class Block(object):
         # data object can be:
         #   1. header information of the previous block
         #   2. string representation of a block
+        # TODO What dows data look like? Example!
         if type(data) == dict:
             self._from_dictionary(data)
             assert public_key
@@ -129,6 +130,12 @@ class Block(object):
     def validate(self):
         # TODO: implement block validation
         return True
+
+    def __eq__(self, other):
+        return self.hash == other.hash
+
+    def __hash__(self):
+        return self.hash
 
 
 def create_initial_block(public_key):

@@ -35,6 +35,7 @@ class FullClient(object):
         self.chain = Chain(self.public_key)
         self.transaction_set = TransactionSet()
         self.invalid_transactions = set()
+        self.dangling_blocks = set()
 
         self.recover_after_shutdown()
         self._start_runner()
@@ -169,10 +170,26 @@ class FullClient(object):
     def received_new_block(self, block_representation):
         logger.debug("Received new block: {}".format(repr(block_representation)))
         new_block = Block(block_representation)
-        if new_block.validate():
-            self.chain.add_block(new_block)
-            self._broadcast_new_block(new_block)
-            new_block.persist()
+
+        if self.chain.find_block_by_hash(new_block.hash) or new_block in self.dangling_blocks:
+            logger.debug("The received block is already part of chain or a dangling block: {}".format(repr(block_representation)))
+            return
+
+        self._broadcast_new_block(new_block)
+
+        expected_pub_key = self.determine_block_creation_node(timestamp=new_block.timestamp)
+
+        if expected_pub_key != new_block.public_key:
+            logger.debug("Received block doesn't match as next block in chain. Adding it to dangling blocks: {}".format(
+                repr(block_representation)))
+            self.dangling_blocks.add(new_block)
+        else:
+            if new_block.validate():
+                self.chain.add_block(new_block)
+                new_block.persist()
+                self.process_dangling_blocks()
+
+
 
     def _broadcast_new_block(self, block):
         for node in self.nodes:
@@ -249,6 +266,7 @@ class FullClient(object):
             sender_pubkey = input("Enter sender public key")
             transaction = PermissionTransaction(permission, sender_pubkey)
             print(transaction)
+            # TODO bugifx 'sign_now'
             if sign_now == "y":
                 sender_privkey = input("Enter sender private key")
                 transaction.sign(sender_privkey)
@@ -260,3 +278,14 @@ class FullClient(object):
                 print("Invalid option {}, aborting.".format(sign_now))
         else:
             print("Invalid option {}, aborting.".format(transaction_type))
+
+    def process_dangling_blocks(self):
+        latest_block = self.chain.last_block()
+        for block in self.dangling_blocks:
+            if block.previous_block == latest_block.hash:
+                if block.validate():
+                    self.chain.add_block(block)
+                    block.persist()
+                    self.process_dangling_blocks()
+                return
+
