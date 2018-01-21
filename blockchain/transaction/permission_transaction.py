@@ -49,7 +49,7 @@ class PermissionTransaction(TransactionBase):
             "version": self.version
         })
 
-    def validate(self):
+    def validate(self, chain_size, current_admissions):
         """Check if the transaction fulfills the requirements.
 
         Check if signarure matches,
@@ -59,9 +59,9 @@ class PermissionTransaction(TransactionBase):
         if self.requested_permission is Permission.patient:
             return self._verify_signature()
         else:
-            return self._verify_signature() and self._validate_approvals()
+            return self._verify_signature() and self._validate_approvals(chain_size, current_admissions)
 
-    def _validate_approvals(self):
+    def _validate_approvals(self, chain_size, current_admissions):
         """Validate the includeded approvals of the transaction.
 
         Checks if there are duplicate approvals,
@@ -72,12 +72,12 @@ class PermissionTransaction(TransactionBase):
         if len(self.approvals) != len(set(self.approvals)):
             logger.debug("Transaction contains duplicate approvals.")
             return False
-        #if chain.Chain().size > 0 and len(self.approvals) < 3: # TODO: dynamically set or have magic number?
-        #   logger.debug("Transaction does not have enough approvals.")
-        #   return False
+        if chain_size > 0 and len(self.approvals) < 3: # TODO: dynamically set or have magic number?
+            logger.debug("Transaction does not have enough approvals.")
+            return False
         valid_approvals = [a for a in self.approvals if self._verify_approval_signature(a)]
-        #if chain.Chain().size > 0:
-        #   valid_approvals = [a for a in valid_approvals if a in chain.Chain().get_admissions()]
+        if chain_size > 0:
+            valid_approvals = [a for a in valid_approvals if a[0] in current_admissions]
         if len(valid_approvals) != len(self.approvals):
             logger.debug("Transaction contains invalid approvals.")
             return False
