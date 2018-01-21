@@ -14,21 +14,21 @@ class Chain(object):
 
     __instance = None
 
-    def __new__(cls, pub_key, priv_key, load_persisted=True):
+    def __new__(cls, load_persisted=True):
         """Create a singleton instance of the chain."""
         if not Chain.__instance:
             logger.info("Creating initial chain")
             Chain.__instance = object.__new__(cls)
         return Chain.__instance
 
-    def __init__(self, pub_key, priv_key, load_persisted=True):
-        """Create initial chain with genesis block."""
+    def __init__(self, load_persisted=True):
+        """Create initial chain and tries to load saved state from disk."""
         self.chain = []
         self.block_creation_cache = deque()
         if load_persisted and self._can_be_loaded_from_disk():
             self._load_from_disk()
-        else:
-            self.add_block(create_initial_block(pub_key, priv_key))
+        #else:
+        #   self.add_block(create_initial_block(pub_key, priv_key))
 
     def _can_be_loaded_from_disk(self):
         """Returns if the blockchain can be loaded from disk.

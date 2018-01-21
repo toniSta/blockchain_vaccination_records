@@ -32,7 +32,7 @@ class FullClient(object):
 
         self._setup_public_key()
 
-        self.chain = Chain(self.public_key, self.private_key)
+        self.chain = Chain()
         self.transaction_set = TransactionSet()
         self.invalid_transactions = set()
 

@@ -3,7 +3,7 @@ import blockchain.helper.cryptography as crypto
 from Crypto.PublicKey import RSA
 from enum import Enum
 from blockchain.transaction.transaction import TransactionBase
-
+#import blockchain.chain as chain
 
 # Needs to be moved later
 logging.basicConfig(level=logging.DEBUG,
@@ -64,18 +64,21 @@ class PermissionTransaction(TransactionBase):
     def _validate_approvals(self):
         """Validate the includeded approvals of the transaction.
 
-        Checks if a sufficient number of approvals is present,
-        if the approval signatures are valid and
-        if the approval was sent by a real admission nodes.
+        Checks if there are duplicate approvals,
+        if a sufficient number of approvals is present if the chain has at least 1 block,
+        if the approval signatures are valid,
+        if the approval was sent by a real admission nodes
         """
         if len(self.approvals) != len(set(self.approvals)):
             logger.debug("Transaction contains duplicate approvals.")
             return False
-        if len(self.approvals) < 0:  # TODO: dynamically set or have magic number, currently zero to allow initial genesis block tx
-            logger.debug("Transaction does not have enough approvals.")
-            return False
-        valid_sig_approvals = [a for a in self.approvals if self._verify_approval_signature(a)]
-        if len(valid_sig_approvals) != len(self.approvals):
+        #if chain.Chain().size > 0 and len(self.approvals) < 3: # TODO: dynamically set or have magic number?
+        #   logger.debug("Transaction does not have enough approvals.")
+        #   return False
+        valid_approvals = [a for a in self.approvals if self._verify_approval_signature(a)]
+        #if chain.Chain().size > 0:
+        #   valid_approvals = [a for a in valid_approvals if a in chain.Chain().get_admissions()]
+        if len(valid_approvals) != len(self.approvals):
             logger.debug("Transaction contains invalid approvals.")
             return False
         return True

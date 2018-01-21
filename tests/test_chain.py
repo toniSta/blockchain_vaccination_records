@@ -1,6 +1,7 @@
 from Crypto.PublicKey import RSA
 from blockchain.chain import Chain
 from blockchain.block import Block
+from blockchain.block import create_initial_block
 
 import pytest
 import os
@@ -10,14 +11,16 @@ PRIVATE_KEY = RSA.import_key(open("tests" + os.sep + "testkey_priv.bin", "rb").r
 
 
 def test_chain_is_singleton():
-    chain_1 = Chain(PUBLIC_KEY, PRIVATE_KEY, load_persisted=False)
-    chain_2 = Chain(PUBLIC_KEY, PRIVATE_KEY, load_persisted=False)
+    chain_1 = Chain(load_persisted=False)
+    chain_2 = Chain(load_persisted=False)
     assert id(chain_1) == id(chain_2)
 
 
 @pytest.fixture()
 def chain():
-    chain = Chain(PUBLIC_KEY, PRIVATE_KEY, load_persisted=False)
+    chain = Chain(load_persisted=False)
+    genesis = create_initial_block(PUBLIC_KEY, PRIVATE_KEY)
+    chain.add_block(genesis)
     yield chain
 
 
