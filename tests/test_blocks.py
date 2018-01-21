@@ -5,10 +5,11 @@ import os
 from blockchain.block import Block, create_initial_block
 
 PUBLIC_KEY = RSA.import_key(open("tests" + os.sep + "testkey_pub.bin", "rb").read())
+PRIVATE_KEY = RSA.import_key(open("tests" + os.sep + "testkey_priv.bin", "rb").read())
 
 @pytest.fixture()
 def genesis():
-    genesis = create_initial_block(PUBLIC_KEY)
+    genesis = create_initial_block(PUBLIC_KEY, PRIVATE_KEY)
     yield genesis
 
 

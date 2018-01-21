@@ -44,7 +44,7 @@ def main():
 
 
 def network():
-    chain = Chain(PUBLIC_KEY)
+    chain = Chain(PUBLIC_KEY, PRIVATE_KEY)
     new_block = Block(chain.last_block().get_block_information(), PUBLIC_KEY)
     new_transaction = VaccineTransaction("a vaccine", PUBLIC_KEY).sign(PRIVATE_KEY)
     new_block.add_transaction(new_transaction)
@@ -65,7 +65,7 @@ def network():
 def blocks():
 
     # Create chain, already contains empty genesis
-    chain = Chain(PUBLIC_KEY)
+    chain = Chain(PUBLIC_KEY, PRIVATE_KEY)
 
     # new Block with transactions
     new_block = Block(chain.last_block().get_block_information())
@@ -93,3 +93,4 @@ def blocks():
 
 if __name__ == '__main__':
     main()
+

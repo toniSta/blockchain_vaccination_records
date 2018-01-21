@@ -131,13 +131,17 @@ class Block(object):
         return True
 
 
-def create_initial_block(public_key):
+def create_initial_block(public_key, private_key):
     """Create the genesis block."""
     logger.info("Creating new genesis block")
     genesis = Block({
         "index": -1,
         "hash": str(0)
     }, public_key)
+    initial_admission_tx = PermissionTransaction(
+            Permission.admission,
+            public_key).sign(private_key)
+    genesis.add_transaction(initial_admission_tx)
     genesis.update_hash()
     genesis.persist()
     return genesis

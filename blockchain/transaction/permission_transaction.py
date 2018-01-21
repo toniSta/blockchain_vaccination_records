@@ -56,7 +56,7 @@ class PermissionTransaction(TransactionBase):
         if enough positive votes were cast for an admission,
         etc.
         """
-        if self.requested_permission == Permission.patient:
+        if self.requested_permission is Permission.patient:
             return self._verify_signature()
         else:
             return self._verify_signature() and self._validate_approvals()
@@ -71,7 +71,7 @@ class PermissionTransaction(TransactionBase):
         if len(self.approvals) != len(set(self.approvals)):
             logger.debug("Transaction contains duplicate approvals.")
             return False
-        if len(self.approvals) < 3:
+        if len(self.approvals) < 0:  # TODO: dynamically set or have magic number, currently zero to allow initial genesis block tx
             logger.debug("Transaction does not have enough approvals.")
             return False
         valid_sig_approvals = [a for a in self.approvals if self._verify_approval_signature(a)]
