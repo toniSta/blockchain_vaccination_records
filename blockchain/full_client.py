@@ -42,22 +42,6 @@ class FullClient(object):
         self.creator_election_thread = threading.Thread(target=self.creator_election, daemon=True)
         self.creator_election_thread.run()
         self.recover_after_shutdown()
-        self._start_runner()
-
-    def _start_runner(self):
-        """Spawn thread for block creation."""
-        thread = Thread(target=self._schedule)
-        thread.start()
-
-    def _schedule(self):
-        """Start scheduler."""
-        scheduler.enter(CONFIG["block_time"], 1, self._create_block, (scheduler,))
-        scheduler.run()
-
-    def _create_block(self, sc):
-        """Create block and schedule next event."""
-        self.determine_block_creation_node()
-        scheduler.enter(CONFIG["block_time"], 1, self._create_block, (sc,))
 
     def determine_block_creation_node(self, timestamp=time.time()):
         """Determine which admission node has to create the next block in chain.
