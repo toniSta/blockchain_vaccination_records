@@ -54,8 +54,35 @@ class FullClient(object):
         self.determine_block_creation_node()
         scheduler.enter(CONFIG["block_time"], 1, self._create_block, (sc,))
 
-    def determine_block_creation_node(self):
-        # TODO: implement node selection algorithm
+    def determine_block_creation_node(self, timestamp=time.time()):
+        """Determine which admission node has to create the next block in chain.
+
+        The method takes a timestamp as argument representing the creation date of the block whose legitimate creator
+        should be determined. Defaults to 'now', which means "Who should create a block right now?"
+        Returns the public key of the determined creator
+
+        If even the youngest creator failed to create a block within time, the method continues to return the public
+        key of the youngest creator.
+
+        If the method realize that there was opportunity to create a block with the own key, it will return the own key.
+        """
+        number_of_admissions = len(self.chain.get_admissions())
+        creator_history = self.chain.get_oldest_blockcreator(n=number_of_admissions)
+
+        last_block_timestamp = self.chain.last_block().timestamp
+
+        delta_time = timestamp - last_block_timestamp
+
+        nth_oldest_block = int(delta_time / CONFIG["block_time"])
+
+        if nth_oldest_block >= number_of_admissions:
+            nth_oldest_block = number_of_admissions - 1
+
+        if self.public_key in creator_history[:nth_oldest_block]:
+            return self.public_key
+
+        return creator_history[nth_oldest_block]
+
         new_block = self.create_next_block()
         self.submit_block(new_block)
 
