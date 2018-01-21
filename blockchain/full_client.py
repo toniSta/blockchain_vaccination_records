@@ -1,6 +1,8 @@
 import logging
 import os
 import random
+import threading
+
 import requests
 import sched
 import time
@@ -36,7 +38,9 @@ class FullClient(object):
         self.transaction_set = TransactionSet()
         self.invalid_transactions = set()
         self.dangling_blocks = set()
-
+        self.stop_creator_election = False
+        self.creator_election_thread = threading.Thread(target=self.creator_election, daemon=True)
+        self.creator_election_thread.run()
         self.recover_after_shutdown()
         self._start_runner()
 
@@ -159,21 +163,24 @@ class FullClient(object):
         return new_block
 
     def submit_block(self, block):
-        if block.validate():
-            self.chain.add_block(block)
-            block.persist()
-            self._broadcast_new_block(block)
-        else:
-            # TODO: define behaviour
-            pass
+        self.chain.add_block(block)
+        block.persist()
+        self._broadcast_new_block(block)
 
     def received_new_block(self, block_representation):
+        """This method is called when receiving a new block.
+
+        It will check if the block was received earlier. If not it will process and broadcast the block and adding it
+        to the chain or dangling blocks."""
         logger.debug("Received new block: {}".format(repr(block_representation)))
         new_block = Block(block_representation)
 
         if self.chain.find_block_by_hash(new_block.hash) or new_block in self.dangling_blocks:
             logger.debug("The received block is already part of chain or a dangling block: {}".format(repr(block_representation)))
             return
+
+        self.stop_creator_election = True
+        self.creator_election_thread.join()
 
         self._broadcast_new_block(new_block)
 
@@ -189,7 +196,21 @@ class FullClient(object):
                 new_block.persist()
                 self.process_dangling_blocks()
 
+        self.stop_creator_election = False
+        self.creator_election_thread.start()
 
+    def creator_election(self):
+        """This method checks if this node needs to generate a new block.
+
+        If it is the next creator it will generate a block and submit it to the chain."""
+        while not self.stop_creator_election:
+            time.sleep(CONFIG["block_time"])
+            next_creator = self.determine_block_creation_node()
+            if next_creator == self.public_key:
+                new_block = self.create_next_block()
+                if not new_block.validate():
+                    logger.error("New generated block is not valid! {}".format(repr(new_block)))
+                self.submit_block(new_block)
 
     def _broadcast_new_block(self, block):
         for node in self.nodes:
