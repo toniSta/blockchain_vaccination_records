@@ -1,12 +1,9 @@
-import logging
 from flask import Flask, request
 import os
 
-from blockchain.full_client import FullClient
-from blockchain.config import CONFIG
+from .config import CONFIG
 
 app = Flask(__name__)
-full_client = FullClient()
 
 
 @app.route(CONFIG["ROUTES"]["new_block"], methods=["POST"])
@@ -40,14 +37,12 @@ def _latest_block():
     return repr(block)
 
 
-if __name__ == "__main__":
-    logging.basicConfig(level=logging.DEBUG,
-                        format="[ %(asctime)s ] %(levelname)-7s %(name)-s: %(message)s",
-                        datefmt="%Y-%m-%d %H:%M:%S")
-    werkzeug_logger = logging.getLogger("werkzeug")
-    werkzeug_logger.setLevel(logging.WARNING)
-
-    port = 9000
+# def start_server(full_client):
+def start_server(client):
+    """Start the flask server."""
+    global full_client
+    full_client = client
+    port = CONFIG["default_port"]
     if os.getenv("SERVER_PORT"):
         port = int(os.getenv("SERVER_PORT"))
     app.run(host="0.0.0.0", port=port)
