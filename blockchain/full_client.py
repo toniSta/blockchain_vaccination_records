@@ -1,7 +1,6 @@
 import logging
 import os
 import random
-import requests
 import sched
 import time
 from threading import Thread
@@ -10,6 +9,7 @@ from .transaction_set import TransactionSet
 from .block import Block
 from .chain import Chain
 from .config import CONFIG
+from .network import Network
 from .transaction import *
 from .helper.cryptography import generate_keypair
 from Crypto.PublicKey import RSA
@@ -150,14 +150,11 @@ class FullClient(object):
 
     def _broadcast_new_block(self, block):
         for node in self.nodes:
-            route = node + "/new_block"
-            # TODO: this doesnt work, if we send it to the same node
-            # requests.post(route, data=repr(block), timeout=5)
+            Network.send_block(node, repr(block))
 
     def _get_status_from_different_node(self, node):
         random_node = random.choice(self.nodes)
-        route = random_node + "/latest_block"
-        block = requests.get(route)
+        block = Network.request_latest_block(random_node)
         return Block(block.text)
 
     def recover_after_shutdown(self):
@@ -180,8 +177,7 @@ class FullClient(object):
         """Broadcast transaction to required number of admission nodes."""
         # TODO: send to admissions only
         for node in self.nodes:
-            route = node + "/new_transaction"
-            requests.post(route, data=repr(transaction))
+            Network.broadcast_new_transaction(node, repr(transaction))
 
     def create_transaction(self):
         transaction_type = input("What kind of transaction should be created? (Vaccination/Vaccine/Permission)").lower()
