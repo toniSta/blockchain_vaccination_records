@@ -7,6 +7,7 @@ are bundled in this file in order to provide easy exchangeability.
 
 from abc import ABCMeta
 import requests
+from .config import CONFIG
 
 
 class Network(ABCMeta):
@@ -16,15 +17,15 @@ class Network(ABCMeta):
         """Send a block to the specified node."""
         # TODO: this doesnt work, if we send it to the same node
         return
-        route = node + "/new_block"
+        route = node + CONFIG["ROUTES"]["new_block"]
         requests.post(route, data=block_data, timeout=5)
 
     def request_latest_block(self, node):
         """Ask another node for current chain status."""
-        route = node + "/latest_block"
+        route = node + CONFIG["ROUTES"]["latest_block"]
         return requests.get(route)
 
     def broadcast_new_transaction(self, node, transaction):
         """Broadcast a transaction to neighbours."""
-        route = node + "/new_transaction"
+        route = node + CONFIG["ROUTES"]["new_transaction"]
         requests.post(route, data=transaction)
