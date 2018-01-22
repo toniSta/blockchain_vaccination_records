@@ -44,7 +44,7 @@ class Block(object):
         fields = [str(self.index), self.previous_block, self.version,
                   self.timestamp, self.public_key]
         if self.signature != "":
-            fields.append(self.hash)
+            fields.append(self.signature)
         if self.hash != "":
             fields.append(self.hash)
         block = CONFIG["serializaton"]["separator"].join(fields)
