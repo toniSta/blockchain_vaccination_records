@@ -103,15 +103,14 @@ class FullClient(object):
            last_block_remote.hash == self.chain.last_block().hash:
             # blockchain is up-to-date
             return
-        # TODO: implement synchronization
         if last_block_remote.index == self.chain.last_block().index and \
            last_block_remote.hash != self.chain.last_block().hash:
-            # TODO: at least last block is wrong
+            # TODO: at least last block is wrong for self or the other node
             pass
-
-        if last_block_remote.index != self.chain.last_block().index:
-            # TODO: chain is outdated
-            pass
+        if last_block_remote.index > self.chain.last_block().index:
+            # TODO: will synchronize() run with a timer or should this method have a while loop for the syncing?
+            syncing_block = self._request_block_at_index(self.chain.last_block().index + 1, random_node)
+            self._add_block_if_valid(syncing_block)
 
     def create_next_block(self):
         new_block = Block(self.chain.last_block().get_block_information(),
@@ -142,10 +141,19 @@ class FullClient(object):
     def received_new_block(self, block_representation):
         logger.debug("Received new block: {}".format(repr(block_representation)))
         new_block = Block(block_representation)
-        if new_block.validate():
-            self.chain.add_block(new_block)
-            self._broadcast_new_block(new_block)
-            new_block.persist()
+        self._add_block_if_valid(new_block, broadcast_block=True)
+
+    def _request_block_at_index(self, index, node):
+        route = node + "/request_block/index/" + str(index)
+        block = requests.get(route)
+        return Block(block.text)
+
+    def _add_block_if_valid(self, block, broadcast_block=False):
+        if block.validate():
+            self.chain.add_block(block)
+            if broadcast_block:
+                self._broadcast_new_block(block)
+            block.persist()
 
     def _broadcast_new_block(self, block):
         for node in self.nodes:
@@ -154,8 +162,7 @@ class FullClient(object):
             # requests.post(route, data=repr(block), timeout=5)
 
     def _get_status_from_different_node(self, node):
-        random_node = random.choice(self.nodes)
-        route = random_node + "/latest_block"
+        route = node + "/latest_block"
         block = requests.get(route)
         return Block(block.text)
 
