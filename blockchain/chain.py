@@ -27,8 +27,6 @@ class Chain(object):
         self.block_creation_cache = deque()
         if load_persisted and self._can_be_loaded_from_disk():
             self._load_from_disk()
-        #else:
-        #   self.add_block(create_initial_block(pub_key, priv_key))
 
     def _can_be_loaded_from_disk(self):
         """Returns if the blockchain can be loaded from disk.
@@ -89,11 +87,14 @@ class Chain(object):
         """Return the last block of the chain."""
         return self.chain[-1]
 
-    def get_oldest_blockcreator(self, n=0):
-        """Return the public key of the nth oldest blockcreating admission node. Return None if n is out of bounds."""
+    def get_block_creation_history(self, n):
+        """Return public keys of the oldest n blockcreating admission nodes. Return None if n is out of bounds."""
         if n > len(self.block_creation_cache) or n < 0:
             return
-        return self.block_creation_cache[n]
+        block_creation_history = []
+        for i in range(n):
+            block_creation_history.append(self.block_creation_cache[i])
+        return block_creation_history
 
     def get_admissions(self):
         return set(self.block_creation_cache)   # in case of changing this method do not return a reference to the original deque!
