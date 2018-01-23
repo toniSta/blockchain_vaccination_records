@@ -2,8 +2,6 @@
 blockchain/blockchain_files/*
 !blockchain/blockchain_files/0
 
-blockchain/keys/
-
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
