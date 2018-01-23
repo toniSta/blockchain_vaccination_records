@@ -166,7 +166,8 @@ class FullClient(object):
 
         expected_pub_key = self.determine_block_creation_node(timestamp=new_block.timestamp)
 
-        if expected_pub_key != new_block.public_key:
+        # TODO choose unified representation of rsa public key! (Right now it was hexified bytestring and bytestring)
+        if expected_pub_key != bytes.fromhex(new_block.public_key):
             logger.debug("Received block doesn't match as next block in chain. Adding it to dangling blocks: {}".format(
                 repr(block_representation)))
             self.dangling_blocks.add(new_block)
@@ -182,7 +183,7 @@ class FullClient(object):
         while not self.stop_creator_election:
             time.sleep(CONFIG["block_time"])
             next_creator = self.determine_block_creation_node()
-            #TODO choose unified representation of rsa public key!
+            #TODO choose unified representation of rsa public key! (Right now it was RSA Object)
             if next_creator == self.public_key.exportKey("DER"):
                 new_block = self.create_next_block()
                 if not new_block.validate():
