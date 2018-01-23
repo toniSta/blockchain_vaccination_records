@@ -201,7 +201,7 @@ class FullClient(object):
         for node in self.nodes:
             route = node + "/new_block"
             # TODO: this doesnt work, if we send it to the same node
-            requests.post(route, data=repr(block), timeout=5)
+            #requests.post(route, data=repr(block), timeout=5)
 
     def _get_status_from_different_node(self, node):
         route = node + "/latest_block"

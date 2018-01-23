@@ -1,17 +1,30 @@
 version: '3.0'
 
 services:
-  full_client1:
+  genesis_admission:
     build:
       context: .
       dockerfile: Full_Client.Dockerfile
     volumes:
       - ./blockchain/blockchain_files:/app/blockchain/blockchain_files
+      - ./blockchain/keys:/app/blockchain/keys
     environment:
       SERVER_PORT: 9000
-      NEIGHBORS_HOST_PORT: 127.0.0.1:9000
+      NEIGHBORS_HOST_PORT: full_client1:9000
     ports:
       - "9000"
+
+  full_client1:
+    build:
+      context: .
+      dockerfile: Full_Client.Dockerfile
+    environment:
+      SERVER_PORT: 9000
+      NEIGHBORS_HOST_PORT: genesis_admission:9000
+    ports:
+      - "9000"
+    depends_on:
+      - genesis_admission
 
   main_test:
     build:
