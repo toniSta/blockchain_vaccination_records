@@ -50,10 +50,8 @@ class FullClient(object):
         should be determined. Defaults to 'now', which means "Who should create a block right now?"
         Returns the public key of the determined creator
 
-        If even the youngest creator failed to create a block within time, the method continues to return the public
-        key of the youngest creator.
-
-        If the method realize that there was opportunity to create a block with the own key, it will return the own key.
+        If even the youngest creator failed to create a block within time, the method continues with the
+        oldest submission node.
         """
         number_of_admissions = len(self.chain.get_admissions())
         creator_history = self.chain.get_oldest_blockcreator(n=number_of_admissions)
@@ -64,16 +62,7 @@ class FullClient(object):
 
         nth_oldest_block = int(delta_time / CONFIG["block_time"])
 
-        if nth_oldest_block >= number_of_admissions:
-            nth_oldest_block = number_of_admissions - 1
-
-        if self.public_key in creator_history[:nth_oldest_block]:
-            return self.public_key
-
-        return creator_history[nth_oldest_block]
-
-        new_block = self.create_next_block()
-        self.submit_block(new_block)
+        return creator_history[nth_oldest_block % CONFIG["block_time"]]
 
     def _setup_public_key(self):
         """Create new key pair if necessary.
