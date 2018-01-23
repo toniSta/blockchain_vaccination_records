@@ -33,6 +33,8 @@ def test_representation(signed_tx):
 -----------------------"""
 
 def test_transaction_signature_verification(signed_tx):
-    assert signed_tx.validate() == True
+    chain_size = 0  # mock empty chain
+    current_admissions = set() # mock empty chain with no admissions
+    assert signed_tx.validate(chain_size, current_admissions) == True
     signed_tx.vaccine = 'another vaccine' # tamper with the transaction
-    assert signed_tx.validate() == False, "signature check should return False on tampered transaction"
+    assert signed_tx.validate(chain_size, current_admissions) == False, "signature check should return False on tampered transaction"

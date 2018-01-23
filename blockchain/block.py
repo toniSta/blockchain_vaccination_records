@@ -10,9 +10,11 @@ import logging
 import os
 from hashlib import sha256
 from time import time
+from Crypto.PublicKey import RSA
 
 from .config import CONFIG
 from blockchain.transaction import *
+import blockchain.helper.cryptography as crypto
 
 logger = logging.getLogger("blockchain")
 
@@ -21,14 +23,18 @@ class Block(object):
     """This class represents a block in the blockchain."""
 
     def __init__(self, data, public_key=None):
-        # data object can be:
-        #   1. header information of the previous block
-        #   2. string representation of a block
+        """Create or Recreate a block object.
+
+        This constructor supports both, recreating a block by its string
+        representation and creating a successor block based on the header
+        information (type(date): dict) of the latest block.
         # TODO What dows data look like? Example!
+        """
         if type(data) == dict:
             self._from_dictionary(data)
             assert public_key
             self.public_key = public_key.exportKey("DER").hex()
+            self.signature = ""
         elif type(data) == str:
             self._from_string(data)
         else:
@@ -38,6 +44,8 @@ class Block(object):
         """Create a string representation of the current block for hashing."""
         fields = [str(self.index), self.previous_block, self.version,
                   self.timestamp, self.public_key]
+        if self.signature != "":
+            fields.append(self.signature)
         if self.hash != "":
             fields.append(self.hash)
         block = CONFIG["serializaton"]["separator"].join(fields)
@@ -70,6 +78,7 @@ class Block(object):
                   "version",
                   "timestamp",
                   "public_key",
+                  "signature",
                   "hash"]
         header, transactions = data.split(
             CONFIG["serializaton"]["line_terminator"], 1)
@@ -81,6 +90,7 @@ class Block(object):
         self.version = header_information["version"]
         self.timestamp = header_information["timestamp"]
         self.public_key = header_information["public_key"]
+        self.signature = header_information["signature"]
         # Block ends with \n. Thus, splitting by line terminator will create
         # an empty string. We have to ignore this at this point.
         transaction_list = transactions.split(
@@ -137,14 +147,24 @@ class Block(object):
     def __hash__(self):
         return self.hash
 
+    def sign(self, private_key):
+        """Sign creator's public key, in order to prove identity."""
+        self.signature = crypto.sign(bytes.fromhex(self.public_key), private_key).hex()
 
-def create_initial_block(public_key):
+
+
+def create_initial_block(public_key, private_key):
     """Create the genesis block."""
     logger.info("Creating new genesis block")
     genesis = Block({
         "index": -1,
         "hash": str(0)
     }, public_key)
+    initial_admission_tx = PermissionTransaction(
+            Permission.admission,
+            public_key).sign(private_key)
+    genesis.add_transaction(initial_admission_tx)
+    genesis.sign(private_key)
     genesis.update_hash()
     genesis.persist()
     return genesis
