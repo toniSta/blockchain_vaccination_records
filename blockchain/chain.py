@@ -15,6 +15,7 @@ class Chain(object):
     __instance = None
 
     def __new__(cls, load_persisted=True):
+
         """Create a singleton instance of the chain."""
         if not Chain.__instance:
             logger.info("Creating initial chain")
