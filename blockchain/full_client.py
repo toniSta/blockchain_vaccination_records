@@ -276,7 +276,8 @@ class FullClient(object):
     def process_dangling_blocks(self):
         latest_block = self.chain.last_block()
         for block in self.dangling_blocks:
-            if block.previous_block == latest_block.hash:
+            expected_pub_key = self.determine_block_creation_node(timestamp=block.timestamp)
+            if block.previous_block == latest_block.hash and expected_pub_key == block.public_key:
                 if block.validate():
                     self.chain.add_block(block)
                     block.persist()
