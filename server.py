@@ -29,7 +29,7 @@ def send_block_by_hash(hash):
 @app.route('/new_transaction', methods=['POST'])
 def new_transaction():
     new_transaction = request.data
-    full_client.handle_new_transaction(new_transaction, False)
+    full_client.handle_incoming_transaction(new_transaction)
     return "success"
 
 

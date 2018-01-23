@@ -152,6 +152,10 @@ def create_initial_block(public_key, private_key):
         "index": -1,
         "hash": str(0)
     }, public_key)
+    initial_admission_tx = PermissionTransaction(
+            Permission.admission,
+            public_key).sign(private_key)
+    genesis.add_transaction(initial_admission_tx)
     genesis.sign(private_key)
     genesis.update_hash()
     genesis.persist()

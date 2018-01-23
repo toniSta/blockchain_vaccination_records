@@ -32,7 +32,7 @@ class FullClient(object):
 
         self._setup_public_key()
 
-        self.chain = Chain(self.public_key, self.private_key)
+        self.chain = Chain()
         self.transaction_set = TransactionSet()
         self.invalid_transactions = set()
 
@@ -103,15 +103,14 @@ class FullClient(object):
            last_block_remote.hash == self.chain.last_block().hash:
             # blockchain is up-to-date
             return
-        # TODO: implement synchronization
         if last_block_remote.index == self.chain.last_block().index and \
            last_block_remote.hash != self.chain.last_block().hash:
-            # TODO: at least last block is wrong
+            # TODO: at least last block is wrong for self or the other node
             pass
-
-        if last_block_remote.index != self.chain.last_block().index:
-            # TODO: chain is outdated
-            pass
+        if last_block_remote.index > self.chain.last_block().index:
+            syncing_block = self._request_block_at_index(self.chain.last_block().index + 1, random_node)
+            self._add_block_if_valid(syncing_block)
+            self.synchronize_blockchain()
 
     def create_next_block(self):
         new_block = Block(self.chain.last_block().get_block_information(),
@@ -143,10 +142,19 @@ class FullClient(object):
     def received_new_block(self, block_representation):
         logger.debug("Received new block: {}".format(repr(block_representation)))
         new_block = Block(block_representation)
-        if new_block.validate():
-            self.chain.add_block(new_block)
-            self._broadcast_new_block(new_block)
-            new_block.persist()
+        self._add_block_if_valid(new_block, broadcast_block=True)
+
+    def _request_block_at_index(self, index, node):
+        route = node + "/request_block/index/" + str(index)
+        block = requests.get(route)
+        return Block(block.text)
+
+    def _add_block_if_valid(self, block, broadcast_block=False):
+        if block.validate():
+            self.chain.add_block(block)
+            if broadcast_block:
+                self._broadcast_new_block(block)
+            block.persist()
 
     def _broadcast_new_block(self, block):
         for node in self.nodes:
@@ -155,8 +163,7 @@ class FullClient(object):
             # requests.post(route, data=repr(block), timeout=5)
 
     def _get_status_from_different_node(self, node):
-        random_node = random.choice(self.nodes)
-        route = random_node + "/latest_block"
+        route = node + "/latest_block"
         block = requests.get(route)
         return Block(block.text)
 
@@ -166,14 +173,17 @@ class FullClient(object):
         #   2. sync with other node(s)
         pass
 
-    def handle_new_transaction(self, transaction, created_by_self):
+    def handle_incoming_transaction(self, transaction):
         transaction_object = eval(transaction)
-        if self.transaction_set.contains(transaction_object):
+        self._handle_transaction(transaction_object)
+
+    def handle_transaction(self, transaction, broadcast=False):
+        if self.transaction_set.contains(transaction):
             return  # Transaction was already received
         else:
             # TODO: check if it is in the chain already
-            self.transaction_set.add(transaction_object)
-            if created_by_self:
+            self.transaction_set.add(transaction)
+            if broadcast:
                 self._broadcast_new_transaction(transaction)
 
     def _broadcast_new_transaction(self, transaction):
@@ -187,49 +197,49 @@ class FullClient(object):
         transaction_type = input("What kind of transaction should be created? (Vaccination/Vaccine/Permission)").lower()
         if transaction_type == "vaccination":
             vaccine = input("Which vaccine was given?").lower()
-            doctor_pubkey = input("Enter doctors public key")
-            patient_pubkey = input("Enter patients public key")
+            doctor_pubkey = eval(input("Enter doctors public key"))
+            patient_pubkey = eval(input("Enter patients public key"))
             transaction = VaccinationTransaction(doctor_pubkey, patient_pubkey, vaccine)
             print(transaction)
             sign_now = input("Sign transaction now? (Y/N)").lower()
             if sign_now == "y":
-                doctor_privkey = input("Enter doctors private key")
-                patient_privkey = input("Enter patients private key")
+                doctor_privkey = eval(input("Enter doctors private key"))
+                patient_privkey = eval(input("Enter patients private key"))
                 transaction.sign(doctor_privkey, patient_privkey)
                 print(transaction)
-                return transaction
+                self.handle_transaction(transaction, broadcast=True)
             elif sign_now == "n":
-                return transaction
+                print("Cannot broadcast unsigned transactions, aborting.")
             else:
                 print("Invalid option {}, aborting.".format(sign_now))
         elif transaction_type == "vaccine":
             vaccine = input("Which vaccine should be registered?").lower()
-            admission_pubkey = input("Enter admissions public key")
+            admission_pubkey = eval(input("Enter admissions public key"))
             transaction = VaccineTransaction(vaccine, admission_pubkey)
             print(transaction)
             sign_now = input("Sign transaction now? (Y/N)").lower()
             if sign_now == "y":
-                admission_privkey = input("Enter admission private key")
+                admission_privkey = eval(input("Enter admission private key"))
                 transaction.sign(admission_privkey)
                 print(transaction)
-                return transaction
+                self._handle_transaction(transaction, broadcast=True)
             elif sign_now == "n":
-                return transaction
+                print("Cannot broadcast unsigned transactions, aborting.")
             else:
                 print("Invalid option {}, aborting.".format(sign_now))
         elif transaction_type == "permission":
             permission_name = input("Which permission should be granted? (Patient/Doctor/Admission)").lower()
             permission = Permission[permission_name]
-            sender_pubkey = input("Enter sender public key")
+            sender_pubkey = eval(input("Enter sender public key"))
             transaction = PermissionTransaction(permission, sender_pubkey)
             print(transaction)
             if sign_now == "y":
-                sender_privkey = input("Enter sender private key")
+                sender_privkey = eval(input("Enter sender private key"))
                 transaction.sign(sender_privkey)
                 print(transaction)
-                return transaction
+                self.handle_transaction(transaction, broadcast=True)
             elif sign_now == "n":
-                return transaction
+                print("Cannot broadcast unsigned transactions, aborting.")
             else:
                 print("Invalid option {}, aborting.".format(sign_now))
         else:

@@ -9,8 +9,11 @@ def test_chain_and_block_creation():
         PUBLIC_KEY = RSA.import_key(public_key.read())
         PRIVATE_KEY = RSA.import_key(private_key.read())
 
-    # Create chain, already contains empty genesis
-    chain = Chain(PUBLIC_KEY, PRIVATE_KEY)
+    # Create chain, append genesis block
+    chain = Chain(load_persisted=False)
+    genesis = create_initial_block(PUBLIC_KEY, PRIVATE_KEY)
+    chain.add_block(genesis)
+
     assert chain.size() == 1
 
     # new Block with transactions

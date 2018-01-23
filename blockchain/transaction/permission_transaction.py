@@ -4,7 +4,6 @@ from Crypto.PublicKey import RSA
 from enum import Enum
 from blockchain.transaction.transaction import TransactionBase
 
-
 # Needs to be moved later
 logging.basicConfig(level=logging.DEBUG,
                     format="[ %(asctime)s ] %(levelname)-7s %(name)-s: %(message)s",
@@ -49,33 +48,36 @@ class PermissionTransaction(TransactionBase):
             "version": self.version
         })
 
-    def validate(self):
+    def validate(self, chain_size, current_admissions):
         """Check if the transaction fulfills the requirements.
 
         Check if signarure matches,
         if enough positive votes were cast for an admission,
         etc.
         """
-        if self.requested_permission == Permission.patient:
+        if self.requested_permission is Permission.patient:
             return self._verify_signature()
         else:
-            return self._verify_signature() and self._validate_approvals()
+            return self._verify_signature() and self._validate_approvals(chain_size, current_admissions)
 
-    def _validate_approvals(self):
+    def _validate_approvals(self, chain_size, current_admissions):
         """Validate the includeded approvals of the transaction.
 
-        Checks if a sufficient number of approvals is present,
-        if the approval signatures are valid and
-        if the approval was sent by a real admission nodes.
+        Checks if there are duplicate approvals,
+        if a sufficient number of approvals is present if the chain has at least 1 block,
+        if the approval signatures are valid,
+        if the approval was sent by a real admission nodes
         """
         if len(self.approvals) != len(set(self.approvals)):
             logger.debug("Transaction contains duplicate approvals.")
             return False
-        if len(self.approvals) < 3:
+        if chain_size > 0 and len(self.approvals) < 3: # TODO: dynamically set or have magic number?
             logger.debug("Transaction does not have enough approvals.")
             return False
-        valid_sig_approvals = [a for a in self.approvals if self._verify_approval_signature(a)]
-        if len(valid_sig_approvals) != len(self.approvals):
+        valid_approvals = [a for a in self.approvals if self._verify_approval_signature(a)]
+        if chain_size > 0:
+            valid_approvals = [a for a in valid_approvals if a[0] in current_admissions]
+        if len(valid_approvals) != len(self.approvals):
             logger.debug("Transaction contains invalid approvals.")
             return False
         return True
