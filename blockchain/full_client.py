@@ -32,7 +32,7 @@ class FullClient(object):
 
         self._setup_public_key()
 
-        self.chain = Chain(self.public_key)
+        self.chain = Chain(self.public_key, self.private_key)
         self.transaction_set = TransactionSet()
         self.invalid_transactions = set()
 
@@ -127,6 +127,7 @@ class FullClient(object):
             else:
                 # Break if transaction set is empty
                 break
+        new_block.sign(self.private_key)
         new_block.update_hash()
         return new_block
 
