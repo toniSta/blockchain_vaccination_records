@@ -58,7 +58,7 @@ class FullClient(object):
 
         last_block_timestamp = self.chain.last_block().timestamp
 
-        delta_time = timestamp - last_block_timestamp
+        delta_time = int(timestamp) - int(last_block_timestamp)
 
         nth_oldest_block = int(delta_time / CONFIG["block_time"])
 
