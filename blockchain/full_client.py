@@ -38,9 +38,18 @@ class FullClient(object):
         self.invalid_transactions = set()
         self.dangling_blocks = set()
         self.stop_creator_election = False
+        self.creator_election_thread = None
+        self._start_election_thread()
+        self.recover_after_shutdown()
+
+    def _start_election_thread(self):
+        self.stop_creator_election = False
         self.creator_election_thread = threading.Thread(target=self.creator_election, daemon=True)
         self.creator_election_thread.start()
-        self.recover_after_shutdown()
+
+    def _stop_election_thread(self):
+        self.stop_creator_election = True
+        self.creator_election_thread.join()
 
     def determine_block_creation_node(self, timestamp=time.time()):
         """Determine which admission node has to create the next block in chain.
@@ -151,8 +160,7 @@ class FullClient(object):
             logger.debug("The received block is already part of chain or a dangling block: {}".format(repr(block_representation)))
             return
 
-        self.stop_creator_election = True
-        self.creator_election_thread.join()
+        self._stop_election_thread()
 
         self._broadcast_new_block(new_block)
 
@@ -165,8 +173,7 @@ class FullClient(object):
         else:
             self._add_block_if_valid(new_block)
 
-        self.stop_creator_election = False
-        self.creator_election_thread.start()
+        self._start_election_thread()
 
     def creator_election(self):
         """This method checks if this node needs to generate a new block.
