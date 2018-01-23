@@ -108,9 +108,9 @@ class FullClient(object):
             # TODO: at least last block is wrong for self or the other node
             pass
         if last_block_remote.index > self.chain.last_block().index:
-            # TODO: will synchronize() run with a timer or should this method have a while loop for the syncing?
             syncing_block = self._request_block_at_index(self.chain.last_block().index + 1, random_node)
             self._add_block_if_valid(syncing_block)
+            self.synchronize_blockchain()
 
     def create_next_block(self):
         new_block = Block(self.chain.last_block().get_block_information(),
