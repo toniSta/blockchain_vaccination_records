@@ -31,7 +31,6 @@ class FullClient(object):
             self.nodes = ["http://" + neighbor for neighbor in neighbors_list]
         else:
             self.nodes = ["http://127.0.0.1:9000"]
-
         self._setup_public_key()
 
         self.chain = Chain()
@@ -40,7 +39,7 @@ class FullClient(object):
         self.dangling_blocks = set()
         self.stop_creator_election = False
         self.creator_election_thread = threading.Thread(target=self.creator_election, daemon=True)
-        self.creator_election_thread.run()
+        self.creator_election_thread.start()
         self.recover_after_shutdown()
 
     def determine_block_creation_node(self, timestamp=time.time()):
@@ -176,7 +175,6 @@ class FullClient(object):
         while not self.stop_creator_election:
             time.sleep(CONFIG["block_time"])
             next_creator = self.determine_block_creation_node()
-            print(self.public_key)
             #TODO choose unified representation of rsa public key!
             if next_creator == self.public_key.exportKey("DER"):
                 new_block = self.create_next_block()
