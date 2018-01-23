@@ -260,7 +260,7 @@ class FullClient(object):
             sender_pubkey = input("Enter sender public key")
             transaction = PermissionTransaction(permission, sender_pubkey)
             print(transaction)
-            # TODO bugifx 'sign_now'
+            sign_now = input("Sign transaction now? (Y/N)").lower()
             if sign_now == "y":
                 sender_privkey = input("Enter sender private key")
                 transaction.sign(sender_privkey)
