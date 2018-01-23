@@ -24,31 +24,30 @@ def block(genesis):
     new_block.add_transaction(new_transaction)
     new_transaction = PermissionTransaction(Permission.doctor, PUBLIC_KEY).sign(PRIVATE_KEY)
     new_block.add_transaction(new_transaction)
-    new_block.update_hash()
     yield new_block
 
 
 def test_initial_block_is_valid(block, genesis):
-    error = validate(block, genesis)
-    assert error is None, "Error in initial block"
+    block.update_hash()
+    is_valid = validate(block, genesis)
+    assert is_valid is True, "Error in initial block"
 
 
 def test_index(block, genesis):
     block.index = 2000
-    error = validate(block, genesis)
-    assert error is not None, "Did not detect wrong index"
-    assert "Wrong index" in error
+    block.update_hash()
+    is_valid = validate(block, genesis)
+    assert is_valid is False, "Did not detect wrong index"
 
 
 def test_previous_block_hash(block, genesis):
     block.previous_block = "some random hash"
-    error = validate(block, genesis)
-    assert error is not None, "Did not detect wrong prev. block hash"
-    assert "does not reference previous" in error
+    is_valid = validate(block, genesis)
+    assert is_valid is False, "Did not detect wrong prev. block hash"
 
 
 def test_version(block, genesis):
-    block.version = 0
-    error = validate(block, genesis)
-    assert error is not None, "Did not detect wrong version"
-    assert "Different versions" in error
+    block.version = "0"
+    block.update_hash()
+    is_valid = validate(block, genesis)
+    assert is_valid is False, "Did not detect wrong version"
