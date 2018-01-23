@@ -145,7 +145,7 @@ class Block(object):
         return self.hash == other.hash
 
     def __hash__(self):
-        return self.hash
+        return hash(self.hash)
 
     def sign(self, private_key):
         """Sign creator's public key, in order to prove identity."""
