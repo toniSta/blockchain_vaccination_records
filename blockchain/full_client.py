@@ -54,7 +54,7 @@ class FullClient(object):
         oldest submission node.
         """
         number_of_admissions = len(self.chain.get_admissions())
-        creator_history = self.chain.get_oldest_blockcreator(n=number_of_admissions)
+        creator_history = self.chain.get_block_creation_history(number_of_admissions)
 
         last_block_timestamp = self.chain.last_block().timestamp
 
