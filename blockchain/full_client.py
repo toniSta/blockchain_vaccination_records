@@ -62,7 +62,7 @@ class FullClient(object):
 
         nth_oldest_block = int(delta_time / CONFIG["block_time"])
 
-        return creator_history[nth_oldest_block % CONFIG["block_time"]]
+        return creator_history[nth_oldest_block % number_of_admissions]
 
     def _setup_public_key(self):
         """Create new key pair if necessary.
@@ -176,7 +176,9 @@ class FullClient(object):
         while not self.stop_creator_election:
             time.sleep(CONFIG["block_time"])
             next_creator = self.determine_block_creation_node()
-            if next_creator == self.public_key:
+            print(self.public_key)
+            #TODO choose unified representation of rsa public key!
+            if next_creator == self.public_key.exportKey("DER"):
                 new_block = self.create_next_block()
                 if not new_block.validate():
                     logger.error("New generated block is not valid! {}".format(repr(new_block)))
@@ -199,7 +201,7 @@ class FullClient(object):
         for node in self.nodes:
             route = node + "/new_block"
             # TODO: this doesnt work, if we send it to the same node
-            # requests.post(route, data=repr(block), timeout=5)
+            requests.post(route, data=repr(block), timeout=5)
 
     def _get_status_from_different_node(self, node):
         route = node + "/latest_block"
