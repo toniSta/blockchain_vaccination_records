@@ -2,10 +2,13 @@ from Crypto.PublicKey import RSA
 import pytest
 import os
 
+
 from blockchain.block import Block, create_initial_block
+import blockchain.helper.cryptography as crypto
 
 PUBLIC_KEY = RSA.import_key(open("tests" + os.sep + "testkey_pub.bin", "rb").read())
 PRIVATE_KEY = RSA.import_key(open("tests" + os.sep + "testkey_priv.bin", "rb").read())
+
 
 @pytest.fixture()
 def genesis():
@@ -38,6 +41,7 @@ def new_block(genesis):
     new_block = Block(genesis.get_block_information(), PUBLIC_KEY)
     new_block.add_transaction("tx1")
     new_block.add_transaction("tx2")
+    new_block.sign(PRIVATE_KEY)
     new_block.update_hash()
     yield new_block
 
@@ -57,3 +61,7 @@ def test_serialization_deserialization(new_block):
         "Object representation must be string"
     assert repr(new_block) == repr(Block(repr(new_block))),\
         "After serialization + de-serialization, block must have same content"
+
+
+def test_signature_validity(new_block):
+    assert crypto.verify(bytes.fromhex(new_block.public_key), bytes.fromhex(new_block.signature), PUBLIC_KEY)

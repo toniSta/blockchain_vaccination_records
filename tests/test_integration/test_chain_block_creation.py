@@ -13,6 +13,7 @@ def test_chain_and_block_creation():
     chain = Chain(load_persisted=False)
     genesis = create_initial_block(PUBLIC_KEY, PRIVATE_KEY)
     chain.add_block(genesis)
+
     assert chain.size() == 1
 
     # new Block with transactions
@@ -22,6 +23,7 @@ def test_chain_and_block_creation():
     new_transaction = PermissionTransaction(Permission.doctor, PUBLIC_KEY).sign(PRIVATE_KEY)
     new_block.add_transaction(new_transaction)
 
+    new_block.sign(PRIVATE_KEY)
     new_block.update_hash()
     new_block.persist()
 

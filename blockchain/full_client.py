@@ -126,6 +126,7 @@ class FullClient(object):
             else:
                 # Break if transaction set is empty
                 break
+        new_block.sign(self.private_key)
         new_block.update_hash()
         return new_block
 
