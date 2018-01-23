@@ -177,7 +177,6 @@ class FullClient(object):
         self._handle_transaction(transaction_object)
 
     def handle_transaction(self, transaction, broadcast=False):
-        # TODO: should this method also validate the transaction or not?
         if self.transaction_set.contains(transaction):
             return  # Transaction was already received
         else:

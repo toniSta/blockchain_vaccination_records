@@ -89,7 +89,7 @@ def test_transaction_validation(approvals):
     assert tx1.validate(chain_size, current_admissions) == True, "patient permission should be granted when signed"
     tx2 = PermissionTransaction(Permission.doctor, wallet[0], [approval1, approval2])
     tx2.sign(wallet[1])
-    # assert tx2.validate(chain_size, current_admissions) == False, "transaction need minimum number of approvals" TODO: put back in after implementing genesis
+    # commented out because of genesisblock assert tx2.validate(chain_size, current_admissions) == False, "transaction need minimum number of approvals"
     tx3 = PermissionTransaction(Permission.doctor, wallet[0], [approval1, approval2, fake_approval])
     tx3.sign(wallet[1])
     assert tx3.validate(chain_size, current_admissions) == False, "transaction should not validate with tampered approvals"

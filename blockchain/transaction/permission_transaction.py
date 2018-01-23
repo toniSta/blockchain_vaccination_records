@@ -3,7 +3,6 @@ import blockchain.helper.cryptography as crypto
 from Crypto.PublicKey import RSA
 from enum import Enum
 from blockchain.transaction.transaction import TransactionBase
-#import blockchain.chain as chain
 
 # Needs to be moved later
 logging.basicConfig(level=logging.DEBUG,
