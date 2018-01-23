@@ -10,7 +10,6 @@ import logging
 import os
 from hashlib import sha256
 from time import time
-from Crypto.PublicKey import RSA
 
 from .config import CONFIG
 from blockchain.transaction import *
@@ -41,8 +40,11 @@ class Block(object):
 
     def __repr__(self):
         """Create a string representation of the current block for hashing."""
-        fields = [str(self.index), self.previous_block, self.version,
-                  self.timestamp, self.public_key]
+        fields = [str(self.index),
+                  self.previous_block,
+                  self.version,
+                  str(self.timestamp),
+                  self.public_key]
         if self.signature != "":
             fields.append(self.hash)
         if self.hash != "":
@@ -87,7 +89,7 @@ class Block(object):
         self.index = int(header_information["index"])
         self.previous_block = header_information["previous_block"]
         self.version = header_information["version"]
-        self.timestamp = header_information["timestamp"]
+        self.timestamp = int(header_information["timestamp"])
         self.public_key = header_information["public_key"]
         self.signature = header_information["signature"]
         # Block ends with \n. Thus, splitting by line terminator will create
@@ -103,7 +105,7 @@ class Block(object):
         self.index = int(data["index"]) + 1
         self.previous_block = data["hash"]
         self.version = CONFIG["version"]
-        self.timestamp = str(int(time()))
+        self.timestamp = int(time())
         self.transactions = []
         self.hash = ""
 
