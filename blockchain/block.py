@@ -28,7 +28,7 @@ class Block(object):
         This constructor supports both, recreating a block by its string
         representation and creating a successor block based on the header
         information (type(date): dict) of the latest block.
-        # TODO What dows data look like? Example!
+        # TODO What does data look like? Example!
         """
         if type(data) == dict:
             self._from_dictionary(data)
