@@ -1,6 +1,8 @@
 import logging
 import os
 import random
+import threading
+
 import requests
 import sched
 import time
@@ -35,29 +37,32 @@ class FullClient(object):
         self.chain = Chain()
         self.transaction_set = TransactionSet()
         self.invalid_transactions = set()
-
+        self.dangling_blocks = set()
+        self.stop_creator_election = False
+        self.creator_election_thread = threading.Thread(target=self.creator_election, daemon=True)
+        self.creator_election_thread.run()
         self.recover_after_shutdown()
-        self._start_runner()
 
-    def _start_runner(self):
-        """Spawn thread for block creation."""
-        thread = Thread(target=self._schedule)
-        thread.start()
+    def determine_block_creation_node(self, timestamp=time.time()):
+        """Determine which admission node has to create the next block in chain.
 
-    def _schedule(self):
-        """Start scheduler."""
-        scheduler.enter(CONFIG["block_time"], 1, self._create_block, (scheduler,))
-        scheduler.run()
+        The method takes a timestamp as argument representing the creation date of the block whose legitimate creator
+        should be determined. Defaults to 'now', which means "Who should create a block right now?"
+        Returns the public key of the determined creator
 
-    def _create_block(self, sc):
-        """Create block and schedule next event."""
-        self.determine_block_creation_node()
-        scheduler.enter(CONFIG["block_time"], 1, self._create_block, (sc,))
+        If even the youngest creator failed to create a block within time, the method continues with the
+        oldest submission node.
+        """
+        number_of_admissions = len(self.chain.get_admissions())
+        creator_history = self.chain.get_oldest_blockcreator(n=number_of_admissions)
 
-    def determine_block_creation_node(self):
-        # TODO: implement node selection algorithm
-        new_block = self.create_next_block()
-        self.submit_block(new_block)
+        last_block_timestamp = self.chain.last_block().timestamp
+
+        delta_time = int(timestamp) - int(last_block_timestamp)
+
+        nth_oldest_block = int(delta_time / CONFIG["block_time"])
+
+        return creator_history[nth_oldest_block % CONFIG["block_time"]]
 
     def _setup_public_key(self):
         """Create new key pair if necessary.
@@ -131,18 +136,51 @@ class FullClient(object):
         return new_block
 
     def submit_block(self, block):
-        if block.validate():
-            self.chain.add_block(block)
-            block.persist()
-            self._broadcast_new_block(block)
-        else:
-            # TODO: define behaviour
-            pass
+        self.chain.add_block(block)
+        block.persist()
+        self._broadcast_new_block(block)
 
     def received_new_block(self, block_representation):
+        """This method is called when receiving a new block.
+
+        It will check if the block was received earlier. If not it will process and broadcast the block and adding it
+        to the chain or dangling blocks."""
         logger.debug("Received new block: {}".format(repr(block_representation)))
         new_block = Block(block_representation)
-        self._add_block_if_valid(new_block, broadcast_block=True)
+
+        if self.chain.find_block_by_hash(new_block.hash) or new_block in self.dangling_blocks:
+            logger.debug("The received block is already part of chain or a dangling block: {}".format(repr(block_representation)))
+            return
+
+        self.stop_creator_election = True
+        self.creator_election_thread.join()
+
+        self._broadcast_new_block(new_block)
+
+        expected_pub_key = self.determine_block_creation_node(timestamp=new_block.timestamp)
+
+        if expected_pub_key != new_block.public_key:
+            logger.debug("Received block doesn't match as next block in chain. Adding it to dangling blocks: {}".format(
+                repr(block_representation)))
+            self.dangling_blocks.add(new_block)
+        else:
+            self._add_block_if_valid(new_block)
+
+        self.stop_creator_election = False
+        self.creator_election_thread.start()
+
+    def creator_election(self):
+        """This method checks if this node needs to generate a new block.
+
+        If it is the next creator it will generate a block and submit it to the chain."""
+        while not self.stop_creator_election:
+            time.sleep(CONFIG["block_time"])
+            next_creator = self.determine_block_creation_node()
+            if next_creator == self.public_key:
+                new_block = self.create_next_block()
+                if not new_block.validate():
+                    logger.error("New generated block is not valid! {}".format(repr(new_block)))
+                self.submit_block(new_block)
 
     def _request_block_at_index(self, index, node):
         route = node + "/request_block/index/" + str(index)
@@ -152,9 +190,10 @@ class FullClient(object):
     def _add_block_if_valid(self, block, broadcast_block=False):
         if block.validate():
             self.chain.add_block(block)
+            block.persist()
+            self.process_dangling_blocks()
             if broadcast_block:
                 self._broadcast_new_block(block)
-            block.persist()
 
     def _broadcast_new_block(self, block):
         for node in self.nodes:
@@ -233,6 +272,7 @@ class FullClient(object):
             sender_pubkey = eval(input("Enter sender public key"))
             transaction = PermissionTransaction(permission, sender_pubkey)
             print(transaction)
+            sign_now = input("Sign transaction now? (Y/N)").lower()
             if sign_now == "y":
                 sender_privkey = eval(input("Enter sender private key"))
                 transaction.sign(sender_privkey)
@@ -244,3 +284,15 @@ class FullClient(object):
                 print("Invalid option {}, aborting.".format(sign_now))
         else:
             print("Invalid option {}, aborting.".format(transaction_type))
+
+    def process_dangling_blocks(self):
+        latest_block = self.chain.last_block()
+        for block in self.dangling_blocks:
+            expected_pub_key = self.determine_block_creation_node(timestamp=block.timestamp)
+            if block.previous_block == latest_block.hash and expected_pub_key == block.public_key:
+                if block.validate():
+                    self.chain.add_block(block)
+                    block.persist()
+                    self.process_dangling_blocks()
+                return
+

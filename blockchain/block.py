@@ -28,6 +28,7 @@ class Block(object):
         This constructor supports both, recreating a block by its string
         representation and creating a successor block based on the header
         information (type(date): dict) of the latest block.
+        # TODO What does data look like? Example!
         """
         if type(data) == dict:
             self._from_dictionary(data)
@@ -140,9 +141,16 @@ class Block(object):
         # TODO: implement block validation
         return True
 
+    def __eq__(self, other):
+        return self.hash == other.hash
+
+    def __hash__(self):
+        return self.hash
+
     def sign(self, private_key):
         """Sign creator's public key, in order to prove identity."""
         self.signature = crypto.sign(bytes.fromhex(self.public_key), private_key).hex()
+
 
 
 def create_initial_block(public_key, private_key):
