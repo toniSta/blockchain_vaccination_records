@@ -148,9 +148,30 @@ class Block(object):
         # TODO: implement block validation
         return True
 
+    def get_content_for_signing(self):
+        """Return relevant block information for signing.
+
+        This method is needed at two points:
+        1. Signing of a block
+        2. Validating a block's signature
+        In both scenarios, we need the block representation without
+        its signature and hash.
+        """
+        fields = [str(self.index),
+                  self.previous_block,
+                  self.version,
+                  str(self.timestamp),
+                  self.public_key]
+        content = CONFIG["serializaton"]["separator"].join(fields)
+        content += CONFIG["serializaton"]["line_terminator"]
+        for transaction in self.transactions:
+            content += repr(transaction) + CONFIG["serializaton"]["line_terminator"]
+        return content
+
     def sign(self, private_key):
         """Sign creator's public key, in order to prove identity."""
-        self.signature = crypto.sign(bytes.fromhex(self.public_key), private_key).hex()
+        block_content = str.encode(self.get_content_for_signing())
+        self.signature = crypto.sign(block_content, private_key).hex()
 
 
 def create_initial_block(public_key, private_key):
