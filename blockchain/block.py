@@ -13,6 +13,7 @@ from time import time
 
 from .config import CONFIG
 from blockchain.transaction import *
+import blockchain.helper.cryptography as crypto
 
 logger = logging.getLogger("blockchain")
 
@@ -21,13 +22,23 @@ class Block(object):
     """This class represents a block in the blockchain."""
 
     def __init__(self, data, public_key=None):
-        # data object can be:
-        #   1. header information of the previous block
-        #   2. string representation of a block
+        """Create or Recreate a block object.
+
+        This constructor supports both, recreating a block by its string
+        representation and creating a successor block based on the header
+        information (type(date): dict) of the latest block.
+        To create the successor block, the passed dictionary has to have
+        the following fields:
+        {
+            "index": 0,         [index of the previous block]
+            "hash": "166AD84E"  [hash of the previous block]
+        }
+        """
         if type(data) == dict:
             self._from_dictionary(data)
             assert public_key
             self.public_key = public_key.exportKey("DER").hex()
+            self.signature = ""
         elif type(data) == str:
             self._from_string(data)
         else:
@@ -35,8 +46,13 @@ class Block(object):
 
     def __repr__(self):
         """Create a string representation of the current block for hashing."""
-        fields = [str(self.index), self.previous_block, self.version,
-                  self.timestamp, self.public_key]
+        fields = [str(self.index),
+                  self.previous_block,
+                  self.version,
+                  str(self.timestamp),
+                  self.public_key]
+        if self.signature != "":
+            fields.append(self.signature)
         if self.hash != "":
             fields.append(self.hash)
         block = CONFIG["serializaton"]["separator"].join(fields)
@@ -69,6 +85,7 @@ class Block(object):
                   "version",
                   "timestamp",
                   "public_key",
+                  "signature",
                   "hash"]
         header, transactions = data.split(
             CONFIG["serializaton"]["line_terminator"], 1)
@@ -78,8 +95,9 @@ class Block(object):
         self.index = int(header_information["index"])
         self.previous_block = header_information["previous_block"]
         self.version = header_information["version"]
-        self.timestamp = header_information["timestamp"]
+        self.timestamp = int(header_information["timestamp"])
         self.public_key = header_information["public_key"]
+        self.signature = header_information["signature"]
         # Block ends with \n. Thus, splitting by line terminator will create
         # an empty string. We have to ignore this at this point.
         transaction_list = transactions.split(
@@ -93,7 +111,7 @@ class Block(object):
         self.index = int(data["index"]) + 1
         self.previous_block = data["hash"]
         self.version = CONFIG["version"]
-        self.timestamp = str(int(time()))
+        self.timestamp = int(time())
         self.transactions = []
         self.hash = ""
 
@@ -130,14 +148,50 @@ class Block(object):
         # TODO: implement block validation
         return True
 
+    def get_content_for_signing(self):
+        """Return relevant block information for signing.
 
-def create_initial_block(public_key):
+        This method is needed at two points:
+        1. Signing of a block
+        2. Validating a block's signature
+        In both scenarios, we need the block representation without
+        its signature and hash.
+        """
+        fields = [str(self.index),
+                  self.previous_block,
+                  self.version,
+                  str(self.timestamp),
+                  self.public_key]
+        content = CONFIG["serializaton"]["separator"].join(fields)
+        content += CONFIG["serializaton"]["line_terminator"]
+        for transaction in self.transactions:
+            content += repr(transaction) + CONFIG["serializaton"]["line_terminator"]
+        return content
+
+    def __eq__(self, other):
+        return self.hash == other.hash
+
+    def __hash__(self):
+        return self.hash
+
+    def sign(self, private_key):
+        """Sign creator's public key, in order to prove identity."""
+        block_content = str.encode(self.get_content_for_signing())
+        self.signature = crypto.sign(block_content, private_key).hex()
+
+
+def create_initial_block(public_key, private_key):
     """Create the genesis block."""
     logger.info("Creating new genesis block")
     genesis = Block({
         "index": -1,
         "hash": str(0)
     }, public_key)
+    initial_admission_tx = PermissionTransaction(
+        Permission.admission,
+        public_key).sign(private_key)
+    genesis.add_transaction(initial_admission_tx)
+    genesis.sign(private_key)
     genesis.update_hash()
     genesis.persist()
     return genesis
