@@ -1,7 +1,7 @@
 import logging
 
 from blockchain.config import CONFIG
-from blockchain.server import start_server
+from blockchain.network.server import start_server
 from blockchain.full_client import FullClient
 
 

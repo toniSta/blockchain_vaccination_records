@@ -9,7 +9,7 @@ from .transaction_set import TransactionSet
 from .block import Block
 from .chain import Chain
 from .config import CONFIG
-from .network import Network
+from .network.network import Network
 from .transaction import *
 from .helper.cryptography import generate_keypair
 from Crypto.PublicKey import RSA

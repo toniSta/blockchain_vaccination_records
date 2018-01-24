@@ -1,7 +1,7 @@
 from flask import Flask, request
 import os
 
-from .config import CONFIG
+from ..config import CONFIG
 
 app = Flask(__name__)
 

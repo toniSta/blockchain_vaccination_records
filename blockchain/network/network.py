@@ -7,7 +7,7 @@ are bundled in this file in order to provide easy exchangeability.
 
 from abc import ABCMeta
 import requests
-from .config import CONFIG
+from ..config import CONFIG
 
 
 class Network(ABCMeta):
