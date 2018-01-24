@@ -39,23 +39,19 @@ class FullClient(object):
         self.dangling_blocks = set()
         self.stop_creator_election_request = threading.Event()
         self.creator_election_thread = None
-        #self._start_election_thread()
-        self.creator_election_thread = threading.Thread(target=self.creator_election)
         self._start_election_thread()
-        self.creator_election_thread.start()
         #self.recover_after_shutdown()
 
     def _start_election_thread(self):
-        logger.debug("_start_election_thread")
+        self.creator_election_thread = threading.Thread(target=self.creator_election, daemon=True)
         self.stop_creator_election_request.clear()
-        #self.creator_election_thread = threading.Thread(target=self.creator_election, daemon=True)
-        #self.creator_election_thread = threading.Thread(target=self.creator_election)
-        #self.creator_election_thread.start()
+        self.creator_election_thread.start()
+
+    def _resume_election_thread(self):
+        self.stop_creator_election_request.clear()
 
     def _stop_election_thread(self):
-        logger.debug("_stop_election_thread")
         self.stop_creator_election_request.set()
-        #self.creator_election_thread.join()
 
     def determine_block_creation_node(self, timestamp=time.time()):
         """Determine which admission node has to create the next block in chain.
@@ -67,7 +63,6 @@ class FullClient(object):
         If even the youngest creator failed to create a block within time, the method continues with the
         oldest submission node.
         """
-        logger.debug("determine_block_creation_node")
         number_of_admissions = len(self.chain.get_admissions())
         creator_history = self.chain.get_block_creation_history(number_of_admissions)
 
@@ -117,7 +112,6 @@ class FullClient(object):
                 self.private_key = RSA.import_key(key_file.read())
 
     def synchronize_blockchain(self):
-        logger.debug("synchronize_blockchain")
         random_node = random.choice(self.nodes)
         last_block_remote = self._get_status_from_different_node(random_node)
         if last_block_remote.index == self.chain.last_block().index and \
@@ -134,7 +128,6 @@ class FullClient(object):
             self.synchronize_blockchain()
 
     def create_next_block(self):
-        logger.debug("create_next_block")
         new_block = Block(self.chain.last_block().get_block_information(),
                           self.public_key)
 
@@ -153,7 +146,6 @@ class FullClient(object):
         return new_block
 
     def submit_block(self, block):
-        logger.debug("submit_block")
         self.chain.add_block(block)
         block.persist()
         self._broadcast_new_block(block)
@@ -183,37 +175,33 @@ class FullClient(object):
         else:
             self._add_block_if_valid(new_block)
 
-        self._start_election_thread()
+        self._resume_election_thread()
 
     def creator_election(self):
         """This method checks if this node needs to generate a new block.
 
         If it is the next creator it will generate a block and submit it to the chain."""
-        logger.debug("creator_election")
-        if self.stop_creator_election_request.isSet():
-            logger.debug("creator_election: waiting for signal")
-            self.stop_creator_election_request.wait()
-        logger.debug("creator_election: choosing next creator")
-        time.sleep(CONFIG["block_time"])
-        next_creator = self.determine_block_creation_node()
-        #TODO choose unified representation of rsa public key!
-        if next_creator == self.public_key.exportKey("DER"):
-            logger.debug("creator_election: next creator is self")
-            new_block = self.create_next_block()
-            if not new_block.validate():
-                logger.error("New generated block is not valid! {}".format(repr(new_block)))
-            self.submit_block(new_block)
-        else:
-            logger.debug("creator_election: next creator is other")
+        while True:
+            if self.stop_creator_election_request.isSet():
+                self.stop_creator_election_request.wait()
+            time.sleep(CONFIG["block_time"])
+            next_creator = self.determine_block_creation_node()
+            #TODO choose unified representation of rsa public key!
+            if next_creator == self.public_key.exportKey("DER"):
+                logger.debug("creator_election: next creator is self")
+                new_block = self.create_next_block()
+                if not new_block.validate():
+                    logger.error("New generated block is not valid! {}".format(repr(new_block)))
+                self.submit_block(new_block)
+            else:
+                logger.debug("creator_election: next creator is other")
 
     def _request_block_at_index(self, index, node):
-        logger.debug("_request_block_at_index")
         route = node + "/request_block/index/" + str(index)
         block = requests.get(route)
         return Block(block.text)
 
     def _add_block_if_valid(self, block, broadcast_block=False):
-        logger.debug("_add_block_if_valid")
         if block.validate():
             self.chain.add_block(block)
             block.persist()
@@ -222,20 +210,17 @@ class FullClient(object):
                 self._broadcast_new_block(block)
 
     def _broadcast_new_block(self, block):
-        logger.debug("_broadcast_new_block")
         for node in self.nodes:
             route = node + "/new_block"
             # TODO: this doesnt work, if we send it to the same node
             requests.post(route, data=repr(block), timeout=5)
 
     def _get_status_from_different_node(self, node):
-        logger.debug("_get_status_from_different_node")
         route = node + "/latest_block"
         block = requests.get(route)
         return Block(block.text)
 
     def recover_after_shutdown(self):
-        logger.debug("recover_after_shutdown")
         # Steps:
         #   1. read in files from disk -> maybe in __init__ of chain
         #   2. sync with other node(s)
@@ -315,7 +300,6 @@ class FullClient(object):
             print("Invalid option {}, aborting.".format(transaction_type))
 
     def process_dangling_blocks(self):
-        logger.debug("process_dangling_blocks")
         latest_block = self.chain.last_block()
         for block in self.dangling_blocks:
             expected_pub_key = self.determine_block_creation_node(timestamp=block.timestamp)
