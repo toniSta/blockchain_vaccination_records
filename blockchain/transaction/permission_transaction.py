@@ -1,4 +1,5 @@
 import logging
+import math
 import blockchain.helper.cryptography as crypto
 from Crypto.PublicKey import RSA
 from enum import Enum
@@ -71,14 +72,14 @@ class PermissionTransaction(TransactionBase):
         if len(self.approvals) != len(set(self.approvals)):
             logger.debug("Transaction contains duplicate approvals.")
             return False
-        if chain_size > 0 and len(self.approvals) < 3: # TODO: dynamically set or have magic number?
-            logger.debug("Transaction does not have enough approvals.")
+        if len(self.approvals) < math.ceil(len(current_admissions) / 2):
+            logger.debug("Transaction does not contain the required number of approvals.")
             return False
-        valid_approvals = [a for a in self.approvals if self._verify_approval_signature(a)]
-        if chain_size > 0:
-            valid_approvals = [a for a in valid_approvals if a[0] in current_admissions]
-        if len(valid_approvals) != len(self.approvals):
-            logger.debug("Transaction contains invalid approvals.")
+        if len(self.approvals) != len([a for a in self.approvals if self._verify_approval_signature(a)]):
+            logger.debug("Transaction contains approvals with invalid signature.")
+            return False
+        if len(self.approvals) != len([a for a in self.approvals if a[0] in current_admissions]):
+            logger.debug("Transaction contains approvals from non-admission nodes.")
             return False
         return True
 
