@@ -4,11 +4,11 @@ import pytest
 
 
 def test_transaction_set_is_singleton():
+    set_1 = TransactionSet()
     set_2 = TransactionSet()
     set_2.add("tx1")
-    set_1 = TransactionSet()
-    # assert len(set_1) == 1
-    # assert id(set_1) == id(set_2)
+    assert id(set_1) == id(set_2)
+    assert len(set_1) == 1
 
 
 def test_adding_values():
@@ -40,9 +40,27 @@ def test_clear(transaction_set):
 
 
 def test_pop(transaction_set):
-    tx1 = transaction_set.pop()
-    # assert tx1 == "tx1"
-    # assert len(transaction_set) == 1
-    # tx2 = transaction_set.pop()
-    # assert tx2 is None
-    # assert len(transaction_set) == 1
+    transaction_set.pop()
+    assert len(transaction_set) == 1
+    tx2 = transaction_set.pop()
+    assert tx2 is "tx2"
+    assert len(transaction_set) == 0
+    with pytest.raises(Exception) as excinfo:
+        transaction_set.pop()
+    assert excinfo.type == KeyError
+
+
+def test_discard(transaction_set):
+    transaction_set.discard("tx1")
+    assert len(transaction_set) == 1
+    transaction_set.discard("some random string")
+    assert len(transaction_set) == 1
+
+
+def test_iterator(transaction_set):
+    for tx in transaction_set:
+        assert tx is not None
+
+
+def test_repr(transaction_set):
+    assert repr(transaction_set) == "OrderedSet(['tx1', 'tx2'])"
