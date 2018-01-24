@@ -52,7 +52,7 @@ class Block(object):
                   str(self.timestamp),
                   self.public_key]
         if self.signature != "":
-            fields.append(self.hash)
+            fields.append(self.signature)
         if self.hash != "":
             fields.append(self.hash)
         block = CONFIG["serializaton"]["separator"].join(fields)
@@ -168,6 +168,12 @@ class Block(object):
             content += repr(transaction) + CONFIG["serializaton"]["line_terminator"]
         return content
 
+    def __eq__(self, other):
+        return self.hash == other.hash
+
+    def __hash__(self):
+        return self.hash
+
     def sign(self, private_key):
         """Sign creator's public key, in order to prove identity."""
         block_content = str.encode(self.get_content_for_signing())
@@ -181,6 +187,10 @@ def create_initial_block(public_key, private_key):
         "index": -1,
         "hash": str(0)
     }, public_key)
+    initial_admission_tx = PermissionTransaction(
+        Permission.admission,
+        public_key).sign(private_key)
+    genesis.add_transaction(initial_admission_tx)
     genesis.sign(private_key)
     genesis.update_hash()
     genesis.persist()
