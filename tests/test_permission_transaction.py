@@ -80,25 +80,24 @@ def test_transaction_signature_verification(signed_tx):
 
 
 def test_transaction_validation(approvals):
-    chain_size = 0  # mock empty chain
     current_admissions = set() # mock empty chain with no admissions
     approval1, approval2, approval3, fake_approval = approvals
     wallet = crypto.generate_keypair()
     tx1 = PermissionTransaction(Permission.patient, wallet[0])
     tx1.sign(wallet[1])
-    assert tx1.validate(chain_size, current_admissions) == True, "patient permission should be granted when signed"
+    assert tx1.validate(current_admissions) == True, "patient permission should be granted when signed"
     current_admissions = set([approval1[0], approval2[0], approval3[0]]) # mock 3 registered admissions
     tx2 = PermissionTransaction(Permission.doctor, wallet[0], [approval1])
     tx2.sign(wallet[1])
-    assert tx2.validate(chain_size, current_admissions) == False, "transaction need minimum number of approvals"
+    assert tx2.validate(current_admissions) == False, "transaction need minimum number of approvals"
     current_admissions = set([approval1[0], approval2[0]]) # mock 2 registered amissions
     tx3 = PermissionTransaction(Permission.doctor, wallet[0], [approval1, approval2, fake_approval])
     tx3.sign(wallet[1])
-    assert tx3.validate(chain_size, current_admissions) == False, "transaction should not validate with tampered approvals"
+    assert tx3.validate(current_admissions) == False, "transaction should not validate with tampered approvals"
     tx4 = PermissionTransaction(Permission.doctor, wallet[0], [approval1, approval1, approval1])
     tx4.sign(wallet[1])
-    assert tx4.validate(chain_size, current_admissions) == False, "transaction should not validate with duplicate approvals"
+    assert tx4.validate(current_admissions) == False, "transaction should not validate with duplicate approvals"
     current_admissions = set([approval1[0], approval2[0], approval3[0]]) # mock 3 registered admissions
     tx5 = PermissionTransaction(Permission.doctor, wallet[0], [approval1, approval2, approval3])
     tx5.sign(wallet[1])
-    assert tx5.validate(chain_size, current_admissions) == True, "transaction matching the requirements should succesfully validate"
+    assert tx5.validate(current_admissions) == True, "transaction matching the requirements should succesfully validate"

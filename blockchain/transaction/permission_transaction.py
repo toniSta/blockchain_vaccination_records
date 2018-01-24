@@ -49,7 +49,7 @@ class PermissionTransaction(TransactionBase):
             "version": self.version
         })
 
-    def validate(self, chain_size, current_admissions):
+    def validate(self, current_admissions):
         """Check if the transaction fulfills the requirements.
 
         Check if signarure matches,
@@ -59,9 +59,9 @@ class PermissionTransaction(TransactionBase):
         if self.requested_permission is Permission.patient:
             return self._verify_signature()
         else:
-            return self._verify_signature() and self._validate_approvals(chain_size, current_admissions)
+            return self._verify_signature() and self._validate_approvals(current_admissions)
 
-    def _validate_approvals(self, chain_size, current_admissions):
+    def _validate_approvals(self, current_admissions):
         """Validate the includeded approvals of the transaction.
 
         Checks if there are duplicate approvals,
