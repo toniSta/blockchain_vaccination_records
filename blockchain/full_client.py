@@ -150,7 +150,13 @@ class FullClient(object):
         It will check if the block was received earlier. If not it will process and broadcast the block and adding it
         to the chain or dangling blocks."""
         logger.debug("Received new block: {}".format(repr(block_representation)))
-        new_block = Block(block_representation)
+
+        try:
+            new_block = Block(block_representation)
+        except Exception:
+            logger.error("Could not parse received block")
+            # TODO define behaviour here
+            return
 
         if self.chain.find_block_by_hash(new_block.hash) or new_block in self.dangling_blocks:
             logger.debug("The received block is already part of chain or a dangling block: {}".format(repr(block_representation)))

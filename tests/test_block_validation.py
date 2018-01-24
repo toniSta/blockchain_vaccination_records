@@ -13,7 +13,7 @@ PRIVATE_KEY = RSA.import_key(open("tests" + os.sep + "testkey_priv.bin", "rb").r
 
 @pytest.fixture()
 def genesis():
-    genesis = create_initial_block(PUBLIC_KEY)
+    genesis = create_initial_block(PUBLIC_KEY, PRIVATE_KEY)
     yield genesis
 
 
@@ -28,6 +28,7 @@ def block(genesis):
 
 
 def test_initial_block_is_valid(block, genesis):
+    block.sign(PRIVATE_KEY)
     block.update_hash()
     is_valid = validate(block, genesis)
     assert is_valid is True, "Error in initial block"
@@ -35,6 +36,7 @@ def test_initial_block_is_valid(block, genesis):
 
 def test_index(block, genesis):
     block.index = 2000
+    block.sign(PRIVATE_KEY)
     block.update_hash()
     is_valid = validate(block, genesis)
     assert is_valid is False, "Did not detect wrong index"
@@ -42,12 +44,23 @@ def test_index(block, genesis):
 
 def test_previous_block_hash(block, genesis):
     block.previous_block = "some random hash"
+    block.sign(PRIVATE_KEY)
+    block.update_hash()
     is_valid = validate(block, genesis)
     assert is_valid is False, "Did not detect wrong prev. block hash"
 
 
 def test_version(block, genesis):
     block.version = "0"
+    block.sign(PRIVATE_KEY)
+    block.update_hash()
+    is_valid = validate(block, genesis)
+    assert is_valid is False, "Did not detect wrong version"
+
+
+def test_signature_validity(block, genesis):
+    block.sign(PRIVATE_KEY)
+    block.index = 302
     block.update_hash()
     is_valid = validate(block, genesis)
     assert is_valid is False, "Did not detect wrong version"
