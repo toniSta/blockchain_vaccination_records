@@ -5,6 +5,7 @@ import os
 from blockchain.block import Block, create_initial_block
 from blockchain.transaction import *
 from blockchain.block_validator import validate
+from blockchain.config import CONFIG
 
 
 PUBLIC_KEY = RSA.import_key(open("tests" + os.sep + "testkey_pub.bin", "rb").read())
@@ -63,4 +64,30 @@ def test_signature_validity(block, genesis):
     block.index = 302
     block.update_hash()
     is_valid = validate(block, genesis)
-    assert is_valid is False, "Did not detect wrong version"
+    assert is_valid is False, "Invalid signature"
+
+
+@pytest.mark.long
+def test_too_many_transactions(block, genesis):
+    for index in range(CONFIG["block_size"]):
+        new_transaction = VaccineTransaction(str(index), PUBLIC_KEY).sign(PRIVATE_KEY)
+        block.add_transaction(new_transaction)
+    block.sign(PRIVATE_KEY)
+    block.update_hash()
+    is_valid = validate(block, genesis)
+    assert is_valid is False, "Too many transactions"
+
+
+def test_duplicate_transactions(block, genesis):
+    block.add_transaction(block.transactions[0])
+    block.sign(PRIVATE_KEY)
+    block.update_hash()
+    is_valid = validate(block, genesis)
+    assert is_valid is False, "Duplicate transactions"
+
+
+def test_wrong_hash(block, genesis):
+    block.sign(PRIVATE_KEY)
+    block.hash = "4886f70d010101050"
+    is_valid = validate(block, genesis)
+    assert is_valid is False, "Invalid hash"

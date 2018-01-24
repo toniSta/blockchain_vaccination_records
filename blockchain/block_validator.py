@@ -1,6 +1,9 @@
+"""This module handles the block validation."""
+
 from Crypto.PublicKey import RSA
 import logging
 from time import time
+from hashlib import sha256
 
 import blockchain.helper.cryptography as crypto
 from .config import CONFIG
@@ -30,14 +33,33 @@ def validate(block, previous_block):
         logger.info("Timestamp of the new block is in the future")
         return False
 
+    # TODO
     # if block.public_key not in admission nodes?
 
-    relevant_block_content = str.encode(block.get_content_for_signing())
+    content_to_sign = str.encode(block.get_content_for_signing())
     signature = bytes.fromhex(block.signature)
     public_key = RSA.importKey(bytes.fromhex(block.public_key))
-    # import pdb; pdb.set_trace()
-    valid = crypto.verify(relevant_block_content, signature, public_key)
+    valid = crypto.verify(content_to_sign, signature, public_key)
     if not valid:
         logger.info("Signature is not valid, block must be altered")
         return False
+
+    if len(block.transactions) > CONFIG["block_size"]:
+        logger.info("Too many transactions, block has {}, maximum is {}"
+                    .format(len(block.transactions), CONFIG["block_size"]))
+        return False
+
+    # TODO too few transactions??
+
+    if len(block.transactions) > len(set([repr(tx) for tx in block.transactions])):
+        logger.info("Block contains duplicate transactions")
+        return False
+
+    content_to_hash = block.get_content_for_hashing()
+    sha = sha256()
+    sha.update(content_to_hash.encode("utf-8"))
+    if block.hash != sha.hexdigest():
+        logger.info("Hash is not valid, block must be altered")
+        return False
+
     return True

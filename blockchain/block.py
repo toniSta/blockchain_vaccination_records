@@ -140,7 +140,7 @@ class Block(object):
     def update_hash(self):
         """Add hash to the final state of the block."""
         sha = sha256()
-        sha.update(repr(self).encode("utf-8"))
+        sha.update(self.get_content_for_hashing().encode("utf-8"))
         self.hash = sha.hexdigest()
         logger.debug("Finished creation of block:\n{}".format(str(self)))
 
@@ -162,6 +162,20 @@ class Block(object):
                   self.version,
                   str(self.timestamp),
                   self.public_key]
+        content = CONFIG["serializaton"]["separator"].join(fields)
+        content += CONFIG["serializaton"]["line_terminator"]
+        for transaction in self.transactions:
+            content += repr(transaction) + CONFIG["serializaton"]["line_terminator"]
+        return content
+
+    def get_content_for_hashing(self):
+        """Return relevant block information for hashing."""
+        fields = [str(self.index),
+                  self.previous_block,
+                  self.version,
+                  str(self.timestamp),
+                  self.public_key,
+                  self.signature]
         content = CONFIG["serializaton"]["separator"].join(fields)
         content += CONFIG["serializaton"]["line_terminator"]
         for transaction in self.transactions:
