@@ -23,7 +23,6 @@ class FullClient(object):
     """docstring for FullClient"""
     def __init__(self):
         # Mock nodes by hard coding
-
         if os.getenv('NEIGHBORS_HOST_PORT'):
             neighbors_list = os.getenv('NEIGHBORS_HOST_PORT')
             neighbors_list = map(str.strip, neighbors_list.split(","))
@@ -183,7 +182,7 @@ class FullClient(object):
             next_creator = self.determine_block_creation_node()
             if next_creator == self.public_key:
                 new_block = self.create_next_block()
-                if not new_block.validate():
+                if not new_block.validate(self.chain.last_block()):
                     logger.error("New generated block is not valid! {}".format(repr(new_block)))
                 self.submit_block(new_block)
 
@@ -193,7 +192,7 @@ class FullClient(object):
         return Block(block.text)
 
     def _add_block_if_valid(self, block, broadcast_block=False):
-        if block.validate():
+        if block.validate(self.chain.last_block()):
             self.chain.add_block(block)
             block.persist()
             self.process_dangling_blocks()
@@ -292,9 +291,8 @@ class FullClient(object):
         for block in self.dangling_blocks:
             expected_pub_key = self.determine_block_creation_node(timestamp=block.timestamp)
             if block.previous_block == latest_block.hash and expected_pub_key == block.public_key:
-                if block.validate():
+                if block.validate(latest_block):
                     self.chain.add_block(block)
                     block.persist()
                     self.process_dangling_blocks()
                 return
-
