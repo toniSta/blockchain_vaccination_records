@@ -38,6 +38,11 @@ class FullClient(object):
         self.dangling_blocks = set()
         self.creator_election_thread = None
         self._start_election_thread()
+
+        if os.getenv('REGISTER_AS_ADMISSION') == '1':
+            self._register_self_as_admission()
+
+        logger.debug("Finished full_client init.")
         #self.recover_after_shutdown()
 
     def _start_election_thread(self):
@@ -125,9 +130,11 @@ class FullClient(object):
         for _ in range(CONFIG["block_size"]):
             if len(self.transaction_set):
                 transaction = self.transaction_set.pop()
-                if transaction.validate():
+                #TODO Parameters are random numbers. They've already changed on a different thread. Keep Attention while merging
+                if transaction.validate(0, self.chain.get_admissions()):
                     new_block.add_transaction(transaction)
                 else:
+                    logger.debug("Adding Transaction not to next block (invalid): {}".format(transaction))
                     self.invalid_transactions.add(transaction)
             else:
                 # Break if transaction set is empty
@@ -170,6 +177,8 @@ class FullClient(object):
         """This method checks if this node needs to generate a new block.
 
         If it is the next creator it will generate a block and submit it to the chain."""
+        logger.debug("Started Thread {}".format(threading.current_thread()))
+
         while True:
             time.sleep(CONFIG["block_time"])
             with self.chain:
@@ -183,6 +192,7 @@ class FullClient(object):
                     self.submit_block(new_block)
                 else:
                     logger.debug("creator_election: next creator is other")
+
         logger.debug("Thread {} is dead.".format(threading.current_thread()))
 
     def _request_block_at_index(self, index, node):
@@ -201,7 +211,7 @@ class FullClient(object):
     def _broadcast_new_block(self, block):
         for node in self.nodes:
             route = node + "/new_block"
-            # TODO: this doesnt work properly, we always get ReadTimeout
+            # TODO: this doesnt work properly, we always get ReadTimeout. Hint: broadcast new tx doesn't produce timeouts.
             try:
                 requests.post(route, data=repr(block), timeout=5)
             except requests.exceptions.ReadTimeout as r:
@@ -220,23 +230,30 @@ class FullClient(object):
 
     def handle_incoming_transaction(self, transaction):
         transaction_object = eval(transaction)
-        self._handle_transaction(transaction_object)
+        self.handle_transaction(transaction_object, broadcast=False)
 
     def handle_transaction(self, transaction, broadcast=False):
+        if broadcast:
+            self._broadcast_new_transaction(transaction)
+        #TODO save self.public_key and self.private_key as byte strings. Currently: RsaObject
+        if self.public_key.exportKey("DER") not in self.chain.get_admissions():
+            logger.debug("Received transaction but this node is no admission node. Quit...")
+            return
         if self.transaction_set.contains(transaction):
             return  # Transaction was already received
         else:
             # TODO: check if it is in the chain already
             self.transaction_set.add(transaction)
-            if broadcast:
-                self._broadcast_new_transaction(transaction)
 
     def _broadcast_new_transaction(self, transaction):
         """Broadcast transaction to required number of admission nodes."""
         # TODO: send to admissions only
         for node in self.nodes:
             route = node + "/new_transaction"
-            requests.post(route, data=repr(transaction))
+            try:
+                requests.post(route, data=repr(transaction))
+            except requests.exceptions.ReadTimeout as r:
+                logger.debug("Got a ReadTimeout while sending transaction to {}: {}".format(route, r))
 
     def create_transaction(self):
         transaction_type = input("What kind of transaction should be created? (Vaccination/Vaccine/Permission)").lower()
@@ -301,4 +318,10 @@ class FullClient(object):
                     block.persist()
                     self.process_dangling_blocks()
                 return
+
+    def _register_self_as_admission(self):
+        logger.debug("Going to register as admission node.")
+        tx = PermissionTransaction(Permission["admission"], self.public_key)
+        tx.sign(self.private_key)
+        self._broadcast_new_transaction(tx)
 
