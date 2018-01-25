@@ -6,7 +6,6 @@ import threading
 import requests
 import sched
 import time
-from threading import Thread
 
 from .transaction_set import TransactionSet
 from .block import Block
@@ -37,21 +36,13 @@ class FullClient(object):
         self.transaction_set = TransactionSet()
         self.invalid_transactions = set()
         self.dangling_blocks = set()
-        self.stop_creator_election_request = threading.Event()
         self.creator_election_thread = None
         self._start_election_thread()
         #self.recover_after_shutdown()
 
     def _start_election_thread(self):
-        self.creator_election_thread = threading.Thread(target=self.creator_election, daemon=True)
-        self.stop_creator_election_request.clear()
+        self.creator_election_thread = threading.Thread(target=self.creator_election, name="election thread", daemon=True)
         self.creator_election_thread.start()
-
-    def _resume_election_thread(self):
-        self.stop_creator_election_request.clear()
-
-    def _stop_election_thread(self):
-        self.stop_creator_election_request.set()
 
     def determine_block_creation_node(self, timestamp=time.time()):
         """Determine which admission node has to create the next block in chain.
@@ -162,40 +153,37 @@ class FullClient(object):
             logger.debug("The received block is already part of chain or a dangling block: {}".format(repr(block_representation)))
             return
 
-        self._stop_election_thread()
-
         self._broadcast_new_block(new_block)
 
-        expected_pub_key = self.determine_block_creation_node(timestamp=new_block.timestamp)
+        with self.chain:
+            expected_pub_key = self.determine_block_creation_node(timestamp=new_block.timestamp)
 
-        # TODO choose unified representation of rsa public key! (Right now it was hexified bytestring and bytestring)
-        if expected_pub_key != bytes.fromhex(new_block.public_key):
-            logger.debug("Received block doesn't match as next block in chain. Adding it to dangling blocks: {}".format(
-                repr(block_representation)))
-            self.dangling_blocks.add(new_block)
-        else:
-            self._add_block_if_valid(new_block)
-
-        self._resume_election_thread()
+            # TODO choose unified representation of rsa public key! (Right now it was hexified bytestring and bytestring)
+            if expected_pub_key != bytes.fromhex(new_block.public_key):
+                logger.debug("Received block doesn't match as next block in chain. Adding it to dangling blocks: {}".format(
+                    repr(block_representation)))
+                self.dangling_blocks.add(new_block)
+            else:
+                self._add_block_if_valid(new_block)
 
     def creator_election(self):
         """This method checks if this node needs to generate a new block.
 
         If it is the next creator it will generate a block and submit it to the chain."""
         while True:
-            if self.stop_creator_election_request.isSet():
-                self.stop_creator_election_request.wait()
             time.sleep(CONFIG["block_time"])
-            next_creator = self.determine_block_creation_node()
-            #TODO choose unified representation of rsa public key! (Right now it was RSA Object)
-            if next_creator == self.public_key.exportKey("DER"):
-                logger.debug("creator_election: next creator is self")
-                new_block = self.create_next_block()
-                if not new_block.validate():
-                    logger.error("New generated block is not valid! {}".format(repr(new_block)))
-                self.submit_block(new_block)
-            else:
-                logger.debug("creator_election: next creator is other")
+            with self.chain:
+                next_creator = self.determine_block_creation_node()
+                #TODO choose unified representation of rsa public key! (Right now it was RSA Object)
+                if next_creator == self.public_key.exportKey("DER"):
+                    logger.debug("creator_election: next creator is self")
+                    new_block = self.create_next_block()
+                    if not new_block.validate():
+                        logger.error("New generated block is not valid! {}".format(repr(new_block)))
+                    self.submit_block(new_block)
+                else:
+                    logger.debug("creator_election: next creator is other")
+        logger.debug("Thread {} is dead.".format(threading.current_thread()))
 
     def _request_block_at_index(self, index, node):
         route = node + "/request_block/index/" + str(index)
@@ -213,8 +201,11 @@ class FullClient(object):
     def _broadcast_new_block(self, block):
         for node in self.nodes:
             route = node + "/new_block"
-            # TODO: this doesnt work, if we send it to the same node
-            requests.post(route, data=repr(block), timeout=5)
+            # TODO: this doesnt work properly, we always get ReadTimeout
+            try:
+                requests.post(route, data=repr(block), timeout=5)
+            except requests.exceptions.ReadTimeout as r:
+                logger.debug("Got a ReadTimeout while sending block to {}: {}".format(route, r))
 
     def _get_status_from_different_node(self, node):
         route = node + "/latest_block"
