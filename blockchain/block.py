@@ -12,6 +12,7 @@ from hashlib import sha256
 from time import time
 
 from .config import CONFIG
+from .helper.block_validator import validate_block
 from blockchain.transaction import *
 import blockchain.helper.cryptography as crypto
 
@@ -144,9 +145,9 @@ class Block(object):
         self.hash = sha.hexdigest()
         logger.debug("Finished creation of block:\n{}".format(str(self)))
 
-    def validate(self):
-        # TODO: implement block validation
-        return True
+    def validate(self, previous_block):
+        """Validate block based on defined rules."""
+        return validate_block(self, previous_block)
 
     def get_content_for_signing(self):
         """Return relevant block information for signing.

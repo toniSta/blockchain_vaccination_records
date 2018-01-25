@@ -5,13 +5,13 @@ import logging
 from time import time
 from hashlib import sha256
 
-import blockchain.helper.cryptography as crypto
-from .config import CONFIG
+from ..helper.cryptography import verify
+from ..config import CONFIG
 
 logger = logging.getLogger("block-validator")
 
 
-def validate(block, previous_block):
+def validate_block(block, previous_block):
     if block.index != previous_block.index + 1:
         logger.info("Wrong index, block index {}, index of last block {}"
                     .format(block.index, previous_block.index))
@@ -39,7 +39,7 @@ def validate(block, previous_block):
     content_to_sign = str.encode(block.get_content_for_signing())
     signature = bytes.fromhex(block.signature)
     public_key = RSA.importKey(bytes.fromhex(block.public_key))
-    valid = crypto.verify(content_to_sign, signature, public_key)
+    valid = verify(content_to_sign, signature, public_key)
     if not valid:
         logger.info("Signature is not valid, block must be altered")
         return False
