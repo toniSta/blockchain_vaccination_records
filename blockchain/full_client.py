@@ -1,15 +1,10 @@
 import logging
 import os
 import random
-<<<<<<< HEAD
-=======
 import threading
-
 import requests
->>>>>>> master
 import sched
 import time
-from threading import Thread
 
 from .transaction_set import TransactionSet
 from .block import Block

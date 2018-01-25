@@ -122,10 +122,7 @@ class Block(object):
     def get_block_information(self):
         """Return the necessary information for creating a new block."""
         return {
-            "version": self.version,
             "index": self.index,
-            "previous_block": self.previous_block,
-            "timestamp": self.timestamp,
             "hash": self.hash
         }
 
