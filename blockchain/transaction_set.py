@@ -1,5 +1,6 @@
 from orderedset import OrderedSet
 
+
 class TransactionSet(object):
     """This class stores the clients transactions."""
 
@@ -7,9 +8,9 @@ class TransactionSet(object):
 
     def __new__(cls):
         """Create TransactionSet singleton instance"""
-        if not TransactionSet.__instance:
-            TransactionSet.__instance = object.__new__(cls)
-        return TransactionSet.__instance
+        if cls.__instance is None:
+            cls.__instance = object.__new__(cls)
+        return cls.__instance
 
     def __init__(self):
         """Initialize transaction store."""
@@ -20,7 +21,7 @@ class TransactionSet(object):
 
     def pop(self):
         """Remove and return a transaction from the set."""
-        return self.store.pop()
+        return self.store.pop(0)
 
     def clear(self):
         """Remove all transactions from the set."""
@@ -41,4 +42,3 @@ class TransactionSet(object):
 
     def __repr__(self):
         return self.store.__repr__()
-

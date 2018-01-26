@@ -17,10 +17,10 @@ class Chain(object):
     def __new__(cls, load_persisted=True):
 
         """Create a singleton instance of the chain."""
-        if not Chain.__instance:
+        if cls.__instance is None:
             logger.info("Creating initial chain")
-            Chain.__instance = object.__new__(cls)
-        return Chain.__instance
+            cls.__instance = object.__new__(cls)
+        return cls.__instance
 
     def __init__(self, load_persisted=True):
         """Create initial chain and tries to load saved state from disk."""
