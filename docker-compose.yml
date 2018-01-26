@@ -26,6 +26,8 @@ services:
       - "9000"
     depends_on:
       - genesis_admission
+    volumes:
+      - ./blockchain/blockchain_files2:/app/blockchain/blockchain_files
 
   main_test:
     build:

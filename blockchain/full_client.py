@@ -43,6 +43,7 @@ class FullClient(object):
             self._register_self_as_admission()
 
         logger.debug("Finished full_client init.")
+        logger.debug("My public key is: {} or {}".format(self.public_key.exportKey("DER"), self.public_key.exportKey("DER").hex()))
         #self.recover_after_shutdown()
 
     def _start_election_thread(self):
@@ -60,6 +61,7 @@ class FullClient(object):
         oldest submission node.
         """
         number_of_admissions = len(self.chain.get_admissions())
+        logger.debug("We have currently {} admission nodes".format(number_of_admissions))
         creator_history = self.chain.get_block_creation_history(number_of_admissions)
 
         last_block_timestamp = self.chain.last_block().timestamp
@@ -67,6 +69,8 @@ class FullClient(object):
         delta_time = int(timestamp) - int(last_block_timestamp)
 
         nth_oldest_block = int(delta_time / CONFIG["block_time"])
+
+        logger.debug("Next block creator ist the {}. oldest block.".format(nth_oldest_block % number_of_admissions))
 
         return creator_history[nth_oldest_block % number_of_admissions]
 
@@ -153,22 +157,22 @@ class FullClient(object):
 
         It will check if the block was received earlier. If not it will process and broadcast the block and adding it
         to the chain or dangling blocks."""
-        logger.debug("Received new block: {}".format(repr(block_representation)))
-        new_block = Block(block_representation)
-
-        if self.chain.find_block_by_hash(new_block.hash) or new_block in self.dangling_blocks:
-            logger.debug("The received block is already part of chain or a dangling block: {}".format(repr(block_representation)))
-            return
-
-        self._broadcast_new_block(new_block)
-
         with self.chain:
+            new_block = Block(block_representation)
+            logger.debug("Received new block: {}".format(str(new_block)))
+
+            if self.chain.find_block_by_hash(new_block.hash) or new_block in self.dangling_blocks:
+                logger.debug("The received block is already part of chain or a dangling block: {}".format(str(new_block)))
+                return
+
+            self._broadcast_new_block(new_block)
+
             expected_pub_key = self.determine_block_creation_node(timestamp=new_block.timestamp)
 
             # TODO choose unified representation of rsa public key! (Right now it was hexified bytestring and bytestring)
             if expected_pub_key != bytes.fromhex(new_block.public_key):
-                logger.debug("Received block doesn't match as next block in chain. Adding it to dangling blocks: {}".format(
-                    repr(block_representation)))
+                logger.debug("Received block doesn't match as next block in chain. Adding it to dangling blocks. "
+                             "Expected key: {} Actual block {}".format(expected_pub_key, str(new_block)))
                 self.dangling_blocks.add(new_block)
             else:
                 self._add_block_if_valid(new_block)
