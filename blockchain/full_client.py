@@ -184,6 +184,9 @@ class FullClient(object):
 
         while True:
             time.sleep(CONFIG["block_time"]/2) # block_time needs to be at least 2s
+            if self.public_key.exportKey("DER") not in self.chain.get_admissions():
+                logger.debug("Currently no admission. election.")
+                continue
             with self.chain:
                 next_creator = self.determine_block_creation_node()
                 #TODO choose unified representation of rsa public key! (Right now it was RSA Object)
@@ -219,6 +222,8 @@ class FullClient(object):
                 requests.post(route, data=repr(block), timeout=5)
             except requests.exceptions.ReadTimeout as r:
                 logger.debug("Got a ReadTimeout while sending block to {}: {}".format(route, r))
+            except requests.exceptions.ConnectionError as r:
+                logger.debug("Got Exception while connecting to {}: {}".format(route, r))
 
     def _get_status_from_different_node(self, node):
         route = node + "/latest_block"
@@ -257,6 +262,9 @@ class FullClient(object):
                 requests.post(route, data=repr(transaction))
             except requests.exceptions.ReadTimeout as r:
                 logger.debug("Got a ReadTimeout while sending transaction to {}: {}".format(route, r))
+            except requests.exceptions.ConnectionError as r:
+                #This Exception will mostly occur when trying to connect to a non admission node
+                logger.debug("Got Exception while connecting to {}: {}".format(route, r))
 
     def create_transaction(self):
         transaction_type = input("What kind of transaction should be created? (Vaccination/Vaccine/Permission)").lower()

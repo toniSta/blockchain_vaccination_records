@@ -10,7 +10,7 @@ services:
       - ./blockchain/keys:/app/blockchain/keys
     environment:
       SERVER_PORT: 9000
-      NEIGHBORS_HOST_PORT: full_client1:9000
+      NEIGHBORS_HOST_PORT: admission:9000
     ports:
       - "9000"
 
