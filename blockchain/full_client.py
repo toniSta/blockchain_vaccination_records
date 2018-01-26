@@ -2,7 +2,6 @@ import logging
 import os
 import random
 import threading
-
 import requests
 import sched
 import time
@@ -11,6 +10,7 @@ from .transaction_set import TransactionSet
 from .block import Block
 from .chain import Chain
 from .config import CONFIG
+from .network.network import Network
 from .transaction import *
 from .helper.cryptography import generate_keypair
 from Crypto.PublicKey import RSA
@@ -216,18 +216,11 @@ class FullClient(object):
 
     def _broadcast_new_block(self, block):
         for node in self.nodes:
-            route = node + "/new_block"
-            # TODO: this doesnt work properly, we always get ReadTimeout. Hint: broadcast new tx doesn't produce timeouts.
-            try:
-                requests.post(route, data=repr(block), timeout=5)
-            except requests.exceptions.ReadTimeout as r:
-                logger.debug("Got a ReadTimeout while sending block to {}: {}".format(route, r))
-            except requests.exceptions.ConnectionError as r:
-                logger.debug("Got Exception while connecting to {}: {}".format(route, r))
+            Network.send_block(node, repr(block))
 
     def _get_status_from_different_node(self, node):
-        route = node + "/latest_block"
-        block = requests.get(route)
+        random_node = random.choice(self.nodes)
+        block = Network.request_latest_block(random_node)
         return Block(block.text)
 
     def recover_after_shutdown(self):
@@ -257,14 +250,7 @@ class FullClient(object):
         """Broadcast transaction to required number of admission nodes."""
         # TODO: send to admissions only
         for node in self.nodes:
-            route = node + "/new_transaction"
-            try:
-                requests.post(route, data=repr(transaction))
-            except requests.exceptions.ReadTimeout as r:
-                logger.debug("Got a ReadTimeout while sending transaction to {}: {}".format(route, r))
-            except requests.exceptions.ConnectionError as r:
-                #This Exception will mostly occur when trying to connect to a non admission node
-                logger.debug("Got Exception while connecting to {}: {}".format(route, r))
+            Network.broadcast_new_transaction(node, repr(transaction))
 
     def create_transaction(self):
         transaction_type = input("What kind of transaction should be created? (Vaccination/Vaccine/Permission)").lower()
