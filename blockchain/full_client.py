@@ -50,7 +50,7 @@ class FullClient(object):
         self.creator_election_thread = threading.Thread(target=self.creator_election, name="election thread", daemon=True)
         self.creator_election_thread.start()
 
-    def determine_block_creation_node(self, timestamp=time.time()):
+    def determine_block_creation_node(self, timestamp=None):
         """Determine which admission node has to create the next block in chain.
 
         The method takes a timestamp as argument representing the creation date of the block whose legitimate creator
@@ -60,8 +60,9 @@ class FullClient(object):
         If even the youngest creator failed to create a block within time, the method continues with the
         oldest submission node.
         """
+        if not timestamp:
+            timestamp = time.time()
         number_of_admissions = len(self.chain.get_admissions())
-        logger.debug("We have currently {} admission nodes".format(number_of_admissions))
         creator_history = self.chain.get_block_creation_history(number_of_admissions)
 
         last_block_timestamp = self.chain.last_block().timestamp
@@ -69,8 +70,6 @@ class FullClient(object):
         delta_time = int(timestamp) - int(last_block_timestamp)
 
         nth_oldest_block = int(delta_time / CONFIG["block_time"])
-
-        logger.debug("Next block creator ist the {}. oldest block.".format(nth_oldest_block % number_of_admissions))
 
         return creator_history[nth_oldest_block % number_of_admissions]
 
@@ -172,7 +171,7 @@ class FullClient(object):
             # TODO choose unified representation of rsa public key! (Right now it was hexified bytestring and bytestring)
             if expected_pub_key != bytes.fromhex(new_block.public_key):
                 logger.debug("Received block doesn't match as next block in chain. Adding it to dangling blocks. "
-                             "Expected key: {} Actual block {}".format(expected_pub_key, str(new_block)))
+                             "Expected key: {} Actual block {}".format(expected_pub_key.hex(), str(new_block)))
                 self.dangling_blocks.add(new_block)
             else:
                 self._add_block_if_valid(new_block)
@@ -184,7 +183,7 @@ class FullClient(object):
         logger.debug("Started Thread {}".format(threading.current_thread()))
 
         while True:
-            time.sleep(CONFIG["block_time"])
+            time.sleep(CONFIG["block_time"]/2) # block_time needs to be at least 2s
             with self.chain:
                 next_creator = self.determine_block_creation_node()
                 #TODO choose unified representation of rsa public key! (Right now it was RSA Object)
@@ -324,6 +323,9 @@ class FullClient(object):
                 return
 
     def _register_self_as_admission(self):
+        if self.public_key.exportKey("DER") in self.chain.get_admissions():
+            logger.debug("Already admission node, don't need to register.")
+            return
         logger.debug("Going to register as admission node.")
         tx = PermissionTransaction(Permission["admission"], self.public_key)
         tx.sign(self.private_key)
