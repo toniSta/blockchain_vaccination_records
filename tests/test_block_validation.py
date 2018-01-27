@@ -67,6 +67,24 @@ def test_signature_validity(block, genesis):
     assert is_valid is False, "Invalid signature"
 
 
+def test_invalid_transaction(block, genesis):
+    # Leave tx unsigned
+    new_transaction = VaccineTransaction("some vaccine", PUBLIC_KEY)
+    block.add_transaction(new_transaction)
+    block.sign(PRIVATE_KEY)
+    block.update_hash()
+    is_valid = validate_block(block, genesis)
+    assert is_valid is False, "Invalid transaction"
+
+
+def test_too_few_transactions(block, genesis):
+    block.transactions = []
+    block.sign(PRIVATE_KEY)
+    block.update_hash()
+    is_valid = validate_block(block, genesis)
+    assert is_valid is False, "Too few transactions"
+
+
 @pytest.mark.long
 def test_too_many_transactions(block, genesis):
     for index in range(CONFIG["block_size"]):
