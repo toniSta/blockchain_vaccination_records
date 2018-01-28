@@ -26,6 +26,8 @@ class Chain(object):
         """Create initial chain and tries to load saved state from disk."""
         self.chain = []
         self.block_creation_cache = deque()
+        self.vaccine_cache = set()
+        self.doctors_cache = set()
         if load_persisted and self._can_be_loaded_from_disk():
             self._load_from_disk()
 
@@ -52,7 +54,17 @@ class Chain(object):
     def add_block(self, block):
         """Add a block to the blockchain."""
         self.chain.append(block)
+        self._update_caches(block)
+
+    def _update_caches(self, block):
+        """Update the block creation cache and refresh the registered doctors and vaccines."""
         self._update_block_creation_cache(block)
+        for transaction in block.transactions:
+            if type(transaction).__name__ == "PermissionTransaction":
+                if transaction.requested_permission is Permission.doctor:
+                    self.doctors_cache.add(transaction.sender_pubkey)
+            elif type(transaction).__name__ == "VaccineTransaction":
+                self.vaccine_cache.add(transaction.vaccine)
 
     def _update_block_creation_cache(self, block):
         """Refreshes the block creation cache.
@@ -99,6 +111,12 @@ class Chain(object):
 
     def get_admissions(self):
         return set(self.block_creation_cache)   # in case of changing this method do not return a reference to the original deque!
+
+    def get_doctors(self):
+        return set(self.doctors_cache)  # in case of changing this method do not return a reference to the original set!
+
+    def get_vaccines(self):
+        return set(self.vaccine_cache)  # in case of changing this method do not return a reference to the original set!
 
     def size(self):
         """Get length of the chain."""
