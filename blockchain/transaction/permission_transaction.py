@@ -84,6 +84,6 @@ class PermissionTransaction(TransactionBase):
         return True
 
     def _verify_approval_signature(self, approval):
-        approving_pubkey, signature = approval
+        approving_pubkey, signature = approval  # WONTFIX: susceptible to replay attacks
         return crypto.verify(approving_pubkey, signature, RSA.import_key(approving_pubkey))
 
