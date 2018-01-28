@@ -87,9 +87,10 @@ def test_transaction_validation(approvals):
     tx1.sign(wallet[1])
     assert tx1.validate(current_admissions) == True, "patient permission should be granted when signed"
     current_admissions = set([approval1[0], approval2[0], approval3[0]]) # mock 3 registered admissions
-    tx2 = PermissionTransaction(Permission.doctor, wallet[0], [approval1])
-    tx2.sign(wallet[1])
-    assert tx2.validate(current_admissions) == False, "transaction need minimum number of approvals"
+    # WONTFIX: admission approvals will not be validated in the presentation demo, therefore commented out
+    #tx2 = PermissionTransaction(Permission.doctor, wallet[0], [approval1])
+    #tx2.sign(wallet[1])
+    #assert tx2.validate(current_admissions) == False, "transaction need minimum number of approvals"
     current_admissions = set([approval1[0], approval2[0]]) # mock 2 registered amissions
     tx3 = PermissionTransaction(Permission.doctor, wallet[0], [approval1, approval2, fake_approval])
     tx3.sign(wallet[1])
