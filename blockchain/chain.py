@@ -110,12 +110,15 @@ class Chain(object):
         return block_creation_history
 
     def get_admissions(self):
+        """Return set of currently registered admissions."""
         return set(self.block_creation_cache)   # in case of changing this method do not return a reference to the original deque!
 
     def get_doctors(self):
+        """Return set of currently registered doctors."""
         return set(self.doctors_cache)  # in case of changing this method do not return a reference to the original set!
 
     def get_vaccines(self):
+        """Return set of currently registered vaccines."""
         return set(self.vaccine_cache)  # in case of changing this method do not return a reference to the original set!
 
     def size(self):
