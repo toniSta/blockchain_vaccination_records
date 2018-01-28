@@ -1,3 +1,9 @@
+"""Python Flask server for restful communication.
+
+This module defines the interface for the REST API for incoming requests.
+Needs to be replaced, when a P2P is estabished.
+"""
+
 from flask import Flask, request
 import os
 from multiprocessing import Pool
@@ -8,8 +14,13 @@ app = Flask(__name__)
 
 
 def handle_received_block(block):
-    """ Handle new received block in extra thread for early return."""
+    """Handle new block in extra thread for early return."""
     full_client.received_new_block(block)
+
+
+def handle_received_transaction(transaction):
+    """Handle new transaction in extra thread for early return."""
+    full_client.handle_new_transaction(new_transaction, False)
 
 
 @app.route(CONFIG["ROUTES"]["new_block"], methods=["POST"])
@@ -35,7 +46,8 @@ def _send_block_by_hash(hash):
 @app.route(CONFIG["ROUTES"]["new_transaction"], methods=["POST"])
 def _new_transaction():
     new_transaction = request.data
-    full_client.handle_new_transaction(new_transaction, False)
+    pool = Pool(processes=1)
+    pool.apply_async(handle_received_block, (new_transaction,))
     return "success"
 
 
