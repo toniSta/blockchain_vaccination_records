@@ -54,32 +54,32 @@ class Chain(object):
     def add_block(self, block):
         """Add a block to the blockchain."""
         self.chain.append(block)
-        self._update_caches(block)
+        self._update_caches(block, self.block_creation_cache, self.doctors_cache, self.vaccine_cache)
 
-    def _update_caches(self, block):
+    def _update_caches(self, block, block_creation_cache, doctors_cache, vaccine_cache):
         """Update the block creation cache and refresh the registered doctors and vaccines."""
-        self._update_block_creation_cache(block)
+        self._update_block_creation_cache(block, block_creation_cache)
         for transaction in block.transactions:
             if type(transaction).__name__ == "PermissionTransaction":
                 if transaction.requested_permission is Permission.doctor:
-                    self.doctors_cache.add(transaction.sender_pubkey)
+                    doctors_cache.add(transaction.sender_pubkey)
             elif type(transaction).__name__ == "VaccineTransaction":
-                self.vaccine_cache.add(transaction.vaccine)
+                vaccine_cache.add(transaction.vaccine)
 
-    def _update_block_creation_cache(self, block):
+    def _update_block_creation_cache(self, block, block_creation_cache):
         """Refreshes the block creation cache.
 
         Moves the current block creator to the right side of the queue,
         adds any new admission nodes to the left side of the queue in the order
         they appear in the block."""
         block_creator = bytes.fromhex(block.public_key)
-        if block_creator in self.block_creation_cache:
-            self.block_creation_cache.remove(block_creator)
-        self.block_creation_cache.append(block_creator)
+        if block_creator in block_creation_cache:
+            block_creation_cache.remove(block_creator)
+        block_creation_cache.append(block_creator)
         for transaction in block.transactions:
             if type(transaction).__name__ == "PermissionTransaction":
                 if transaction.requested_permission is Permission.admission:
-                    self.block_creation_cache.appendleft(transaction.sender_pubkey)
+                    block_creation_cache.appendleft(transaction.sender_pubkey)
 
     def find_block_by_index(self, index):
         """Find a block by its index. Return None at invalid index."""
@@ -120,6 +120,37 @@ class Chain(object):
     def get_vaccines(self):
         """Return set of currently registered vaccines."""
         return set(self.vaccine_cache)  # in case of changing this method do not return a reference to the original set!
+
+    def get_registration_caches(self):
+        return set(self.block_creation_cache), set(self.doctors_cache), set(self.vaccine_cache)
+
+    def get_registration_caches_by_blockhash(self, hash):
+        block_creation_cache = deque()
+        doctors_cache = set()
+        vaccine_cache = set()
+        max_chain_index = self.size() - 1
+        current_index = 0
+        while current_index <= max_chain_index:
+            current_block = self.find_block_by_index(current_index)
+            self._update_caches(current_block, block_creation_cache, doctors_cache, vaccine_cache)
+            if current_block.hash == hash:
+                return set(block_creation_cache), set(doctors_cache), set(vaccine_cache)
+            if current_index == max_chain_index:
+                return None  # given block hash was not in the chain
+            current_index += 1
+
+    def get_registration_caches_by_blockindex(self, index):
+        if (index < 0 or index > self.size() - 1):
+            return None  # given index is out of bounds
+        block_creation_cache = deque()
+        doctors_cache = set()
+        vaccine_cache = set()
+        current_index = 0
+        while current_index <= index:
+            current_block = self.find_block_by_index(current_index)
+            self._update_caches(current_block, block_creation_cache, doctors_cache, vaccine_cache)
+            current_index += 1
+        return set(block_creation_cache), set(doctors_cache), set(vaccine_cache)
 
     def size(self):
         """Get length of the chain."""
