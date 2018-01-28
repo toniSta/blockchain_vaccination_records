@@ -221,11 +221,33 @@ class FullClient(object):
     def handle_transaction(self, transaction, broadcast=False):
         if self.transaction_set.contains(transaction):
             return  # Transaction was already received
+        if self._check_if_transaction_in_chain(transaction):
+            return
         else:
-            # TODO: check if it is in the chain already
             self.transaction_set.add(transaction)
             if broadcast:
                 self._broadcast_new_transaction(transaction)
+
+    def _check_if_transaction_in_chain(self, transaction):
+        """Check if the transaction is already part of the chain.
+
+        Checks the last |number of current admission nodes| blocks
+        by comparing every transaction in the block to the new one.
+        If the genesis block is reached the function stops advancing
+        to the previous block and returns."""
+        number_of_blocks_to_check = len(self.chain.get_admissions())
+        blocks_checked = 0
+        block_to_check = self.chain.last_block()
+        while blocks_checked < number_of_blocks_to_check:
+            for transaction_in_chain in block_to_check.transactions:
+                if transaction == transaction_in_chain:
+                    return True
+            previous_block_index = block_to_check.index -= 1
+            if previous_block_index < 0
+                return False  # stop early after reaching the genesis block
+            block_to_check = self.chain.find_block_by_index(previous_block_index)
+            blocks_checked += 1
+        return False
 
     def _broadcast_new_transaction(self, transaction):
         """Broadcast transaction to required number of admission nodes."""
