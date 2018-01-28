@@ -23,7 +23,6 @@ class FullClient(object):
     """docstring for FullClient"""
     def __init__(self):
         # Mock nodes by hard coding
-
         if os.getenv('NEIGHBORS_HOST_PORT'):
             neighbors_list = os.getenv('NEIGHBORS_HOST_PORT')
             neighbors_list = map(str.strip, neighbors_list.split(","))
@@ -145,7 +144,13 @@ class FullClient(object):
         It will check if the block was received earlier. If not it will process and broadcast the block and adding it
         to the chain or dangling blocks."""
         logger.debug("Received new block: {}".format(repr(block_representation)))
-        new_block = Block(block_representation)
+
+        try:
+            new_block = Block(block_representation)
+        except Exception:
+            logger.error("Could not parse received block")
+            # TODO define behaviour here
+            return
 
         if self.chain.find_block_by_hash(new_block.hash) or new_block in self.dangling_blocks:
             logger.debug("The received block is already part of chain or a dangling block: {}".format(repr(block_representation)))
@@ -177,7 +182,7 @@ class FullClient(object):
             next_creator = self.determine_block_creation_node()
             if next_creator == self.public_key:
                 new_block = self.create_next_block()
-                if not new_block.validate():
+                if not new_block.validate(self.chain.last_block()):
                     logger.error("New generated block is not valid! {}".format(repr(new_block)))
                 self.submit_block(new_block)
 
@@ -187,7 +192,7 @@ class FullClient(object):
         return Block(block.text)
 
     def _add_block_if_valid(self, block, broadcast_block=False):
-        if block.validate():
+        if block.validate(self.chain.last_block()):
             self.chain.add_block(block)
             block.persist()
             self.process_dangling_blocks()
@@ -286,9 +291,8 @@ class FullClient(object):
         for block in self.dangling_blocks:
             expected_pub_key = self.determine_block_creation_node(timestamp=block.timestamp)
             if block.previous_block == latest_block.hash and expected_pub_key == block.public_key:
-                if block.validate():
+                if block.validate(latest_block):
                     self.chain.add_block(block)
                     block.persist()
                     self.process_dangling_blocks()
                 return
-
