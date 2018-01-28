@@ -45,7 +45,7 @@ def validate_block(block, previous_block):
     # Valid signature
     content_to_sign = str.encode(block.get_content_for_signing())
     signature = bytes.fromhex(block.signature)
-    public_key = RSA.importKey(bytes.fromhex(block.public_key))
+    public_key = RSA.importKey(block.public_key)
     valid = verify(content_to_sign, signature, public_key)
     if not valid:
         logger.info("Signature is not valid, block must be altered")

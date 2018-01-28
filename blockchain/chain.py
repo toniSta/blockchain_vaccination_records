@@ -60,7 +60,7 @@ class Chain(object):
         Moves the current block creator to the right side of the queue,
         adds any new admission nodes to the left side of the queue in the order
         they appear in the block."""
-        block_creator = bytes.fromhex(block.public_key)
+        block_creator = block.public_key
         if block_creator in self.block_creation_cache:
             self.block_creation_cache.remove(block_creator)
         self.block_creation_cache.append(block_creator)
