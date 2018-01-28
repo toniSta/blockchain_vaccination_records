@@ -1,14 +1,22 @@
 from flask import Flask, request
 import os
+from multiprocessing import Pool
 
 from ..config import CONFIG
 
 app = Flask(__name__)
 
 
+def handle_received_block(block):
+    """ Handle new received block in extra thread for early return."""
+    full_client.received_new_block(block)
+
+
 @app.route(CONFIG["ROUTES"]["new_block"], methods=["POST"])
 def _new_block():
-    full_client.received_new_block(request.data.decode("utf-8"))
+    block = request.data.decode("utf-8")
+    pool = Pool(processes=1)
+    pool.apply_async(handle_received_block, (block,))
     return "success"
 
 
@@ -37,7 +45,6 @@ def _latest_block():
     return repr(block)
 
 
-# def start_server(full_client):
 def start_server(client):
     """Start the flask server."""
     global full_client

@@ -16,8 +16,6 @@ class Network(ABCMeta):
     @staticmethod
     def send_block(node, block_data):
         """Send a block to the specified node."""
-        # TODO: this doesnt work, if we send it to the same node
-        return
         route = node + CONFIG["ROUTES"]["new_block"]
         requests.post(route, data=block_data, timeout=5)
 
@@ -31,4 +29,4 @@ class Network(ABCMeta):
     def broadcast_new_transaction(node, transaction):
         """Broadcast a transaction to neighbours."""
         route = node + CONFIG["ROUTES"]["new_transaction"]
-        requests.post(route, data=transaction)
+        requests.post(route, data=transaction, timeout=5)
