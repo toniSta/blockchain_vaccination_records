@@ -2,7 +2,7 @@
 import logging
 import os
 from collections import deque
-from .block import *
+from .block import Block
 from .config import CONFIG
 from blockchain.transaction import *
 
@@ -18,7 +18,6 @@ class Chain(object):
 
         """Create a singleton instance of the chain."""
         if cls.__instance is None:
-            logger.info("Creating initial chain")
             cls.__instance = object.__new__(cls)
         return cls.__instance
 

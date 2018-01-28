@@ -38,7 +38,6 @@ def validate_block(block, previous_block):
 
     # Timestamp not in the future
     if block.timestamp > int(time()):
-        # TODO deviation in the past ??
         logger.info("Timestamp of the new block is in the future")
         return False
 
