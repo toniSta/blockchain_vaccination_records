@@ -240,10 +240,10 @@ class FullClient(object):
             for transaction_in_chain in block_to_check.transactions:
                 if transaction == transaction_in_chain:
                     return True
-            previous_block_hash = block_to_check.previous_block
-            if previous_block_hash == block_to_check.hash:
+            previous_block_index = block_to_check.index -= 1
+            if previous_block_index < 0
                 return False  # stop early after reaching the genesis block
-            block_to_check = self.chain.find_block_by_hash(previous_block_hash)
+            block_to_check = self.chain.find_block_by_index(previous_block_index)
             blocks_checked += 1
         return False
 
