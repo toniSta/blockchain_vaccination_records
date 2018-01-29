@@ -15,7 +15,7 @@ CONFIG = {
     # Maximum amount of transactions per block
     "block_size": 1024,
     # Create a block every n seconds. N has to be at least 2
-    "block_time": 5,
+    "block_time": 15, # with 5 seconds you will get multiple locks per index due to network latency
     # Folder to store public/private key of the client
     "key_folder": "blockchain/keys",
     # Names of key files
