@@ -18,8 +18,6 @@ class Network(ABCMeta):
     @staticmethod
     def send_block(node, block_data):
         """Send a block to the specified node."""
-        # TODO: this doesnt work, if we send it to the same node
-        return
         route = node + CONFIG["ROUTES"]["new_block"]
         try:
             requests.post(route, data=block_data, timeout=5)
