@@ -37,11 +37,10 @@ class Chain(object):
     def __exit__(self, exc_type, exc_val, exc_tb):
         self._lock.release()
         if exc_type or exc_val or exc_tb:
-            logger.debug("Thread '{}' got an exception within a with statement. Type: {}; Value: {}; Traceback: {}".format(
+            logger.exception("Thread '{}' got an exception within a with statement. Type: {}; Value: {}; Traceback:".format(
             current_thread(),
             exc_type,
-            exc_val,
-            exc_tb
+            exc_val
             ))
 
     def _can_be_loaded_from_disk(self):

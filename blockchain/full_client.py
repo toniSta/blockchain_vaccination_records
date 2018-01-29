@@ -197,7 +197,7 @@ class FullClient(object):
                 if next_creator == self.public_key.exportKey("DER"):
                     logger.debug("creator_election: next creator is self")
                     new_block = self.create_next_block()
-                    if not new_block.validate():
+                    if not new_block.validate(self.chain.last_block()):
                         logger.error("New generated block is not valid! {}".format(repr(new_block)))
                     self.submit_block(new_block)
                 else:
