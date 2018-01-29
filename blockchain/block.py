@@ -12,6 +12,7 @@ from hashlib import sha256
 from time import time
 
 from .config import CONFIG
+from .helper.block_validator import validate_block
 from blockchain.transaction import *
 import blockchain.helper.cryptography as crypto
 
@@ -137,13 +138,13 @@ class Block(object):
     def update_hash(self):
         """Add hash to the final state of the block."""
         sha = sha256()
-        sha.update(repr(self).encode("utf-8"))
+        sha.update(self.get_content_for_hashing().encode("utf-8"))
         self.hash = sha.hexdigest()
         logger.debug("Finished creation of block:\n{}".format(str(self)))
 
-    def validate(self):
-        # TODO: implement block validation
-        return True
+    def validate(self, previous_block):
+        """Validate block based on defined rules."""
+        return validate_block(self, previous_block)
 
     def get_content_for_signing(self):
         """Return relevant block information for signing.
@@ -159,6 +160,20 @@ class Block(object):
                   self.version,
                   str(self.timestamp),
                   self.public_key]
+        content = CONFIG["serializaton"]["separator"].join(fields)
+        content += CONFIG["serializaton"]["line_terminator"]
+        for transaction in self.transactions:
+            content += repr(transaction) + CONFIG["serializaton"]["line_terminator"]
+        return content
+
+    def get_content_for_hashing(self):
+        """Return relevant block information for hashing."""
+        fields = [str(self.index),
+                  self.previous_block,
+                  self.version,
+                  str(self.timestamp),
+                  self.public_key,
+                  self.signature]
         content = CONFIG["serializaton"]["separator"].join(fields)
         content += CONFIG["serializaton"]["line_terminator"]
         for transaction in self.transactions:
