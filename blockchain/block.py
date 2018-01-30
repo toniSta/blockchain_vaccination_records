@@ -72,7 +72,7 @@ class Block(object):
                 "=======================").format(self.index,
                                                   self.previous_block,
                                                   len(self.transactions),
-                                                  self.public_key[:20],
+                                                  self.public_key,
                                                   self.hash)
 
     def _from_string(self, data):
