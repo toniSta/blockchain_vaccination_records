@@ -25,7 +25,7 @@ def handle_received_transaction(transaction):
 @app.route(CONFIG["ROUTES"]["new_block"], methods=["POST"])
 def _new_block():
     block = request.data.decode("utf-8")
-    Thread(target=handle_received_block, args=(block,), daemon=True, name="handle_received_block_thread")
+    Thread(target=handle_received_block, args=(block,), daemon=True, name="handle_received_block_thread").start()
     return "success"
 
 
@@ -44,7 +44,7 @@ def _send_block_by_hash(hash):
 @app.route(CONFIG["ROUTES"]["new_transaction"], methods=["POST"])
 def _new_transaction():
     new_transaction = request.data
-    Thread(target=handle_received_transaction, args=(new_transaction,), daemon=True, name="handle_received_tx_thread")
+    Thread(target=handle_received_transaction, args=(new_transaction,), daemon=True, name="handle_received_tx_thread").start()
     return "success"
 
 
