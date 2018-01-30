@@ -8,7 +8,8 @@ from blockchain.full_client import FullClient
 def _set_logger_properties():
     werkzeug_logger = logging.getLogger("werkzeug")
     werkzeug_logger.setLevel(logging.WARNING)
-
+    urllib_logger = logging.getLogger("urllib3")
+    urllib_logger.setLevel(logging.WARNING)
 
 if __name__ == "__main__":
     logging.basicConfig(level=CONFIG["loglevel"],

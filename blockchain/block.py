@@ -38,7 +38,12 @@ class Block(object):
         if type(data) == dict:
             self._from_dictionary(data)
             assert public_key
-            self.public_key = public_key.exportKey("DER").hex()
+            if type(public_key).__name__ == "RsaKey":
+                self.public_key = public_key.exportKey("DER")
+            elif type(public_key).__name__ == "bytes":
+                self.public_key = public_key
+            elif type(public_key).__name__ == "str":
+                self.public_key = bytes.fromhex(public_key)
             self.signature = ""
         elif type(data) == str:
             self._from_string(data)
@@ -51,7 +56,7 @@ class Block(object):
                   self.previous_block,
                   self.version,
                   str(self.timestamp),
-                  self.public_key]
+                  self.public_key.hex()]
         if self.signature != "":
             fields.append(self.signature)
         if self.hash != "":
@@ -67,7 +72,7 @@ class Block(object):
                 "  Block {}\n"
                 "  Previous block: {}\n"
                 "  Number of transactions: {}\n"
-                "  Public key: {}\n"
+                "  Public key: {}...\n"
                 "  hash: {}\n"
                 "=======================").format(self.index,
                                                   self.previous_block,
@@ -97,7 +102,7 @@ class Block(object):
         self.previous_block = header_information["previous_block"]
         self.version = header_information["version"]
         self.timestamp = int(header_information["timestamp"])
-        self.public_key = header_information["public_key"]
+        self.public_key = bytes.fromhex(header_information["public_key"])
         self.signature = header_information["signature"]
         # Block ends with \n. Thus, splitting by line terminator will create
         # an empty string. We have to ignore this at this point.
@@ -159,7 +164,7 @@ class Block(object):
                   self.previous_block,
                   self.version,
                   str(self.timestamp),
-                  self.public_key]
+                  self.public_key.hex()]
         content = CONFIG["serializaton"]["separator"].join(fields)
         content += CONFIG["serializaton"]["line_terminator"]
         for transaction in self.transactions:
@@ -172,7 +177,7 @@ class Block(object):
                   self.previous_block,
                   self.version,
                   str(self.timestamp),
-                  self.public_key,
+                  self.public_key.hex(),
                   self.signature]
         content = CONFIG["serializaton"]["separator"].join(fields)
         content += CONFIG["serializaton"]["line_terminator"]

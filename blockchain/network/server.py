@@ -1,14 +1,31 @@
+"""Python Flask server for restful communication.
+
+This module defines the interface for the REST API for incoming requests.
+Needs to be replaced, when a P2P is estabished.
+"""
+
 from flask import Flask, request
 import os
-
+from threading import Thread
 from ..config import CONFIG
 
 app = Flask(__name__)
 
 
+def handle_received_block(block):
+    """Handle new block in extra thread for early return."""
+    full_client.received_new_block(block)
+
+
+def handle_received_transaction(transaction):
+    """Handle new transaction in extra thread for early return."""
+    full_client.handle_incoming_transaction(transaction)
+
+
 @app.route(CONFIG["ROUTES"]["new_block"], methods=["POST"])
 def _new_block():
-    full_client.received_new_block(request.data.decode("utf-8"))
+    block = request.data.decode("utf-8")
+    Thread(target=handle_received_block, args=(block,), daemon=True, name="handle_received_block_thread").start()
     return "success"
 
 
@@ -27,7 +44,7 @@ def _send_block_by_hash(hash):
 @app.route(CONFIG["ROUTES"]["new_transaction"], methods=["POST"])
 def _new_transaction():
     new_transaction = request.data
-    full_client.handle_incoming_transaction(new_transaction)
+    Thread(target=handle_received_transaction, args=(new_transaction,), daemon=True, name="handle_received_tx_thread").start()
     return "success"
 
 
@@ -37,7 +54,6 @@ def _latest_block():
     return repr(block)
 
 
-# def start_server(full_client):
 def start_server(client):
     """Start the flask server."""
     global full_client

@@ -43,3 +43,4 @@ class Network(ABCMeta):
         except requests.exceptions.ConnectionError as r:
             # This Exception will mostly occur when trying to connect to a non admission node
             logger.debug("Got Exception while connecting to {}: {}".format(route, r))
+

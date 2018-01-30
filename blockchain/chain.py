@@ -3,7 +3,7 @@ import logging
 import os
 from collections import deque
 from threading import RLock, current_thread
-from .block import *
+from .block import Block
 from .config import CONFIG
 from blockchain.transaction import *
 
@@ -19,7 +19,6 @@ class Chain(object):
 
         """Create a singleton instance of the chain."""
         if cls.__instance is None:
-            logger.info("Creating initial chain")
             cls.__instance = object.__new__(cls)
         return cls.__instance
 
@@ -89,7 +88,7 @@ class Chain(object):
         adds any new admission nodes to the left side of the queue in the order
         they appear in the block."""
         with self._lock:
-            block_creator = bytes.fromhex(block.public_key)
+            block_creator = block.public_key
             if block_creator in block_creation_cache:
                 block_creation_cache.remove(block_creator)
             block_creation_cache.append(block_creator)
