@@ -19,7 +19,7 @@ def handle_received_block(block):
 
 def handle_received_transaction(transaction):
     """Handle new transaction in extra thread for early return."""
-    full_client.handle_incoming_transaction(new_transaction)
+    full_client.handle_incoming_transaction(transaction)
 
 
 @app.route(CONFIG["ROUTES"]["new_block"], methods=["POST"])
