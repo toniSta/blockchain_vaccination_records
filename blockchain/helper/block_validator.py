@@ -11,6 +11,7 @@ from hashlib import sha256
 
 from ..helper.cryptography import verify
 from ..config import CONFIG
+from ..chain import Chain
 
 logger = logging.getLogger("block-validator")
 
@@ -50,18 +51,19 @@ def validate_block(block, previous_block):
         logger.info("Signature is not valid, block must be altered")
         return False
 
-    # TODO: use correct validate parameters
     # Check if all transactions are valid
-    # for transaction in block.transactions:
-    #     if not transaction.validate():
-    #         logger.info("Block contains invalid transactions")
-    #         return False
+    admissions, doctors, vaccines = Chain().get_registration_caches_by_blockhash(block.previous_block)
+    for transaction in block.transactions:
+        if not transaction.validate(admissions, doctors, vaccines):
+             logger.info("Block contains invalid transactions")
+             return False
 
     # Block has no transactions
     # TODO We shouldn't even create a block if a block with no transactions is invalid
-    if len(block.transactions) == 0:
-          logger.info("Block does not contain any transaction")
-          return False
+    # TODO enable this check when we can create transactions in a convenient way
+    # if len(block.transactions) == 0:
+    #     logger.info("Block does not contain any transaction")
+    #     return False
 
     # Number of transactions exceeds the maximum
     if len(block.transactions) > CONFIG["block_size"]:

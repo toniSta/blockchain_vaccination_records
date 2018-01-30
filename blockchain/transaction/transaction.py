@@ -26,6 +26,8 @@ class TransactionBase(metaclass=ABCMeta):
         return crypto.sign(message, private_key)
 
     def _verify_signature(self):
+        if not self.signature:  # fail if object has no signature attribute
+            return False
         message = crypto.get_bytes(self._get_informations_for_hashing())
         return crypto.verify(message, self.signature, RSA.import_key(self.sender_pubkey))
 
