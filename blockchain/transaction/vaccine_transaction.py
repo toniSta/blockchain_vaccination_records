@@ -25,12 +25,13 @@ class VaccineTransaction(TransactionBase):
         self.sender_pubkey = sender_pubkey
         self.signature = signature
 
-    def validate(self, current_admissions): # TODO Where does the key come from in the future?
+    def validate(self, admissions, doctors, vaccines): # TODO Where does the key come from in the future?
         """
         checks if the transaction fulfills the requirements
         """
-        #TODO Does the sender have permission to add vaccines?
-        in_sender_key = RSA.import_key(self.sender_pubkey)
+        if self.sender_pubkey not in admissions:
+            logger.debug("admission is not registered.")
+            return False
         return self._verify_signature() # TODO check other requirements
 
     def _create_signature(self, private_key):

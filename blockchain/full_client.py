@@ -132,8 +132,8 @@ class FullClient(object):
         for _ in range(CONFIG["block_size"]):
             if len(self.transaction_set):
                 transaction = self.transaction_set.pop()
-                
-                if transaction.validate(self.chain.get_admissions()):
+                admissions, doctors, vaccines = self.chain.get_registration_caches()
+                if transaction.validate(admissions, doctors, vaccines):
                     new_block.add_transaction(transaction)
                 else:
                     logger.debug("Adding Transaction not to next block (invalid): {}".format(transaction))

@@ -196,7 +196,7 @@ def create_initial_block(public_key, private_key):
     """Create the genesis block."""
     logger.info("Creating new genesis block")
     genesis = Block({
-        "index": -1,
+        "index": -1,  # index is always incremented by one, so genesis index is actually 0
         "hash": str(0)
     }, public_key)
     initial_admission_tx = PermissionTransaction(

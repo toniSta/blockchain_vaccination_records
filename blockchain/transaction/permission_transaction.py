@@ -49,17 +49,17 @@ class PermissionTransaction(TransactionBase):
             "version": self.version
         })
 
-    def validate(self, current_admissions):
+    def validate(self, admissions, doctors, vaccines):
         """Check if the transaction fulfills the requirements.
 
-        Check if signarure matches,
+        Check if signature matches,
         if enough positive votes were cast for an admission,
         etc.
         """
         if self.requested_permission is Permission.patient:
             return self._verify_signature()
         else:
-            return self._verify_signature() and self._validate_approvals(current_admissions)
+            return self._verify_signature() and self._validate_approvals(admissions)
 
     def _validate_approvals(self, current_admissions):
         """Validate the includeded approvals of the transaction.

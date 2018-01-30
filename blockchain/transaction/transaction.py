@@ -13,7 +13,8 @@ class TransactionBase(metaclass=ABCMeta):
         self.signature = signature
 
     @abstractmethod
-    def validate(self, current_admissions):
+    def validate(self, admissions, doctors, vaccines):
+        """Validate the transaction against the given registered admissions, doctors and vaccines."""
         raise NotImplementedError("Transaction must offer a validity check")
 
     @abstractmethod
