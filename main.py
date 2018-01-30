@@ -97,5 +97,6 @@ def blocks():
     Block(recreated_block.get_block_information())
 
 if __name__ == '__main__':
-    main()
+    pass
+    # main()
 
