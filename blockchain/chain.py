@@ -2,6 +2,7 @@
 import logging
 import os
 from collections import deque
+from threading import RLock, current_thread
 from .block import *
 from .config import CONFIG
 from blockchain.transaction import *
@@ -17,17 +18,30 @@ class Chain(object):
     def __new__(cls, load_persisted=True):
 
         """Create a singleton instance of the chain."""
-        if not Chain.__instance:
+        if cls.__instance is None:
             logger.info("Creating initial chain")
-            Chain.__instance = object.__new__(cls)
-        return Chain.__instance
+            cls.__instance = object.__new__(cls)
+        return cls.__instance
 
     def __init__(self, load_persisted=True):
         """Create initial chain and tries to load saved state from disk."""
         self.chain = []
         self.block_creation_cache = deque()
+        self._lock = RLock()
         if load_persisted and self._can_be_loaded_from_disk():
             self._load_from_disk()
+
+    def __enter__(self):
+        self._lock.acquire()
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self._lock.release()
+        if exc_type or exc_val or exc_tb:
+            logger.exception("Thread '{}' got an exception within a with statement. Type: {}; Value: {}; Traceback:".format(
+            current_thread(),
+            exc_type,
+            exc_val
+            ))
 
     def _can_be_loaded_from_disk(self):
         """Returns if the blockchain can be loaded from disk.
@@ -51,8 +65,9 @@ class Chain(object):
 
     def add_block(self, block):
         """Add a block to the blockchain."""
-        self.chain.append(block)
-        self._update_block_creation_cache(block)
+        with self._lock:
+            self.chain.append(block)
+            self._update_block_creation_cache(block)
 
     def _update_block_creation_cache(self, block):
         """Refreshes the block creation cache.
@@ -71,35 +86,45 @@ class Chain(object):
 
     def find_block_by_index(self, index):
         """Find a block by its index. Return None at invalid index."""
-        if index > self.size() - 1 or index < 0:
-            return
-        return self.chain[index]
+        with self._lock:
+            if index > self.size() - 1 or index < 0:
+                return
+            return self.chain[index]
+
 
     def find_block_by_hash(self, hash):
         """Find a block by its hash. Return None if hash not found."""
-        chain_index = self.size() - 1
-        while chain_index != 0:
-            if self.chain[chain_index].hash == hash:
-                return self.chain[chain_index]
-            else:
-                chain_index -= 1
+        with self._lock:
+            chain_index = self.size() - 1
+            while chain_index != 0:
+                if self.chain[chain_index].hash == hash:
+                    return self.chain[chain_index]
+                else:
+                    chain_index -= 1
 
     def last_block(self):
         """Return the last block of the chain."""
-        return self.chain[-1]
+        with self._lock:
+            return self.chain[-1]
 
     def get_block_creation_history(self, n):
         """Return public keys of the oldest n blockcreating admission nodes. Return None if n is out of bounds."""
-        if n > len(self.block_creation_cache) or n < 0:
-            return
-        block_creation_history = []
-        for i in range(n):
-            block_creation_history.append(self.block_creation_cache[i])
-        return block_creation_history
+        with self._lock:
+            if n > len(self.block_creation_cache) or n < 0:
+                return
+            block_creation_history = []
+            for i in range(n):
+                block_creation_history.append(self.block_creation_cache[i])
+            return block_creation_history
 
     def get_admissions(self):
-        return set(self.block_creation_cache)   # in case of changing this method do not return a reference to the original deque!
+        with self._lock:
+            return set(self.block_creation_cache)   # in case of changing this method do not return a reference to the original deque!
 
     def size(self):
         """Get length of the chain."""
-        return len(self.chain)
+        with self._lock:
+            return len(self.chain)
+
+    def lock_state(self):
+        return self._lock._is_owned()
