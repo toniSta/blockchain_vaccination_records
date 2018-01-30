@@ -147,10 +147,13 @@ class Chain(object):
             return set(self.vaccine_cache)  # in case of changing this method do not return a reference to the original set!
 
     def get_registration_caches(self):
+        """Return a tuple of sets containing the currently registered admissions, doctors, and vaccines."""
         with self._lock:
             return set(self.block_creation_cache), set(self.doctors_cache), set(self.vaccine_cache)
 
     def get_registration_caches_by_blockhash(self, hash):
+        """Return a tuple of sets containing the registered admissions, doctors,
+        and vaccines at the blockheight of the given hash."""
         with self._lock:
             block_creation_cache = deque()
             doctors_cache = set()
@@ -167,6 +170,8 @@ class Chain(object):
                 current_index += 1
 
     def get_registration_caches_by_blockindex(self, index):
+        """Return a tuple of sets containing the registered admissions, doctors,
+        and vaccines at the blockheight of the given blockindex."""
         with self._lock:
             if (index < 0 or index > self.size() - 1):
                 return None  # given index is out of bounds
