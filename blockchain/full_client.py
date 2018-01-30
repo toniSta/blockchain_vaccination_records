@@ -132,8 +132,8 @@ class FullClient(object):
         for _ in range(CONFIG["block_size"]):
             if len(self.transaction_set):
                 transaction = self.transaction_set.pop()
-                #TODO Parameters are random numbers. They've already changed on a different thread. Keep Attention while merging
-                if transaction.validate(0, self.chain.get_admissions()):
+                
+                if transaction.validate(self.chain.get_admissions()):
                     new_block.add_transaction(transaction)
                 else:
                     logger.debug("Adding Transaction not to next block (invalid): {}".format(transaction))

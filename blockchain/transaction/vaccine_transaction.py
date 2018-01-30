@@ -25,7 +25,7 @@ class VaccineTransaction(TransactionBase):
         self.sender_pubkey = sender_pubkey
         self.signature = signature
 
-    def validate(self, chain_size, current_admissions): # TODO Where does the key come from in the future?
+    def validate(self, current_admissions): # TODO Where does the key come from in the future?
         """
         checks if the transaction fulfills the requirements
         """

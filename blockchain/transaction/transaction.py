@@ -13,7 +13,7 @@ class TransactionBase(metaclass=ABCMeta):
         self.signature = signature
 
     @abstractmethod
-    def validate(self, chain_size, current_admissions):
+    def validate(self, current_admissions):
         raise NotImplementedError("Transaction must offer a validity check")
 
     @abstractmethod

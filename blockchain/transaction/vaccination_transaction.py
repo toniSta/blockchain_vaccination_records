@@ -39,7 +39,7 @@ class VaccinationTransaction(TransactionBase):
         self.patient_signature = self._create_patient_signature(patient_private_key)
         return self
 
-    def validate(self, chain_size, current_admissions): # TODO Where does the key come from in the future?
+    def validate(self, current_admissions): # TODO Where does the key come from in the future?
         """
         checks if the transaction fulfills the requirements
         """
