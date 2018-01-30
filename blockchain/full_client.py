@@ -188,22 +188,25 @@ class FullClient(object):
         logger.debug("Started Thread {}".format(threading.current_thread()))
 
         while True:
-            time.sleep(CONFIG["block_time"]/2) # block_time needs to be at least 2s
-            if self.public_key not in self.chain.get_admissions():
-                logger.debug("Currently no admission. election.")
-                continue
-            with self.chain:
-                next_creator = self.determine_block_creation_node()
-                if next_creator == self.public_key:
-                    logger.debug("creator_election: next creator is self")
-                    new_block = self.create_next_block()
-                    if not new_block.validate(self.chain.last_block()):
-                        logger.error("New generated block is not valid! {}".format(repr(new_block)))
-                        # TODO: Add transactions  of false block to queue
-                        continue
-                    self.submit_block(new_block)
-                else:
-                    logger.debug("creator_election: next creator is other")
+            try:
+                time.sleep(CONFIG["block_time"]/2) # block_time needs to be at least 2s
+                if self.public_key not in self.chain.get_admissions():
+                    logger.debug("Currently no admission. election.")
+                    continue
+                with self.chain:
+                    next_creator = self.determine_block_creation_node()
+                    if next_creator == self.public_key:
+                        logger.debug("creator_election: next creator is self")
+                        new_block = self.create_next_block()
+                        if not new_block.validate(self.chain.last_block()):
+                            logger.error("New generated block is not valid! {}".format(repr(new_block)))
+                            # TODO: Add transactions  of false block to queue
+                            continue
+                        self.submit_block(new_block)
+                    else:
+                        logger.debug("creator_election: next creator is other")
+            except Exception as e:
+                logger.exception("Exception in election thread:")
 
         logger.debug("Thread {} is dead.".format(threading.current_thread()))
 
