@@ -133,7 +133,7 @@ class Block(object):
         file_path = os.path.join(persistence_folder, str(self.index))
         with open(file_path, "w") as block_file:
             block_file.write(repr(self))
-        logger.debug("Block {} written to disk.".format(self.index))
+        logger.debug("Block {} written to disk: {}".format(self.index, str(self)))
 
     def update_hash(self):
         """Add hash to the final state of the block."""
@@ -184,7 +184,7 @@ class Block(object):
         return self.hash == other.hash
 
     def __hash__(self):
-        return self.hash
+        return hash(self.hash)
 
     def sign(self, private_key):
         """Sign creator's public key, in order to prove identity."""
@@ -196,7 +196,7 @@ def create_initial_block(public_key, private_key):
     """Create the genesis block."""
     logger.info("Creating new genesis block")
     genesis = Block({
-        "index": -1,
+        "index": -1,  # index is always incremented by one, so genesis index is actually 0
         "hash": str(0)
     }, public_key)
     initial_admission_tx = PermissionTransaction(

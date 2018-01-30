@@ -58,9 +58,11 @@ def validate_block(block, previous_block):
     #         return False
 
     # Block has no transactions
-    if len(block.transactions) == 0:
-        logger.info("Block does not contain any transaction")
-        return False
+    # TODO We shouldn't even create a block if a block with no transactions is invalid
+    # TODO enable this check when we can create transactions in a convenient way
+    # if len(block.transactions) == 0:
+    #     logger.info("Block does not contain any transaction")
+    #     return False
 
     # Number of transactions exceeds the maximum
     if len(block.transactions) > CONFIG["block_size"]:

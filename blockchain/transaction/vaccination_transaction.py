@@ -39,13 +39,17 @@ class VaccinationTransaction(TransactionBase):
         self.patient_signature = self._create_patient_signature(patient_private_key)
         return self
 
-    def validate(self, chain_size, current_admissions): # TODO Where does the key come from in the future?
+    def validate(self, admissions, doctors, vaccines): # TODO Where does the key come from in the future?
         """
         checks if the transaction fulfills the requirements
         """
-        # TODO doctor key has doctor permission?
-        # TODO vaccine is registered?
-        # TODO patient key is registered -> won"t implement
+        # WONTFIX: won't implement checking if patient is registered in presentation demo
+        if self.vaccine not in vaccines:
+            logger.debug("vaccine is not registered.")
+            return False
+        if self.doctor_pub_key not in doctors:
+            logger.debug("doctor is not registered.")
+            return False
         bin_doctor_key = RSA.import_key(self.doctor_pub_key)
         doctor_signature = self._verify_doctor_signature(bin_doctor_key)
 

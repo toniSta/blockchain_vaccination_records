@@ -1,4 +1,5 @@
 import logging
+import math
 import blockchain.helper.cryptography as crypto
 from Crypto.PublicKey import RSA
 from enum import Enum
@@ -48,19 +49,19 @@ class PermissionTransaction(TransactionBase):
             "version": self.version
         })
 
-    def validate(self, chain_size, current_admissions):
+    def validate(self, admissions, doctors, vaccines):
         """Check if the transaction fulfills the requirements.
 
-        Check if signarure matches,
+        Check if signature matches,
         if enough positive votes were cast for an admission,
         etc.
         """
         if self.requested_permission is Permission.patient:
             return self._verify_signature()
         else:
-            return self._verify_signature() and self._validate_approvals(chain_size, current_admissions)
+            return self._verify_signature() and self._validate_approvals(admissions)
 
-    def _validate_approvals(self, chain_size, current_admissions):
+    def _validate_approvals(self, current_admissions):
         """Validate the includeded approvals of the transaction.
 
         Checks if there are duplicate approvals,
@@ -71,18 +72,21 @@ class PermissionTransaction(TransactionBase):
         if len(self.approvals) != len(set(self.approvals)):
             logger.debug("Transaction contains duplicate approvals.")
             return False
-        if chain_size > 0 and len(self.approvals) < 3: # TODO: dynamically set or have magic number?
-            logger.debug("Transaction does not have enough approvals.")
+        #  WONTFIX: won't register admissions with approvals in presentation demo, therefore commented out
+        #if len(self.approvals) < math.ceil(len(current_admissions) / 2):
+        #   logger.debug("Transaction does not contain the required number of approvals.")
+        #   return False
+        if len(self.approvals) != len([a for a in self.approvals if self._verify_approval_signature(a)]):
+            logger.debug("Transaction contains approvals with invalid signature.")
             return False
-        valid_approvals = [a for a in self.approvals if self._verify_approval_signature(a)]
-        if chain_size > 0:
-            valid_approvals = [a for a in valid_approvals if a[0] in current_admissions]
-        if len(valid_approvals) != len(self.approvals):
-            logger.debug("Transaction contains invalid approvals.")
+        if len(self.approvals) != len([a for a in self.approvals if a[0] in current_admissions]):
+            logger.debug("Transaction contains approvals from non-admission nodes.")
             return False
         return True
 
     def _verify_approval_signature(self, approval):
+        # WONTFIX: susceptible to replay attacks because there is no clear indication
+        # which transactions the approval belongs to, approvals could be copy-pasted to confirm malicious actors.
         approving_pubkey, signature = approval
         return crypto.verify(approving_pubkey, signature, RSA.import_key(approving_pubkey))
 
