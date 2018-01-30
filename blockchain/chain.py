@@ -88,7 +88,7 @@ class Chain(object):
         adds any new admission nodes to the left side of the queue in the order
         they appear in the block."""
         with self._lock:
-            block_creator = bytes.fromhex(block.public_key)
+            block_creator = block.public_key
             if block_creator in block_creation_cache:
                 block_creation_cache.remove(block_creator)
             block_creation_cache.append(block_creator)
