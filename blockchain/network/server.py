@@ -6,8 +6,7 @@ Needs to be replaced, when a P2P is estabished.
 
 from flask import Flask, request
 import os
-from multiprocessing import Pool
-
+from threading import Thread
 from ..config import CONFIG
 
 app = Flask(__name__)
@@ -26,8 +25,7 @@ def handle_received_transaction(transaction):
 @app.route(CONFIG["ROUTES"]["new_block"], methods=["POST"])
 def _new_block():
     block = request.data.decode("utf-8")
-    pool = Pool(processes=1)
-    pool.apply_async(handle_received_block, (block,))
+    Thread(target=handle_received_block, args=(block,), daemon=True, name="handle_received_block_thread")
     return "success"
 
 
@@ -46,8 +44,7 @@ def _send_block_by_hash(hash):
 @app.route(CONFIG["ROUTES"]["new_transaction"], methods=["POST"])
 def _new_transaction():
     new_transaction = request.data
-    pool = Pool(processes=1)
-    pool.apply_async(handle_received_block, (new_transaction,))
+    Thread(target=handle_received_transaction, args=(new_transaction,), daemon=True, name="handle_received_tx_thread")
     return "success"
 
 
