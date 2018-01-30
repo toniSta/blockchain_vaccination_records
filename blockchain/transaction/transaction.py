@@ -98,3 +98,10 @@ class TransactionBase(metaclass=ABCMeta):
             type(self).__name__,
             ", ".join(["{!s}={!r}".format(*item) for item in instance_member_list])
         )
+
+    def __hash__(self):
+        return hash(self.__repr__())
+
+    def __eq__(self, other):
+        return self.__hash__() == other.__hash__()
+

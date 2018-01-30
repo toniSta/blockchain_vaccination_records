@@ -29,19 +29,27 @@ class FullClient(object):
             self.nodes = ["http://" + neighbor for neighbor in neighbors_list]
         else:
             self.nodes = ["http://127.0.0.1:9000"]
-
         self._setup_public_key()
 
         self.chain = Chain()
         self.transaction_set = TransactionSet()
         self.invalid_transactions = set()
         self.dangling_blocks = set()
-        self.stop_creator_election = False
-        self.creator_election_thread = threading.Thread(target=self.creator_election, daemon=True)
-        self.creator_election_thread.run()
-        self.recover_after_shutdown()
+        self.creator_election_thread = None
+        self._start_election_thread()
 
-    def determine_block_creation_node(self, timestamp=time.time()):
+        if os.getenv('REGISTER_AS_ADMISSION') == '1':
+            self._register_self_as_admission()
+
+        logger.debug("Finished full_client init.")
+        logger.debug("My public key is: {} or {}".format(self.public_key.exportKey("DER"), self.public_key.exportKey("DER").hex()))
+        #self.recover_after_shutdown()
+
+    def _start_election_thread(self):
+        self.creator_election_thread = threading.Thread(target=self.creator_election, name="election thread", daemon=True)
+        self.creator_election_thread.start()
+
+    def determine_block_creation_node(self, timestamp=None):
         """Determine which admission node has to create the next block in chain.
 
         The method takes a timestamp as argument representing the creation date of the block whose legitimate creator
@@ -51,8 +59,10 @@ class FullClient(object):
         If even the youngest creator failed to create a block within time, the method continues with the
         oldest submission node.
         """
+        if not timestamp:
+            timestamp = time.time()
         number_of_admissions = len(self.chain.get_admissions())
-        creator_history = self.chain.get_oldest_blockcreator(n=number_of_admissions)
+        creator_history = self.chain.get_block_creation_history(number_of_admissions)
 
         last_block_timestamp = self.chain.last_block().timestamp
 
@@ -60,7 +70,7 @@ class FullClient(object):
 
         nth_oldest_block = int(delta_time / CONFIG["block_time"])
 
-        return creator_history[nth_oldest_block % CONFIG["block_time"]]
+        return creator_history[nth_oldest_block % number_of_admissions]
 
     def _setup_public_key(self):
         """Create new key pair if necessary.
@@ -122,9 +132,11 @@ class FullClient(object):
         for _ in range(CONFIG["block_size"]):
             if len(self.transaction_set):
                 transaction = self.transaction_set.pop()
-                if transaction.validate():
+                
+                if transaction.validate(self.chain.get_admissions()):
                     new_block.add_transaction(transaction)
                 else:
+                    logger.debug("Adding Transaction not to next block (invalid): {}".format(transaction))
                     self.invalid_transactions.add(transaction)
             else:
                 # Break if transaction set is empty
@@ -143,48 +155,55 @@ class FullClient(object):
 
         It will check if the block was received earlier. If not it will process and broadcast the block and adding it
         to the chain or dangling blocks."""
-        logger.debug("Received new block: {}".format(repr(block_representation)))
-
         try:
             new_block = Block(block_representation)
-        except Exception:
-            logger.error("Could not parse received block")
+        except Exception as e:
+            logger.error("Received new block but couldn't process: {} {}".format(repr(block_representation), e))
             # TODO define behaviour here
             return
+        logger.debug("Received new block: {}".format(str(new_block)))
 
-        if self.chain.find_block_by_hash(new_block.hash) or new_block in self.dangling_blocks:
-            logger.debug("The received block is already part of chain or a dangling block: {}".format(repr(block_representation)))
-            return
+        with self.chain:
+            if self.chain.find_block_by_hash(new_block.hash) or new_block in self.dangling_blocks:
+                logger.debug("The received block is already part of chain or a dangling block: {}".format(str(new_block)))
+                return
 
-        self.stop_creator_election = True
-        self.creator_election_thread.join()
+            self._broadcast_new_block(new_block)
 
-        self._broadcast_new_block(new_block)
+            expected_pub_key = self.determine_block_creation_node(timestamp=new_block.timestamp)
 
-        expected_pub_key = self.determine_block_creation_node(timestamp=new_block.timestamp)
-
-        if expected_pub_key != new_block.public_key:
-            logger.debug("Received block doesn't match as next block in chain. Adding it to dangling blocks: {}".format(
-                repr(block_representation)))
-            self.dangling_blocks.add(new_block)
-        else:
-            self._add_block_if_valid(new_block)
-
-        self.stop_creator_election = False
-        self.creator_election_thread.start()
+            # TODO choose unified representation of rsa public key! (Right now it was hexified bytestring and bytestring)
+            if expected_pub_key != bytes.fromhex(new_block.public_key):
+                logger.debug("Received block doesn't match as next block in chain. Adding it to dangling blocks. "
+                             "Expected key: {} Actual block {}".format(expected_pub_key.hex(), str(new_block)))
+                self.dangling_blocks.add(new_block)
+            else:
+                self._add_block_if_valid(new_block)
 
     def creator_election(self):
         """This method checks if this node needs to generate a new block.
 
         If it is the next creator it will generate a block and submit it to the chain."""
-        while not self.stop_creator_election:
-            time.sleep(CONFIG["block_time"])
-            next_creator = self.determine_block_creation_node()
-            if next_creator == self.public_key:
-                new_block = self.create_next_block()
-                if not new_block.validate(self.chain.last_block()):
-                    logger.error("New generated block is not valid! {}".format(repr(new_block)))
-                self.submit_block(new_block)
+        logger.debug("Started Thread {}".format(threading.current_thread()))
+
+        while True:
+            time.sleep(CONFIG["block_time"]/2) # block_time needs to be at least 2s
+            if self.public_key.exportKey("DER") not in self.chain.get_admissions():
+                logger.debug("Currently no admission. election.")
+                continue
+            with self.chain:
+                next_creator = self.determine_block_creation_node()
+                #TODO choose unified representation of rsa public key! (Right now it was RSA Object)
+                if next_creator == self.public_key.exportKey("DER"):
+                    logger.debug("creator_election: next creator is self")
+                    new_block = self.create_next_block()
+                    if not new_block.validate(self.chain.last_block()):
+                        logger.error("New generated block is not valid! {}".format(repr(new_block)))
+                        self.submit_block(new_block)
+                else:
+                    logger.debug("creator_election: next creator is other")
+
+        logger.debug("Thread {} is dead.".format(threading.current_thread()))
 
     def _request_block_at_index(self, index, node):
         route = node + "/request_block/index/" + str(index)
@@ -216,16 +235,42 @@ class FullClient(object):
 
     def handle_incoming_transaction(self, transaction):
         transaction_object = eval(transaction)
-        self._handle_transaction(transaction_object)
+        self.handle_transaction(transaction_object, broadcast=False)
 
     def handle_transaction(self, transaction, broadcast=False):
+        if broadcast:
+            self._broadcast_new_transaction(transaction)
+        #TODO save self.public_key and self.private_key as byte strings. Currently: RsaObject
+        if self.public_key.exportKey("DER") not in self.chain.get_admissions():
+            logger.debug("Received transaction but this node is no admission node. Quit...")
+            return
         if self.transaction_set.contains(transaction):
             return  # Transaction was already received
+        if self._check_if_transaction_in_chain(transaction):
+            return
         else:
-            # TODO: check if it is in the chain already
             self.transaction_set.add(transaction)
-            if broadcast:
-                self._broadcast_new_transaction(transaction)
+
+    def _check_if_transaction_in_chain(self, transaction):
+        """Check if the transaction is already part of the chain.
+
+        Checks the last |number of current admission nodes| blocks
+        by comparing every transaction in the block to the new one.
+        If the genesis block is reached the function stops advancing
+        to the previous block and returns."""
+        number_of_blocks_to_check = len(self.chain.get_admissions())
+        blocks_checked = 0
+        block_to_check = self.chain.last_block()
+        while blocks_checked < number_of_blocks_to_check:
+            for transaction_in_chain in block_to_check.transactions:
+                if transaction == transaction_in_chain:
+                    return True
+            previous_block_index = block_to_check.index - 1
+            if previous_block_index < 0:
+                return False  # stop early after reaching the genesis block
+            block_to_check = self.chain.find_block_by_index(previous_block_index)
+            blocks_checked += 1
+        return False
 
     def _broadcast_new_transaction(self, transaction):
         """Broadcast transaction to required number of admission nodes."""
@@ -290,9 +335,18 @@ class FullClient(object):
         latest_block = self.chain.last_block()
         for block in self.dangling_blocks:
             expected_pub_key = self.determine_block_creation_node(timestamp=block.timestamp)
-            if block.previous_block == latest_block.hash and expected_pub_key == block.public_key:
-                if block.validate(latest_block):
+            if block.previous_block == latest_block.hash and expected_pub_key == bytes.fromhex(block.public_key):
+                if block.validate():
                     self.chain.add_block(block)
                     block.persist()
                     self.process_dangling_blocks()
                 return
+
+    def _register_self_as_admission(self):
+        if self.public_key.exportKey("DER") in self.chain.get_admissions():
+            logger.debug("Already admission node, don't need to register.")
+            return
+        logger.debug("Going to register as admission node.")
+        tx = PermissionTransaction(Permission["admission"], self.public_key)
+        tx.sign(self.private_key)
+        self._broadcast_new_transaction(tx)
