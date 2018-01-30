@@ -199,7 +199,7 @@ class FullClient(object):
                     new_block = self.create_next_block()
                     if not new_block.validate(self.chain.last_block()):
                         logger.error("New generated block is not valid! {}".format(repr(new_block)))
-                    self.submit_block(new_block)
+                        self.submit_block(new_block)
                 else:
                     logger.debug("creator_election: next creator is other")
 
