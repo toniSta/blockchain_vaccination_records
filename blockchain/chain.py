@@ -7,6 +7,7 @@ from .block import Block
 from .config import CONFIG
 from blockchain.transaction import *
 from anytree import Node, RenderTree
+from anytree.search import find, findall
 
 logger = logging.getLogger("blockchain")
 
@@ -71,9 +72,26 @@ class Chain(object):
         logger.info("Finished loading chain from disk")
 
     def add_block(self, block):
-        """Add a block to the blockchain."""
+        """Add a block to the blockchain.
+
+        It might happen that a block does not fit into the chain, because the
+        previous block was not received until that point. Thus, we have to add
+        to the set of dangling block. This methods returns True, if the new
+        block was added to the chain, otherwise False.
+        """
         with self._lock:
-            Node(block.hash, parent=block.previous_block, block=block)
+            try:
+                Node(block.hash,
+                     index=block.index,
+                     parent=block.previous_block,
+                     block=block)
+                logger.debug("Added block to chain. Chain looks like this:\n{}"\
+                             .format(str(chain)))
+                return True
+            except NameError:
+                logger.debug("Block with hash {} could not be added to the\
+                              chain. Treat it as dangling.".format(block.hash))
+                return False
             self._update_caches(block, self.block_creation_cache, self.doctors_cache, self.vaccine_cache)
 
     def _update_caches(self, block, block_creation_cache, doctors_cache, vaccine_cache):
@@ -112,22 +130,30 @@ class Chain(object):
         return
 
     def get_leaves(self):
-        """Return the last block of the chain."""
+        """Return all possible leaf blocks of the chain."""
         with self._lock:
-            leaves = anytree.search.findall(self.genesis, lambda node: node.is_leaf == True)
+            leaves = findall(self.genesis, lambda node: node.is_leaf is True)
             return [leaf.block for leaf in leaves]
 
-    def side_chain(self, node_hash):
+    def remove_tree_at_hash(self, node_hash):
         """Delete a side chain by removing a branch.
 
-        Remove a whole branch detaching its root node.
+        Remove a whole branch by detaching its root node.
         """
         with self._lock:
-            node_to_delete = anytree.search.find(self.genesis, lambda node: node.hash == node_hash)
+            node_to_delete = find(self.genesis, lambda node: node.hash == node_hash)
             if node_to_delete:
                 node_to_delete.parent = None
             else:
                 logger.info("Block with hash {} not found".format(node_hash))
+
+    def get_tree_list_at_hash(self, hash):
+        """Collect all descendants from the specified node."""
+        selected_node = find(self.genesis, lambda node: node.hash == node_hash)
+        if selected_node:
+            return [node.block for node in selected_node.descendants]
+        else:
+            return []
 
     def get_block_creation_history(self, n):
         """Return public keys of the oldest n blockcreating admission nodes. Return None if n is out of bounds."""
