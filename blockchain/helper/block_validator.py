@@ -9,9 +9,9 @@ import logging
 from time import time
 from hashlib import sha256
 
-from ..helper.cryptography import verify
-from ..config import CONFIG
-from ..chain import Chain
+from blockchain.helper.cryptography import verify
+from blockchain.config import CONFIG
+from blockchain.chain import Chain
 
 logger = logging.getLogger("block-validator")
 
