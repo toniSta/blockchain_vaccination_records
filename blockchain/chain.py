@@ -49,19 +49,25 @@ class Chain(object):
 
         True if the blockchain persistance folder
         and the genesis block file are present."""
-        return os.path.isdir(CONFIG["persistance_folder"]) and os.path.exists(
-                os.path.join(CONFIG["persistance_folder"], "0"))
+        return os.path.isdir(CONFIG["persistance_folder"]) and \
+            len([f for f in os.listdir(CONFIG["persistance_folder"]) \
+                    if f.startswith("0_")]) == 1  # there should only be the genesis file starting with '0_..._...'
 
     def _load_from_disk(self):
-        current_block = 0
-        block_path = os.path.join(CONFIG["persistance_folder"], str(current_block))
-        while os.path.exists(block_path):
-            with open(block_path, "r") as block_file:
-                logger.info("Loading block {} from disk".format(current_block))
-                recreated_block = Block(block_file.read())
-                self.add_block(recreated_block)
-            current_block += 1
-            block_path = os.path.join(CONFIG["persistance_folder"], str(current_block))
+        current_block_level = 0
+        block_files = os.listdir(CONFIG["persistance_folder"])
+        level_prefix = str(current_block_level) + "_"
+        blocks_at_current_level = [f for f in block_files if f.startswith(level_prefix)]
+        while len(blocks_at_current_level) > 0:
+            for block_name in blocks_at_current_level:
+                block_path = os.path.join(CONFIG["persistance_folder"], block_name)
+                with open(block_path, "r") as block_file:
+                    logger.info("Loading block {} from disk".format(block_path))
+                    recreated_block = Block(block_file.read())
+                    self.add_block(recreated_block)
+            current_block_level += 1
+            level_prefix = str(current_block_level) + "_"
+            blocks_at_current_level = [f for f in block_files if f.startswith(level_prefix)]
         logger.info("Finished loading chain from disk")
 
     def add_block(self, block):
