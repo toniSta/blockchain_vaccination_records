@@ -25,8 +25,8 @@ class Chain(object):
 
     def __init__(self, load_persisted=True):
         """Create initial chain and tries to load saved state from disk."""
-        self.chain = None
-        self.genesis = None
+        self.genesis_block = None
+        self.genesis_node = None
         self.block_creation_cache = deque()
         self.vaccine_cache = set()
         self.doctors_cache = set()
@@ -48,7 +48,7 @@ class Chain(object):
                                  exc_val))
 
     def __str__(self):
-        return str(RenderTree(self.genesis))
+        return str(RenderTree(self.genesis_node))
 
     def _can_be_loaded_from_disk(self):
         """Return if the blockchain can be loaded from disk.
@@ -86,19 +86,32 @@ class Chain(object):
         block was added to the chain, otherwise False.
         """
         with self._lock:
-            try:
+            # Check if block is genesis and no genesis is present
+            if not self.genesis_node and block.index == 0:
+                self.genesis_node = Node(block.hash,
+                                         index=block.index,
+                                         block=block)
+                self.genesis_block = block
+                logger.debug("Added genesis to chain.")
+            else:
+                # No genesis, just regular block
+                # Find out, if block references another block
+                parent_node = find(self.genesis_node,
+                                   lambda node: node.name == block.previous_block)
+                if not parent_node:
+                    logger.debug("Block with hash {} could not be added to the\
+                        chain. Treat it as dangling.".format(block.hash))
+                    return False
+
                 Node(block.hash,
                      index=block.index,
-                     parent=block.previous_block,
+                     parent=parent_node,
                      block=block)
-                logger.debug("Added block to chain. Chain looks like this:\n{}"\
-                             .format(str(chain)))
-                return True
-            except NameError:
-                logger.debug("Block with hash {} could not be added to the\
-                              chain. Treat it as dangling.".format(block.hash))
-                return False
+
+            logger.debug("Added block to chain. Chain looks like this:\n{}"\
+                         .format(str(self.genesis_node)))
             self._update_caches(block, self.block_creation_cache, self.doctors_cache, self.vaccine_cache)
+            return True
 
     def _update_caches(self, block, block_creation_cache, doctors_cache, vaccine_cache):
         """Update the block creation cache and refresh the registered doctors and vaccines."""
@@ -130,15 +143,15 @@ class Chain(object):
 
     def find_block_by_hash(self, hash):
         """Find a block by its hash. Return None if hash not found."""
-        block_node = find(self.genesis, lambda node: node.name == hash)
-        if block:
+        block_node = find(self.genesis_node, lambda node: node.name == hash)
+        if block_node:
             return block_node.block
         return
 
     def get_leaves(self):
         """Return all possible leaf blocks of the chain."""
         with self._lock:
-            leaves = findall(self.genesis, lambda node: node.is_leaf is True)
+            leaves = findall(self.genesis_node, lambda node: node.is_leaf is True)
             return [leaf.block for leaf in leaves]
 
     def remove_tree_at_hash(self, node_hash):
@@ -147,7 +160,7 @@ class Chain(object):
         Remove a whole branch by detaching its root node.
         """
         with self._lock:
-            node_to_delete = find(self.genesis, lambda node: node.hash == node_hash)
+            node_to_delete = find(self.genesis_node, lambda node: node.hash == node_hash)
             if node_to_delete:
                 node_to_delete.parent = None
             else:
@@ -155,7 +168,7 @@ class Chain(object):
 
     def get_tree_list_at_hash(self, hash):
         """Collect all descendants from the specified node."""
-        selected_node = find(self.genesis, lambda node: node.hash == node_hash)
+        selected_node = find(self.genesis_node, lambda node: node.hash == node_hash)
         if selected_node:
             return [node.block for node in selected_node.descendants]
         else:
