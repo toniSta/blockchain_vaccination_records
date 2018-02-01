@@ -43,7 +43,6 @@ class FullClient(object):
 
         logger.debug("Finished full_client init.")
         logger.debug("My public key is: {} or {}".format(self.public_key, self.public_key.hex()))
-        #self.recover_after_shutdown()
 
     def _start_election_thread(self):
         self.creator_election_thread = threading.Thread(target=self.creator_election, name="election thread", daemon=True)
@@ -216,12 +215,14 @@ class FullClient(object):
         return Block(block.text)
 
     def _add_block_if_valid(self, block, broadcast_block=False):
-        if block.validate(self.chain.last_block()):
+        previous = self.chain.find_block_by_hash(block.previous_block)
+        if block.validate(previous):
             self.chain.add_block(block)
             block.persist()
             self.process_dangling_blocks()
             if broadcast_block:
                 self._broadcast_new_block(block)
+            self.transaction_set.discard_multiple(block.transactions)
 
     def _broadcast_new_block(self, block):
         for node in self.nodes:
@@ -231,12 +232,6 @@ class FullClient(object):
         random_node = random.choice(self.nodes)
         block = Network.request_latest_block(random_node)
         return Block(block.text)
-
-    def recover_after_shutdown(self):
-        # Steps:
-        #   1. read in files from disk -> maybe in __init__ of chain
-        #   2. sync with other node(s)
-        pass
 
     def handle_incoming_transaction(self, transaction):
         transaction_object = eval(transaction)

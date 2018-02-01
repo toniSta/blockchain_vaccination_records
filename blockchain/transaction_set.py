@@ -28,8 +28,12 @@ class TransactionSet(object):
         self.store.clear()
 
     def discard(self, transaction):
-        """Removes the transaction if it was present in the set."""
+        """Remove the transaction if it was present in the set."""
         self.store.discard(transaction)
+
+    def discard_multiple(self, transaction_list):
+        """Remove multiple transactions from the set."""
+        [self.discard(tx) for tx in transaction_list]
 
     def contains(self, transaction):
         return self.store.__contains__(transaction)

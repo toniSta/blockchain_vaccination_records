@@ -48,7 +48,13 @@ class Chain(object):
                                  exc_val))
 
     def __str__(self):
-        return str(RenderTree(self.genesis_node))
+        tree_representation = ""
+        for pre, fill, node in RenderTree(self.genesis_node):
+            node_representation = "{}index: {}, hash: {}\n".format(pre,
+                                                                   node.index,
+                                                                   node.name)
+            tree_representation += node_representation
+        return tree_representation
 
     def _can_be_loaded_from_disk(self):
         """Return if the blockchain can be loaded from disk.
@@ -95,21 +101,16 @@ class Chain(object):
                 logger.debug("Added genesis to chain.")
             else:
                 # No genesis, just regular block
-                # Find out, if block references another block
+                # Full client ensures, that previous block is present
                 parent_node = find(self.genesis_node,
                                    lambda node: node.name == block.previous_block)
-                if not parent_node:
-                    logger.debug("Block with hash {} could not be added to the\
-                        chain. Treat it as dangling.".format(block.hash))
-                    return False
-
                 Node(block.hash,
                      index=block.index,
                      parent=parent_node,
                      block=block)
 
             logger.debug("Added block to chain. Chain looks like this:\n{}"\
-                         .format(str(self.genesis_node)))
+                         .format(str(self)))
             self._update_caches(block, self.block_creation_cache, self.doctors_cache, self.vaccine_cache)
             return True
 
