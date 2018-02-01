@@ -238,6 +238,14 @@ class FullClient(object):
         #   2. sync with other node(s)
         pass
 
+    def _broadcast_new_judgement(self, judgement):
+        for node in self.nodes:
+            Network.send_judgement(node, repr(judgement))
+
+    def handle_received_judgement(self, judgement):
+        # TODO implement
+        raise NotImplementedError
+
     def handle_incoming_transaction(self, transaction):
         transaction_object = eval(transaction)
         self.handle_transaction(transaction_object, broadcast=False)

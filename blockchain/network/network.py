@@ -45,7 +45,7 @@ class Network(ABCMeta):
             logger.debug("Got Exception while connecting to {}: {}".format(route, r))
 
     @staticmethod
-    def broadcast_new_judgement(node, judgement):
+    def send_judgement(node, judgement):
         route = node + CONFIG["ROUTES"]["new_judgement"]
         try:
             requests.post(route, data=judgement)

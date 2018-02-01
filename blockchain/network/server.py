@@ -73,4 +73,5 @@ def start_server(client):
     port = CONFIG["default_port"]
     if os.getenv("SERVER_PORT"):
         port = int(os.getenv("SERVER_PORT"))
+    print("running on port {}".format(port))
     app.run(host="0.0.0.0", port=port)
