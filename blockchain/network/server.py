@@ -22,6 +22,11 @@ def handle_received_transaction(transaction):
     full_client.handle_incoming_transaction(transaction)
 
 
+def handle_received_judgement(judgement):
+    """Handle new judgement in extra thread for early return."""
+    full_client.handle_received_judgement(judgement)
+
+
 @app.route(CONFIG["ROUTES"]["new_block"], methods=["POST"])
 def _new_block():
     block = request.data.decode("utf-8")
@@ -41,6 +46,12 @@ def _send_block_by_hash(hash):
     return repr(block)
 
 
+@app.route(CONFIG["ROUTES"]["latest_block"], methods=["GET"])
+def _latest_block():
+    block = full_client.chain.last_block()
+    return repr(block)
+
+
 @app.route(CONFIG["ROUTES"]["new_transaction"], methods=["POST"])
 def _new_transaction():
     new_transaction = request.data
@@ -48,10 +59,11 @@ def _new_transaction():
     return "success"
 
 
-@app.route(CONFIG["ROUTES"]["latest_block"], methods=["GET"])
-def _latest_block():
-    block = full_client.chain.last_block()
-    return repr(block)
+@app.route(CONFIG["ROUTES"]["new_judgement"], methods=["POST"])
+def _new_judgement():
+    new_judgement = request.data
+    Thread(target=handle_received_judgement, args=(new_judgement,), daemon=True, name="handle_received_judgement_thread").start()
+    return "success"
 
 
 def start_server(client):

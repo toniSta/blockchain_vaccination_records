@@ -44,3 +44,13 @@ class Network(ABCMeta):
             # This Exception will mostly occur when trying to connect to a non admission node
             logger.debug("Got Exception while connecting to {}: {}".format(route, r))
 
+    @staticmethod
+    def broadcast_new_judgement(node, judgement):
+        route = node + CONFIG["ROUTES"]["new_judgement"]
+        try:
+            requests.post(route, data=judgement)
+        except requests.exceptions.ReadTimeout as r:
+            logger.debug("Got a ReadTimeout while sending judgegment to {}: {}".format(route, r))
+        except requests.exceptions.ConnectionError as r:
+            logger.debug("Got Exception while connecting to {}: {}".format(route, r))
+

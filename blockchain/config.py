@@ -25,8 +25,9 @@ CONFIG = {
         "new_block": "/new_block",
         "block_by_index": "/request_block/index/<index>",
         "block_by_hash": "/request_block/hash/<hash>",
+        "latest_block": "/latest_block",
         "new_transaction": "/new_transaction",
-        "latest_block": "/latest_block"
+        "new_judgement": "/new_judgement"
     },
     # Default port the flask server will run on
     "default_port": 9000
