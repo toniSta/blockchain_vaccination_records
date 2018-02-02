@@ -19,9 +19,6 @@ class Chain(object):
             """Create initial chain and tries to load saved state from disk."""
             self.genesis_block = None
             self.chain_tree = None
-            self.block_creation_cache = deque()
-            self.vaccine_cache = set()
-            self.doctors_cache = set()
             self._lock = RLock()
             if load_persisted and self._can_be_loaded_from_disk():
                 self._load_from_disk()
@@ -78,7 +75,7 @@ class Chain(object):
         def add_block(self, block):
             """Add a block to the blockchain tree.
 
-            It might happen that a block does not fit into the chain, because the
+            TODO: It might happen that a block does not fit into the chain, because the
             previous block was not received until that point. Thus, we have to add
             to the set of dangling block. This methods returns True, if the new
             block was added to the chain, otherwise False.
@@ -86,9 +83,15 @@ class Chain(object):
             with self._lock:
                 # Check if block is genesis and no genesis is present
                 if not self.chain_tree and block.index == 0:
-                    self.chain_tree = Node(block.hash,
-                                           index=block.index,
-                                           block=block)
+                    block_creation_cache = deque()
+                    doctors_cache = set()
+                    vaccine_cache = set()
+                    self._update_caches(block, block_creation_cache, doctors_cache, vaccine_cache)
+
+                    self.chain_tree = self._generate_tree_node(block,
+                                                               block_creation_cache,
+                                                               doctors_cache,
+                                                               vaccine_cache)
                     self.genesis_block = block
                     logger.debug("Added genesis to chain.")
                 else:
@@ -96,15 +99,24 @@ class Chain(object):
                     # Full client ensures, that previous block is present
                     parent_node = find(self.chain_tree,
                                        lambda node: node.name == block.previous_block)
-                    Node(block.hash,
-                         index=block.index,
-                         parent=parent_node,
-                         block=block)
+                    block_creation_cache = parent_node.block_creation_cache.copy()
+                    doctors_cache = set().union(parent_node.doctors_cache)
+                    vaccine_cache = set().union(parent_node.vaccine_cache)
+                    self._update_caches(block, block_creation_cache, doctors_cache, vaccine_cache)
+                    self._generate_tree_node(block, block_creation_cache, doctors_cache, vaccine_cache, parent_node)
 
                 logger.debug("Added block to chain. Chain looks like this:\n{}" \
                              .format(str(self)))
-                self._update_caches(block, self.block_creation_cache, self.doctors_cache, self.vaccine_cache)
                 return True
+
+        def _generate_tree_node(self, block, block_creation_cache, doctors_cache, vaccine_cache, parent_node=None):
+            return Node(block.hash,
+                        index=block.index,
+                        parent=parent_node,
+                        block=block,
+                        block_creation_cache=block_creation_cache,
+                        doctors_cache=doctors_cache,
+                        vaccine_cache=vaccine_cache)
 
         def _update_caches(self, block, block_creation_cache, doctors_cache, vaccine_cache):
             """Update the block creation cache and refresh the registered doctors and vaccines."""
@@ -137,7 +149,7 @@ class Chain(object):
         def find_blocks_by_index(self, index):
             """Find blocks by its index. Return None at invalid index."""
             with self._lock:
-                nodes = findall(self.chain_tree, lambda node: node.index == index)
+                nodes = self._find_tree_nodes_by_index(index)
                 if nodes:
                     result = []
                     for node in nodes:
@@ -146,17 +158,23 @@ class Chain(object):
                 else:
                     return
 
+        def _find_tree_nodes_by_index(self, index):
+            return findall(self.chain_tree, lambda node: node.index == index)
+
         def find_block_by_hash(self, hash):
             """Find a block by its hash. Return None if hash not found."""
-            block_node = find(self.chain_tree, lambda node: node.name == hash)
+            block_node = self._find_tree_node_by_hash(hash)
             if block_node:
                 return block_node.block
             return
 
+        def _find_tree_node_by_hash(self, hash):
+            return find(self.chain_tree, lambda node: node.name == hash)
+
         def get_leaves(self):
             """Return all possible leaf blocks of the chain."""
             with self._lock:
-                leaves = findall(self.chain_tree, lambda node: node.is_leaf is True)
+                leaves = self._get_all_leaf_nodes()
                 return [leaf.block for leaf in leaves]
 
         def remove_tree_at_hash(self, node_hash):
@@ -181,74 +199,82 @@ class Chain(object):
                 return []
 
         def get_block_creation_history(self, n):
-            """Return public keys of the oldest n blockcreating admission nodes. Return None if n is out of bounds."""
+            """Return list of tuples (hash, [public keys of the oldest n blockcreating admission nodes]).
+            Return None if n is out of bounds for the given leaf."""
             with self._lock:
-                if n > len(self.block_creation_cache) or n < 0:
-                    return
-                block_creation_history = []
-                for i in range(n):
-                    block_creation_history.append(self.block_creation_cache[i])
-                return block_creation_history
+                leaves = self._get_all_leaf_nodes()
+                result = []
+                for leaf in leaves:
+                    if n > len(leaf.block_creation_cache) or n < 0:
+                        result.append((leaf.name, None))
+                        continue
+                    block_creation_history = []
+                    for i in range(n):
+                        block_creation_history.append(leaf.block_creation_cache[i])
+                    result.append((leaf.name, block_creation_history))
+                return result
 
         def get_admissions(self):
-            """Return set of currently registered admissions."""
+            """Return list of tuples (hash, set  of currently registered admissions)."""
             with self._lock:
-                return set(
-                    self.block_creation_cache)  # in case of changing this method do not return a reference to the original deque!
+                leaves = self._get_all_leaf_nodes()
+                result = []
+                for leave in leaves:
+                    # in case of changing this method do not return a reference to the original leave.block_creation_cache!
+                    result.append((leave.name, set(leave.block_creation_cache)))
+
+                return result
+
+        def _get_all_leaf_nodes(self):
+            return findall(self.chain_tree, lambda node: node.is_leaf is True)
 
         def get_doctors(self):
-            """Return set of currently registered doctors."""
+            """Return list of tuples (hash, set of currently registered doctors)."""
             with self._lock:
-                return set(
-                    self.doctors_cache)  # in case of changing this method do not return a reference to the original set!
+                leaves = self._get_all_leaf_nodes()
+                result = []
+                for leaf in leaves:
+                    result.append((leaf.name, set(leaf.doctors_cache)))
+                return result
 
         def get_vaccines(self):
-            """Return set of currently registered vaccines."""
+            """Return a list of tuples (hash, set of currently registered vaccines)."""
             with self._lock:
-                return set(
-                    self.vaccine_cache)  # in case of changing this method do not return a reference to the original set!
+                leaves = self._get_all_leaf_nodes()
+                result = []
+                for leaf in leaves:
+                    result.append((leaf.name, set(leaf.vaccine_cache)))
+                return result
 
         def get_registration_caches(self):
-            """Return a tuple of sets containing the currently registered admissions, doctors, and vaccines."""
+            """Return a list of tuples (hash, set(admissions), set(doctors), set(vaccines))."""
             with self._lock:
-                return set(self.block_creation_cache), set(self.doctors_cache), set(self.vaccine_cache)
+                leaves = self._get_all_leaf_nodes()
+                result = []
+                for leaf in leaves:
+                    result.append((leaf.name, set(leaf.block_creation_cache), set(leaf.doctors_cache), set(leaf.vaccine_cache)))
+                return result
 
         def get_registration_caches_by_blockhash(self, hash):
             """Return a tuple of sets containing the registered admissions, doctors,
             and vaccines at the blockheight of the given hash."""
             with self._lock:
-                block_creation_cache = deque()
-                doctors_cache = set()
-                vaccine_cache = set()
-                #TODO adjust to use multiple leaves
-                max_chain_index = self.get_leaves()[0].index
-                current_index = 0
-                while current_index <= max_chain_index:
-                    # TODO use multiple leaves
-                    current_block = self.find_blocks_by_index(current_index)[0]
-                    self._update_caches(current_block, block_creation_cache, doctors_cache, vaccine_cache)
-                    if current_block.hash == hash:
-                        return set(block_creation_cache), set(doctors_cache), set(vaccine_cache)
-                    if current_index == max_chain_index:
-                        return None  # given block hash was not in the chain
-                    current_index += 1
+                tree_node = self._find_tree_node_by_hash(hash)
+                return set(tree_node.block_creation_cache), set(tree_node.doctors_cache), set(tree_node.vaccine_cache)
 
         def get_registration_caches_by_blockindex(self, index):
-            """Return a tuple of sets containing the registered admissions, doctors,
-            and vaccines at the blockheight of the given blockindex."""
+            """Return a list of tuples of hash and sets containing the registered admissions, doctors,
+            and vaccines of blocks with the given blockindex."""
             with self._lock:
-                if (index < 0 or index > self.size() - 1):
-                    return None  # given index is out of bounds
-                block_creation_cache = deque()
-                doctors_cache = set()
-                vaccine_cache = set()
-                current_index = 0
-                while current_index <= index:
-                    # TODO use multiple leaves
-                    current_block = self.find_blocks_by_index(current_index)[0]
-                    self._update_caches(current_block, block_creation_cache, doctors_cache, vaccine_cache)
-                    current_index += 1
-                return set(block_creation_cache), set(doctors_cache), set(vaccine_cache)
+                tree_nodes = self._find_tree_nodes_by_index(index)
+                result = []
+                for node in tree_nodes:
+                    result.append((node.name,
+                                   set(node.block_creation_cache),
+                                   set(node.doctors_cache),
+                                   set(node.vaccine_cache)
+                                   ))
+                return result
 
         def lock_state(self):
             return self._lock._is_owned()

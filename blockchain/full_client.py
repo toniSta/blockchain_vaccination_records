@@ -61,8 +61,10 @@ class FullClient(object):
         """
         if not timestamp:
             timestamp = time.time()
-        number_of_admissions = len(self.chain.get_admissions())
-        creator_history = self.chain.get_block_creation_history(number_of_admissions)
+        #TODO: use multiples leaves
+        number_of_admissions = len(self.chain.get_admissions()[0][1])
+        #TODO use multiple leaves
+        creator_history = self.chain.get_block_creation_history(number_of_admissions)[0]
 
         # TODO adjust to multiple leaves
         last_block_timestamp = self.chain.get_leaves()[0].timestamp
@@ -136,7 +138,8 @@ class FullClient(object):
         for _ in range(CONFIG["block_size"]):
             if len(self.transaction_set):
                 transaction = self.transaction_set.pop()
-                admissions, doctors, vaccines = self.chain.get_registration_caches()
+                # TODO use multiple leaves
+                hash, admissions, doctors, vaccines = self.chain.get_registration_caches()[0]
                 if transaction.validate(admissions, doctors, vaccines):
                     new_block.add_transaction(transaction)
                 else:
@@ -192,7 +195,8 @@ class FullClient(object):
         while True:
             try:
                 time.sleep(CONFIG["block_time"]/2) # block_time needs to be at least 2s
-                if self.public_key not in self.chain.get_admissions():
+                # TODO use multiple leaves
+                if self.public_key not in self.chain.get_admissions()[0][1]:
                     logger.debug("Currently no admission. election.")
                     continue
                 with self.chain:
@@ -244,7 +248,8 @@ class FullClient(object):
     def handle_transaction(self, transaction, broadcast=False):
         if broadcast:
             self._broadcast_new_transaction(transaction)
-        if self.public_key not in self.chain.get_admissions():
+        # TODO use multiple leaves
+        if self.public_key not in self.chain.get_admissions()[0][1]:
             logger.debug("Received transaction but this node is no admission node. Quit...")
             return
         if self.transaction_set.contains(transaction):
@@ -261,7 +266,8 @@ class FullClient(object):
         by comparing every transaction in the block to the new one.
         If the genesis block is reached the function stops advancing
         to the previous block and returns."""
-        number_of_blocks_to_check = len(self.chain.get_admissions())
+        # TODO use multiple leaves
+        number_of_blocks_to_check = len(self.chain.get_admissions()[0][1])
         blocks_checked = 0
         block_to_check = self.chain.last_block()
         while blocks_checked < number_of_blocks_to_check:
@@ -347,7 +353,8 @@ class FullClient(object):
                 return
 
     def _register_self_as_admission(self):
-        if self.public_key in self.chain.get_admissions():
+        # TODO use multiple leaves
+        if self.public_key in self.chain.get_admissions()[0][1]:
             logger.debug("Already admission node, don't need to register.")
             return
         logger.debug("Going to register as admission node.")
