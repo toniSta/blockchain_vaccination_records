@@ -198,24 +198,20 @@ class Chain(object):
             else:
                 return []
 
-        def get_block_creation_history(self, n):
-            """Return list of tuples (hash, [public keys of the oldest n blockcreating admission nodes]).
+        def get_block_creation_history_by_hash(self, n, hash):
+            """Return list [public keys of the oldest n blockcreating admission nodes].
             Return None if n is out of bounds for the given leaf."""
             with self._lock:
-                leaves = self._get_all_leaf_nodes()
-                result = []
-                for leaf in leaves:
-                    if n > len(leaf.block_creation_cache) or n < 0:
-                        result.append((leaf.name, None))
-                        continue
-                    block_creation_history = []
-                    for i in range(n):
-                        block_creation_history.append(leaf.block_creation_cache[i])
-                    result.append((leaf.name, block_creation_history))
-                return result
+                node = self._find_tree_node_by_hash(hash)
+                if n > len(node.block_creation_cache) or n < 0:
+                    return
+                block_creation_history = []
+                for i in range(n):
+                    block_creation_history.append(node.block_creation_cache[i])
+                return block_creation_history
 
         def get_admissions(self):
-            """Return list of tuples (hash, set  of currently registered admissions)."""
+            """Return list of tuples (hash, set  of currently registered admissions) of every leaf in the chain tree."""
             with self._lock:
                 leaves = self._get_all_leaf_nodes()
                 result = []
@@ -275,6 +271,11 @@ class Chain(object):
                                    set(node.vaccine_cache)
                                    ))
                 return result
+
+        def get_parent_block_by_hash(self, hash):
+            node = self._find_tree_node_by_hash(hash)
+            parent_node = node.parent
+            return parent_node.block
 
         def lock_state(self):
             return self._lock._is_owned()
