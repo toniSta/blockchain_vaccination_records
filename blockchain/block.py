@@ -12,7 +12,6 @@ from hashlib import sha256
 from time import time
 
 from .config import CONFIG
-from .helper.block_validator import validate_block
 from blockchain.transaction import *
 import blockchain.helper.cryptography as crypto
 
@@ -214,3 +213,5 @@ def create_initial_block(public_key, private_key):
     genesis.update_hash()
     genesis.persist()
     return genesis
+
+from .helper.block_validator import validate_block

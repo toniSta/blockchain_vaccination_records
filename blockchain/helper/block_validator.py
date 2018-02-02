@@ -9,8 +9,9 @@ import logging
 from time import time
 from hashlib import sha256
 
-from ..helper.cryptography import verify
-from ..config import CONFIG
+from blockchain.helper.cryptography import verify
+from blockchain.config import CONFIG
+from blockchain.chain import Chain
 
 logger = logging.getLogger("block-validator")
 
@@ -50,12 +51,12 @@ def validate_block(block, previous_block):
         logger.info("Signature is not valid, block must be altered")
         return False
 
-    # TODO: use correct validate parameters
     # Check if all transactions are valid
-    # for transaction in block.transactions:
-    #     if not transaction.validate():
-    #         logger.info("Block contains invalid transactions")
-    #         return False
+    admissions, doctors, vaccines = Chain().get_registration_caches_by_blockhash(block.previous_block)
+    for transaction in block.transactions:
+        if not transaction.validate(admissions, doctors, vaccines):
+             logger.info("Block contains invalid transactions")
+             return False
 
     # Block has no transactions
     # TODO We shouldn't even create a block if a block with no transactions is invalid
