@@ -18,7 +18,7 @@ class Chain(object):
         def __init__(self, load_persisted=True):
             """Create initial chain and tries to load saved state from disk."""
             self.genesis_block = None
-            self.genesis_node = None
+            self.chain_tree = None
             self.block_creation_cache = deque()
             self.vaccine_cache = set()
             self.doctors_cache = set()
@@ -41,7 +41,7 @@ class Chain(object):
 
         def __str__(self):
             tree_representation = ""
-            for pre, fill, node in RenderTree(self.genesis_node):
+            for pre, fill, node in RenderTree(self.chain_tree):
                 node_representation = "{}index: {}, hash: {}\n".format(pre,
                                                                        node.index,
                                                                        node.name)
@@ -56,7 +56,7 @@ class Chain(object):
             """
             return os.path.isdir(CONFIG["persistance_folder"]) and \
                    len([f for f in os.listdir(CONFIG["persistance_folder"])
-                        if f.startswith("0_")]) == 1  # there should only be the genesis file starting with '0_..._...'
+                        if f.startswith("0_")]) == 1  # there should only be one genesis file starting with '0_..._...'
 
         def _load_from_disk(self):
             current_block_level = 0
@@ -76,7 +76,7 @@ class Chain(object):
             logger.info("Finished loading chain from disk")
 
         def add_block(self, block):
-            """Add a block to the blockchain.
+            """Add a block to the blockchain tree.
 
             It might happen that a block does not fit into the chain, because the
             previous block was not received until that point. Thus, we have to add
@@ -85,16 +85,16 @@ class Chain(object):
             """
             with self._lock:
                 # Check if block is genesis and no genesis is present
-                if not self.genesis_node and block.index == 0:
-                    self.genesis_node = Node(block.hash,
-                                             index=block.index,
-                                             block=block)
+                if not self.chain_tree and block.index == 0:
+                    self.chain_tree = Node(block.hash,
+                                           index=block.index,
+                                           block=block)
                     self.genesis_block = block
                     logger.debug("Added genesis to chain.")
                 else:
                     # No genesis, just regular block
                     # Full client ensures, that previous block is present
-                    parent_node = find(self.genesis_node,
+                    parent_node = find(self.chain_tree,
                                        lambda node: node.name == block.previous_block)
                     Node(block.hash,
                          index=block.index,
@@ -136,7 +136,7 @@ class Chain(object):
 
         def find_block_by_hash(self, hash):
             """Find a block by its hash. Return None if hash not found."""
-            block_node = find(self.genesis_node, lambda node: node.name == hash)
+            block_node = find(self.chain_tree, lambda node: node.name == hash)
             if block_node:
                 return block_node.block
             return
@@ -144,7 +144,7 @@ class Chain(object):
         def get_leaves(self):
             """Return all possible leaf blocks of the chain."""
             with self._lock:
-                leaves = findall(self.genesis_node, lambda node: node.is_leaf is True)
+                leaves = findall(self.chain_tree, lambda node: node.is_leaf is True)
                 return [leaf.block for leaf in leaves]
 
         def remove_tree_at_hash(self, node_hash):
@@ -153,15 +153,16 @@ class Chain(object):
             Remove a whole branch by detaching its root node.
             """
             with self._lock:
-                node_to_delete = find(self.genesis_node, lambda node: node.hash == node_hash)
+                node_to_delete = find(self.chain_tree, lambda node: node.hash == node_hash)
                 if node_to_delete:
                     node_to_delete.parent = None
+                    #TODO delete block file from disk
                 else:
                     logger.info("Block with hash {} not found".format(node_hash))
 
         def get_tree_list_at_hash(self, hash):
             """Collect all descendants from the specified node."""
-            selected_node = find(self.genesis_node, lambda node: node.hash == node_hash)
+            selected_node = find(self.chain_tree, lambda node: node.hash == hash)
             if selected_node:
                 return [node.block for node in selected_node.descendants]
             else:

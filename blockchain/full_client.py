@@ -34,6 +34,7 @@ class FullClient(object):
         self.chain = Chain()
         self.transaction_set = TransactionSet()
         self.invalid_transactions = set()
+        # TODO: dangling blocks should be managed by the Chain itself. Change methods in full client accordingly.
         self.dangling_blocks = set()
         self.creator_election_thread = None
         self._start_election_thread()

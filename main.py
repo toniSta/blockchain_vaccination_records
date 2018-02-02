@@ -22,8 +22,20 @@ def print_chain():
     next_block.sign(PRIVATE_KEY)
     next_block.update_hash()
     chain.add_block(next_block)
-    nw = Block(genesis.get_block_information(), PUBLIC_KEY)
+    for _ in range(0, 3):
+        next_block = Block(next_block.get_block_information(), PUBLIC_KEY)
+        next_block.sign(PRIVATE_KEY)
+        next_block.update_hash()
+        chain.add_block(next_block)
+
+
+    nw = Block(next_block.get_block_information(), PUBLIC_KEY)
     nw.timestamp = 123
+    nw.sign(PRIVATE_KEY)
+    nw.update_hash()
+    chain.add_block(nw)
+    nw = Block(next_block.get_block_information(), PUBLIC_KEY)
+    nw.timestamp = 1233
     nw.sign(PRIVATE_KEY)
     nw.update_hash()
     chain.add_block(nw)
