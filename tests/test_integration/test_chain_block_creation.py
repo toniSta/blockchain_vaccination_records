@@ -28,7 +28,9 @@ def test_chain_and_block_creation():
     new_block.persist()
 
     # read file from disk
-    with open(os.path.join(CONFIG["persistance_folder"], "1"), "r") as file:
+    block_files = os.listdir(CONFIG["persistance_folder"])
+    block_name = [f for f in block_files if f.startswith("1_")][0]
+    with open(os.path.join(CONFIG["persistance_folder"], block_name), "r") as file:
         recreated_block = Block(file.read())
 
     assert repr(new_block) == repr(recreated_block), \
