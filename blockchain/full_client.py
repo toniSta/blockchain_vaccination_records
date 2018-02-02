@@ -64,7 +64,8 @@ class FullClient(object):
         number_of_admissions = len(self.chain.get_admissions())
         creator_history = self.chain.get_block_creation_history(number_of_admissions)
 
-        last_block_timestamp = self.chain.last_block().timestamp
+        # TODO adjust to multiple leaves
+        last_block_timestamp = self.chain.get_leaves()[0].timestamp
 
         delta_time = int(timestamp) - int(last_block_timestamp)
 
@@ -128,7 +129,8 @@ class FullClient(object):
             self.synchronize_blockchain()
 
     def create_next_block(self):
-        new_block = Block(self.chain.last_block().get_block_information(),
+        # TODO: Adjust to use mutiple leaves
+        new_block = Block(self.chain.get_leaves()[0].get_block_information(),
                           self.public_key)
 
         for _ in range(CONFIG["block_size"]):
@@ -198,7 +200,8 @@ class FullClient(object):
                     if next_creator == self.public_key:
                         logger.debug("creator_election: next creator is self")
                         new_block = self.create_next_block()
-                        if not new_block.validate(self.chain.last_block()):
+                        # TODO adjust to multiple leaves
+                        if not new_block.validate(self.chain.get_leaves()[0]):
                             logger.error("New generated block is not valid! {}".format(repr(new_block)))
                             # TODO: Add transactions  of false block to queue
                             continue
@@ -332,7 +335,8 @@ class FullClient(object):
             print("Invalid option {}, aborting.".format(transaction_type))
 
     def process_dangling_blocks(self):
-        latest_block = self.chain.last_block()
+        #TODO use multiple leaves
+        latest_block = self.chain.get_leaves()[0]
         for block in self.dangling_blocks:
             expected_pub_key = self.determine_block_creation_node(timestamp=block.timestamp)
             if block.previous_block == latest_block.hash and expected_pub_key == block.public_key:

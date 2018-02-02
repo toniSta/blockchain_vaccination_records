@@ -134,6 +134,18 @@ class Chain(object):
                         if transaction.requested_permission is Permission.admission:
                             block_creation_cache.appendleft(transaction.sender_pubkey)
 
+        def find_blocks_by_index(self, index):
+            """Find blocks by its index. Return None at invalid index."""
+            with self._lock:
+                nodes = findall(self.chain_tree, lambda node: node.index == index)
+                if nodes:
+                    result = []
+                    for node in nodes:
+                        result.append(node.block)
+                    return result
+                else:
+                    return
+
         def find_block_by_hash(self, hash):
             """Find a block by its hash. Return None if hash not found."""
             block_node = find(self.chain_tree, lambda node: node.name == hash)
@@ -208,10 +220,12 @@ class Chain(object):
                 block_creation_cache = deque()
                 doctors_cache = set()
                 vaccine_cache = set()
-                max_chain_index = self.size() - 1
+                #TODO adjust to use multiple leaves
+                max_chain_index = self.get_leaves()[0].index
                 current_index = 0
                 while current_index <= max_chain_index:
-                    current_block = self.find_block_by_index(current_index)
+                    # TODO use multiple leaves
+                    current_block = self.find_blocks_by_index(current_index)[0]
                     self._update_caches(current_block, block_creation_cache, doctors_cache, vaccine_cache)
                     if current_block.hash == hash:
                         return set(block_creation_cache), set(doctors_cache), set(vaccine_cache)
@@ -230,7 +244,8 @@ class Chain(object):
                 vaccine_cache = set()
                 current_index = 0
                 while current_index <= index:
-                    current_block = self.find_block_by_index(current_index)
+                    # TODO use multiple leaves
+                    current_block = self.find_blocks_by_index(current_index)[0]
                     self._update_caches(current_block, block_creation_cache, doctors_cache, vaccine_cache)
                     current_index += 1
                 return set(block_creation_cache), set(doctors_cache), set(vaccine_cache)
