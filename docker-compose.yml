@@ -11,6 +11,7 @@ services:
     environment:
       SERVER_PORT: 9000
       NEIGHBORS_HOST_PORT: admission:9000
+      RENDER_CHAIN_TREE: 1
     ports:
       - "9000"
 

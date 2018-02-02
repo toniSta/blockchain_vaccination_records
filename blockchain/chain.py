@@ -2,12 +2,14 @@
 import logging
 import os
 from collections import deque
+from subprocess import CalledProcessError
 from threading import RLock, current_thread
 from .block import Block
 from .config import CONFIG
 from blockchain.transaction import *
 from anytree import Node, RenderTree
 from anytree.search import find, findall
+from anytree.exporter import DotExporter
 
 logger = logging.getLogger("blockchain")
 
@@ -105,8 +107,17 @@ class Chain(object):
                     self._update_caches(block, block_creation_cache, doctors_cache, vaccine_cache)
                     self._generate_tree_node(block, block_creation_cache, doctors_cache, vaccine_cache, parent_node)
 
-                logger.debug("Added block to chain. Chain looks like this:\n{}" \
-                             .format(str(self)))
+                logger.debug("Added block {} to chain.".format(block.index))
+
+                if os.getenv("RENDER_CHAIN_TREE") == '1':
+                    # graphviz needs to be installed for the next line!
+                    try:
+                        DotExporter(self.chain_tree,
+                                    nodenamefunc=nodenamefunc,
+                                    nodeattrfunc=nodeattrfunc
+                                    ).to_picture(os.path.join(CONFIG["persistance_folder"], 'current_state.png'))
+                    except CalledProcessError as e:
+                        logger.debug("Couldn't print chain tree: {}".format(e.stdout))
                 return True
 
         def _generate_tree_node(self, block, block_creation_cache, doctors_cache, vaccine_cache, parent_node=None):
@@ -293,3 +304,15 @@ class Chain(object):
 
     def __setattr__(self, name, value):
         return setattr(self.instance, name, value)
+
+
+def nodenamefunc(node):
+    return "Index: {}\n" \
+           "Hash: {}".format(node.index, node.name)
+
+
+def nodeattrfunc(node):
+    if node.index == 0:
+        return "style = filled,fillcolor = red, shape = rectangle"
+    else:
+        return "shape = rectangle"
