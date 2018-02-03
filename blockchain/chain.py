@@ -74,6 +74,16 @@ class Chain(object):
                 blocks_at_current_level = [f for f in block_files if f.startswith(level_prefix)]
             logger.info("Finished loading chain from disk")
 
+        def add_judgement_for_blockhash(self, blockhash, judgement):
+            """Attaches the judgement to node with the corresponding blockhash."""
+            with self._lock:
+                node = self._find_tree_node_by_hash(blockhash)
+                if not node:
+                    logger.debug("Could not add judgement, block with hash {} not found in tree".format(blockhash))
+                if judgement.sender_pubkey in node.judgements:  # already received a judgement from that node
+                    if node.judgements[sender_pubkey].accept_block and not judgement.accept_block:  # judgement was revoked
+                        node.judgements[sender_pubkey] = judgement  # replace old judgement with the new one
+
         def add_block(self, block):
             """Add a block to the blockchain tree.
 
@@ -127,7 +137,8 @@ class Chain(object):
                         block=block,
                         block_creation_cache=block_creation_cache,
                         doctors_cache=doctors_cache,
-                        vaccine_cache=vaccine_cache)
+                        vaccine_cache=vaccine_cache,
+                        judgements={})
 
         def _update_caches(self, block, block_creation_cache, doctors_cache, vaccine_cache):
             """Update the block creation cache and refresh the registered doctors and vaccines."""
