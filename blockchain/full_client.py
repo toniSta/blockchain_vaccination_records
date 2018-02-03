@@ -9,6 +9,7 @@ import time
 from .transaction_set import TransactionSet
 from .block import Block
 from .chain import Chain
+from .judgement import Judgement
 from .config import CONFIG
 from .network.network import Network
 from .transaction import *
@@ -277,7 +278,8 @@ class FullClient(object):
             Network.send_judgement(node, repr(judgement))
 
     def handle_received_judgement(self, judgement):
-        # TODO implement
+        judgement_object = eval(judgement)
+        # TODO: handle the judgement stuff here
         raise NotImplementedError
 
     def handle_incoming_transaction(self, transaction):
