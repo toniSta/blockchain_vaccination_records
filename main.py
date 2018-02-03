@@ -13,6 +13,38 @@ with open("tests" + os.sep + "testkey_pub.bin", "rb") as public_key, open("tests
     PRIVATE_KEY = RSA.import_key(private_key.read())
 
 
+def print_chain():
+    chain = Chain(load_persisted=False)
+    genesis = create_initial_block(PUBLIC_KEY, PRIVATE_KEY)
+    chain.add_block(genesis)
+
+    next_block = Block(genesis.get_block_information(), PUBLIC_KEY)
+    next_block.sign(PRIVATE_KEY)
+    next_block.update_hash()
+    chain.add_block(next_block)
+    for _ in range(0, 3):
+        next_block = Block(next_block.get_block_information(), PUBLIC_KEY)
+        next_block.sign(PRIVATE_KEY)
+        next_block.update_hash()
+        chain.add_block(next_block)
+
+
+    nw = Block(next_block.get_block_information(), PUBLIC_KEY)
+    nw.timestamp = 123
+    nw.sign(PRIVATE_KEY)
+    nw.update_hash()
+    chain.add_block(nw)
+    nw = Block(next_block.get_block_information(), PUBLIC_KEY)
+    nw.timestamp = 1233
+    nw.sign(PRIVATE_KEY)
+    nw.update_hash()
+    chain.add_block(nw)
+    nw1 = Block(nw.get_block_information(), PUBLIC_KEY)
+    nw1.sign(PRIVATE_KEY)
+    nw1.update_hash()
+    chain.add_block(nw1)
+
+
 def main():
     logging.basicConfig(level=logging.DEBUG,
                         format="[ %(asctime)s ] %(levelname)-7s %(name)-s: %(message)s",
@@ -99,4 +131,4 @@ def blocks():
 if __name__ == '__main__':
     pass
     # main()
-
+    print_chain()

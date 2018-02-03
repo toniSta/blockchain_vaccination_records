@@ -34,6 +34,7 @@ class FullClient(object):
         self.chain = Chain()
         self.transaction_set = TransactionSet()
         self.invalid_transactions = set()
+        # TODO: dangling blocks should be managed by the Chain itself. Change methods in full client accordingly.
         self.dangling_blocks = set()
         self.creator_election_thread = None
         self._start_election_thread()
@@ -43,34 +44,59 @@ class FullClient(object):
 
         logger.debug("Finished full_client init.")
         logger.debug("My public key is: {} or {}".format(self.public_key, self.public_key.hex()))
-        #self.recover_after_shutdown()
 
     def _start_election_thread(self):
         self.creator_election_thread = threading.Thread(target=self.creator_election, name="election thread", daemon=True)
         self.creator_election_thread.start()
 
     def determine_block_creation_node(self, timestamp=None):
-        """Determine which admission node has to create the next block in chain.
+        """Determine which admission node has to create the next block in chain for each branch.
 
-        The method takes a timestamp as argument representing the creation date of the block whose legitimate creator
-        should be determined. Defaults to 'now', which means "Who should create a block right now?"
-        Returns the public key of the determined creator
+        The method takes a timestamp as argument representing the time to for which to determine who should generate the
+        next block. Defaults to 'now', which means "Who should create a block right now?"
+        Returns a list of tuples (hash, public key) of the determined creator for each branch whose leaf is hash.
 
         If even the youngest creator failed to create a block within time, the method continues with the
         oldest submission node.
         """
         if not timestamp:
             timestamp = time.time()
-        number_of_admissions = len(self.chain.get_admissions())
-        creator_history = self.chain.get_block_creation_history(number_of_admissions)
 
-        last_block_timestamp = self.chain.last_block().timestamp
+        result = []
+        for hash, admissions in self.chain.get_admissions():
+            number_of_admissions = len(admissions)
+            creator_history = self.chain.get_block_creation_history_by_hash(number_of_admissions, hash)
 
-        delta_time = int(timestamp) - int(last_block_timestamp)
+            last_block_timestamp = self.chain.find_block_by_hash(hash).timestamp
 
+            delta_time = int(timestamp) - int(last_block_timestamp)
+
+            nth_oldest_block = int(delta_time / CONFIG["block_time"])
+            result.append((hash, creator_history[nth_oldest_block % number_of_admissions]))
+
+        return result
+
+    def _is_block_created_by_expected_creator(self, block):
+        """Determine which admission node should be the creator of a given block.
+
+        The method takes a block as argument representing the the block whose legitimate creator
+        should be determined.
+
+        If even the youngest creator failed to create a block within time, the method continues with the
+        oldest submission node.
+
+        Returns True if the block is created by the correct creator
+        """
+        logger.debug("Asking for block with hash {}".format(block.previous_block))
+        parent_block = self.chain.find_block_by_hash(block.previous_block)
+        admissions, _, _ = self.chain.get_registration_caches_by_blockhash(block.previous_block)
+        number_of_admissions = len(admissions)
+        creator_history = self.chain.get_block_creation_history_by_hash(number_of_admissions, block.previous_block)
+
+        delta_time = int(block.timestamp) - int(parent_block.timestamp)
         nth_oldest_block = int(delta_time / CONFIG["block_time"])
 
-        return creator_history[nth_oldest_block % number_of_admissions]
+        return creator_history[nth_oldest_block % number_of_admissions] == block.public_key
 
     def _setup_public_key(self):
         """Create new key pair if necessary.
@@ -127,14 +153,15 @@ class FullClient(object):
             self._add_block_if_valid(syncing_block)
             self.synchronize_blockchain()
 
-    def create_next_block(self):
-        new_block = Block(self.chain.last_block().get_block_information(),
+    def create_next_block(self, parent_hash, timestamp):
+        new_block = Block(self.chain.find_block_by_hash(parent_hash).get_block_information(),
                           self.public_key)
+        new_block.timestamp = timestamp
 
         for _ in range(CONFIG["block_size"]):
             if len(self.transaction_set):
                 transaction = self.transaction_set.pop()
-                admissions, doctors, vaccines = self.chain.get_registration_caches()
+                admissions, doctors, vaccines = self.chain.get_registration_caches_by_blockhash(parent_hash)
                 if transaction.validate(admissions, doctors, vaccines):
                     new_block.add_transaction(transaction)
                 else:
@@ -172,11 +199,9 @@ class FullClient(object):
 
             self._broadcast_new_block(new_block)
 
-            expected_pub_key = self.determine_block_creation_node(timestamp=new_block.timestamp)
-
-            if expected_pub_key != new_block.public_key:
-                logger.debug("Received block doesn't match as next block in chain. Adding it to dangling blocks. "
-                             "Expected key: {} Actual block {}".format(expected_pub_key.hex(), str(new_block)))
+            if not self._is_block_created_by_expected_creator(new_block):
+                logger.debug("Received block doesn't match as next block in chain. Adding it to dangling blocks: {}"
+                             .format(str(new_block)))
                 self.dangling_blocks.add(new_block)
             else:
                 self._add_block_if_valid(new_block)
@@ -190,21 +215,28 @@ class FullClient(object):
         while True:
             try:
                 time.sleep(CONFIG["block_time"]/2) # block_time needs to be at least 2s
-                if self.public_key not in self.chain.get_admissions():
-                    logger.debug("Currently no admission. election.")
+                admission = False
+                for _, admissions in self.chain.get_admissions():
+                    if self.public_key in admissions:
+                        admission = True
+                if not admission:
+                    logger.debug("Currently no admission in any branch. Going to sleep.")
                     continue
                 with self.chain:
-                    next_creator = self.determine_block_creation_node()
-                    if next_creator == self.public_key:
-                        logger.debug("creator_election: next creator is self")
-                        new_block = self.create_next_block()
-                        if not new_block.validate(self.chain.last_block()):
-                            logger.error("New generated block is not valid! {}".format(repr(new_block)))
-                            # TODO: Add transactions  of false block to queue
-                            continue
-                        self.submit_block(new_block)
-                    else:
-                        logger.debug("creator_election: next creator is other")
+                    timestamp = int(time.time())
+                    next_creators_list = self.determine_block_creation_node(timestamp)
+
+                    for hash, next_creator in next_creators_list:
+                        if next_creator == self.public_key:
+                            logger.debug("creator_election: next creator is self")
+                            new_block = self.create_next_block(hash, timestamp)
+                            if not new_block.validate(self.chain.find_block_by_hash(hash)):
+                                logger.error("New generated block is not valid! {}".format(repr(new_block)))
+                                # TODO: Add transactions  of false block to queue
+                                continue
+                            self.submit_block(new_block)
+                        else:
+                            logger.debug("creator_election: next creator is other")
             except Exception as e:
                 logger.exception("Exception in election thread:")
 
@@ -216,12 +248,14 @@ class FullClient(object):
         return Block(block.text)
 
     def _add_block_if_valid(self, block, broadcast_block=False):
-        if block.validate(self.chain.last_block()):
+        previous = self.chain.find_block_by_hash(block.previous_block)
+        if block.validate(previous):
             self.chain.add_block(block)
             block.persist()
             self.process_dangling_blocks()
             if broadcast_block:
                 self._broadcast_new_block(block)
+            self.transaction_set.discard_multiple(block.transactions)
 
     def _broadcast_new_block(self, block):
         for node in self.nodes:
@@ -253,7 +287,8 @@ class FullClient(object):
     def handle_transaction(self, transaction, broadcast=False):
         if broadcast:
             self._broadcast_new_transaction(transaction)
-        if self.public_key not in self.chain.get_admissions():
+        # TODO use multiple leaves
+        if self.public_key not in self.chain.get_admissions()[0][1]:
             logger.debug("Received transaction but this node is no admission node. Quit...")
             return
         if self.transaction_set.contains(transaction):
@@ -270,18 +305,19 @@ class FullClient(object):
         by comparing every transaction in the block to the new one.
         If the genesis block is reached the function stops advancing
         to the previous block and returns."""
-        number_of_blocks_to_check = len(self.chain.get_admissions())
-        blocks_checked = 0
-        block_to_check = self.chain.last_block()
-        while blocks_checked < number_of_blocks_to_check:
-            for transaction_in_chain in block_to_check.transactions:
-                if transaction == transaction_in_chain:
-                    return True
-            previous_block_index = block_to_check.index - 1
-            if previous_block_index < 0:
-                return False  # stop early after reaching the genesis block
-            block_to_check = self.chain.find_block_by_index(previous_block_index)
-            blocks_checked += 1
+        for hash, admissions in self.chain.get_admissions():
+            number_of_blocks_to_check = len(admissions)
+            blocks_checked = 0
+            block_to_check = self.chain.find_block_by_hash(hash)
+            while blocks_checked < number_of_blocks_to_check:
+                for transaction_in_chain in block_to_check.transactions:
+                    if transaction == transaction_in_chain:
+                        return True
+                if block_to_check.index == 0:
+                    return False  # stop early after reaching the genesis block
+                previous_block_hash = block_to_check.previous_block
+                block_to_check = self.chain.find_block_by_hash(previous_block_hash)
+                blocks_checked += 1
         return False
 
     def _broadcast_new_transaction(self, transaction):
@@ -344,7 +380,8 @@ class FullClient(object):
             print("Invalid option {}, aborting.".format(transaction_type))
 
     def process_dangling_blocks(self):
-        latest_block = self.chain.last_block()
+        #TODO use multiple leaves
+        latest_block = self.chain.get_leaves()[0]
         for block in self.dangling_blocks:
             expected_pub_key = self.determine_block_creation_node(timestamp=block.timestamp)
             if block.previous_block == latest_block.hash and expected_pub_key == block.public_key:
@@ -355,7 +392,8 @@ class FullClient(object):
                 return
 
     def _register_self_as_admission(self):
-        if self.public_key in self.chain.get_admissions():
+        # TODO use multiple leaves
+        if self.public_key in self.chain.get_admissions()[0][1]:
             logger.debug("Already admission node, don't need to register.")
             return
         logger.debug("Going to register as admission node.")

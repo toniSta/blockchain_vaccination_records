@@ -36,7 +36,8 @@ def _new_block():
 
 @app.route(CONFIG["ROUTES"]["block_by_index"], methods=["GET"])
 def _send_block_by_id(index):
-    block = full_client.chain.find_block_by_index(int(index))
+    # TODO use multiple leaves
+    block = full_client.chain.find_blocks_by_index(int(index))[0]
     return repr(block)
 
 

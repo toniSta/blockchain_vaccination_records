@@ -134,7 +134,8 @@ class Block(object):
         """Write the block into a file for persistency."""
         persistence_folder = CONFIG["persistance_folder"]
         os.makedirs(persistence_folder, exist_ok=True)
-        file_path = os.path.join(persistence_folder, str(self.index))
+        file_name = "_".join([str(self.index), self.previous_block, self.hash])
+        file_path = os.path.join(persistence_folder, file_name)
         with open(file_path, "w") as block_file:
             block_file.write(repr(self))
         logger.debug("Block {} written to disk: {}".format(self.index, str(self)))
@@ -198,6 +199,7 @@ class Block(object):
 
 def create_initial_block(public_key, private_key):
     """Create the genesis block."""
+    # TODO: remove before final code submission
     logger.info("Creating new genesis block")
     genesis = Block({
         "index": -1,  # index is always incremented by one, so genesis index is actually 0
