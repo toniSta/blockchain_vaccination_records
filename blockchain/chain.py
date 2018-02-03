@@ -2,10 +2,14 @@
 import logging
 import os
 from collections import deque
+from subprocess import CalledProcessError
 from threading import RLock, current_thread
 from .block import Block
 from .config import CONFIG
 from blockchain.transaction import *
+from anytree import Node, RenderTree
+from anytree.search import find, findall
+from anytree.exporter import DotExporter
 
 logger = logging.getLogger("blockchain")
 
@@ -15,10 +19,8 @@ class Chain(object):
     class __Chain:
         def __init__(self, load_persisted=True):
             """Create initial chain and tries to load saved state from disk."""
-            self.chain = []
-            self.block_creation_cache = deque()
-            self.vaccine_cache = set()
-            self.doctors_cache = set()
+            self.genesis_block = None
+            self.chain_tree = None
             self._lock = RLock()
             if load_persisted and self._can_be_loaded_from_disk():
                 self._load_from_disk()
@@ -29,20 +31,31 @@ class Chain(object):
         def __exit__(self, exc_type, exc_val, exc_tb):
             self._lock.release()
             if exc_type or exc_val or exc_tb:
-                logger.exception("Thread '{}' got an exception within a with statement. Type: {}; Value: {}; Traceback:".format(
-                current_thread(),
-                exc_type,
-                exc_val
-                ))
+                logger.exception("Thread '{}' got an exception within a with \
+                                 statement. Type: {}; Value: {}; Traceback:"
+                    .format(
+                    current_thread(),
+                    exc_type,
+                    exc_val))
+
+        def __str__(self):
+            tree_representation = ""
+            for pre, fill, node in RenderTree(self.chain_tree):
+                node_representation = "{}index: {}, hash: {}\n".format(pre,
+                                                                       node.index,
+                                                                       node.name)
+                tree_representation += node_representation
+            return tree_representation
 
         def _can_be_loaded_from_disk(self):
-            """Returns if the blockchain can be loaded from disk.
+            """Return if the blockchain can be loaded from disk.
 
             True if the blockchain persistance folder
-            and the genesis block file are present."""
+            and the genesis block file are present.
+            """
             return os.path.isdir(CONFIG["persistance_folder"]) and \
-                   len([f for f in os.listdir(CONFIG["persistance_folder"]) \
-                        if f.startswith("0_")]) == 1  # there should only be the genesis file starting with '0_..._...'
+                   len([f for f in os.listdir(CONFIG["persistance_folder"])
+                        if f.startswith("0_")]) == 1  # there should only be one genesis file starting with '0_..._...'
 
         def _load_from_disk(self):
             current_block_level = 0
@@ -62,10 +75,59 @@ class Chain(object):
             logger.info("Finished loading chain from disk")
 
         def add_block(self, block):
-            """Add a block to the blockchain."""
+            """Add a block to the blockchain tree.
+
+            TODO: It might happen that a block does not fit into the chain, because the
+            previous block was not received until that point. Thus, we have to add
+            to the set of dangling block. This methods returns True, if the new
+            block was added to the chain, otherwise False.
+            """
             with self._lock:
-                self.chain.append(block)
-                self._update_caches(block, self.block_creation_cache, self.doctors_cache, self.vaccine_cache)
+                # Check if block is genesis and no genesis is present
+                if not self.chain_tree and block.index == 0:
+                    block_creation_cache = deque()
+                    doctors_cache = set()
+                    vaccine_cache = set()
+                    self._update_caches(block, block_creation_cache, doctors_cache, vaccine_cache)
+
+                    self.chain_tree = self._generate_tree_node(block,
+                                                               block_creation_cache,
+                                                               doctors_cache,
+                                                               vaccine_cache)
+                    self.genesis_block = block
+                    logger.debug("Added genesis to chain.")
+                else:
+                    # No genesis, just regular block
+                    # Full client ensures, that previous block is present
+                    parent_node = find(self.chain_tree,
+                                       lambda node: node.name == block.previous_block)
+                    block_creation_cache = parent_node.block_creation_cache.copy()
+                    doctors_cache = set().union(parent_node.doctors_cache)
+                    vaccine_cache = set().union(parent_node.vaccine_cache)
+                    self._update_caches(block, block_creation_cache, doctors_cache, vaccine_cache)
+                    self._generate_tree_node(block, block_creation_cache, doctors_cache, vaccine_cache, parent_node)
+
+                logger.debug("Added block {} to chain.".format(block.index))
+
+                if os.getenv("RENDER_CHAIN_TREE") == '1':
+                    # graphviz needs to be installed for the next line!
+                    try:
+                        DotExporter(self.chain_tree,
+                                    nodenamefunc=nodenamefunc,
+                                    nodeattrfunc=nodeattrfunc
+                                    ).to_picture(os.path.join(CONFIG["persistance_folder"], 'current_state.png'))
+                    except CalledProcessError as e:
+                        logger.debug("Couldn't print chain tree: {}".format(e.stdout))
+                return True
+
+        def _generate_tree_node(self, block, block_creation_cache, doctors_cache, vaccine_cache, parent_node=None):
+            return Node(block.hash,
+                        index=block.index,
+                        parent=parent_node,
+                        block=block,
+                        block_creation_cache=block_creation_cache,
+                        doctors_cache=doctors_cache,
+                        vaccine_cache=vaccine_cache)
 
         def _update_caches(self, block, block_creation_cache, doctors_cache, vaccine_cache):
             """Update the block creation cache and refresh the registered doctors and vaccines."""
@@ -79,11 +141,12 @@ class Chain(object):
                         vaccine_cache.add(transaction.vaccine)
 
         def _update_block_creation_cache(self, block, block_creation_cache):
-            """Refreshes the block creation cache.
+            """Refresh the block creation cache.
 
             Moves the current block creator to the right side of the queue,
             adds any new admission nodes to the left side of the queue in the order
-            they appear in the block."""
+            they appear in the block.
+            """
             with self._lock:
                 block_creator = block.public_key
                 if block_creator in block_creation_cache:
@@ -94,97 +157,136 @@ class Chain(object):
                         if transaction.requested_permission is Permission.admission:
                             block_creation_cache.appendleft(transaction.sender_pubkey)
 
-        def find_block_by_index(self, index):
-            """Find a block by its index. Return None at invalid index."""
+        def find_blocks_by_index(self, index):
+            """Find blocks by its index. Return None at invalid index."""
             with self._lock:
-                if index > self.size() - 1 or index < 0:
+                nodes = self._find_tree_nodes_by_index(index)
+                if nodes:
+                    result = []
+                    for node in nodes:
+                        result.append(node.block)
+                    return result
+                else:
                     return
-                return self.chain[index]
 
+        def _find_tree_nodes_by_index(self, index):
+            return findall(self.chain_tree, lambda node: node.index == index)
 
         def find_block_by_hash(self, hash):
             """Find a block by its hash. Return None if hash not found."""
-            with self._lock:
-                chain_index = self.size() - 1
-                while chain_index != 0:
-                    if self.chain[chain_index].hash == hash:
-                        return self.chain[chain_index]
-                    else:
-                        chain_index -= 1
+            block_node = self._find_tree_node_by_hash(hash)
+            if block_node:
+                return block_node.block
+            return
 
-        def last_block(self):
-            """Return the last block of the chain."""
-            with self._lock:
-                return self.chain[-1]
+        def _find_tree_node_by_hash(self, hash):
+            return find(self.chain_tree, lambda node: node.name == hash)
 
-        def get_block_creation_history(self, n):
-            """Return public keys of the oldest n blockcreating admission nodes. Return None if n is out of bounds."""
+        def get_leaves(self):
+            """Return all possible leaf blocks of the chain."""
             with self._lock:
-                if n > len(self.block_creation_cache) or n < 0:
+                leaves = self._get_all_leaf_nodes()
+                return [leaf.block for leaf in leaves]
+
+        def remove_tree_at_hash(self, node_hash):
+            """Delete a side chain by removing a branch.
+
+            Remove a whole branch by detaching its root node.
+            """
+            with self._lock:
+                node_to_delete = find(self.chain_tree, lambda node: node.hash == node_hash)
+                if node_to_delete:
+                    node_to_delete.parent = None
+                    #TODO delete block file from disk
+                else:
+                    logger.info("Block with hash {} not found".format(node_hash))
+
+        def get_tree_list_at_hash(self, hash):
+            """Collect all descendants from the specified node."""
+            selected_node = find(self.chain_tree, lambda node: node.hash == hash)
+            if selected_node:
+                return [node.block for node in selected_node.descendants]
+            else:
+                return []
+
+        def get_block_creation_history_by_hash(self, n, hash):
+            """Return list [public keys of the oldest n blockcreating admission nodes].
+            Return None if n is out of bounds for the given leaf."""
+            with self._lock:
+                node = self._find_tree_node_by_hash(hash)
+                if n > len(node.block_creation_cache) or n < 0:
                     return
                 block_creation_history = []
                 for i in range(n):
-                    block_creation_history.append(self.block_creation_cache[i])
+                    block_creation_history.append(node.block_creation_cache[i])
                 return block_creation_history
 
         def get_admissions(self):
-            """Return set of currently registered admissions."""
+            """Return list of tuples (hash, set  of currently registered admissions) of every leaf in the chain tree."""
             with self._lock:
-                return set(self.block_creation_cache)   # in case of changing this method do not return a reference to the original deque!
+                leaves = self._get_all_leaf_nodes()
+                result = []
+                for leave in leaves:
+                    # in case of changing this method do not return a reference to the original leave.block_creation_cache!
+                    result.append((leave.name, set(leave.block_creation_cache)))
+
+                return result
+
+        def _get_all_leaf_nodes(self):
+            return findall(self.chain_tree, lambda node: node.is_leaf is True)
 
         def get_doctors(self):
-            """Return set of currently registered doctors."""
+            """Return list of tuples (hash, set of currently registered doctors)."""
             with self._lock:
-                return set(self.doctors_cache)  # in case of changing this method do not return a reference to the original set!
+                leaves = self._get_all_leaf_nodes()
+                result = []
+                for leaf in leaves:
+                    result.append((leaf.name, set(leaf.doctors_cache)))
+                return result
 
         def get_vaccines(self):
-            """Return set of currently registered vaccines."""
+            """Return a list of tuples (hash, set of currently registered vaccines)."""
             with self._lock:
-                return set(self.vaccine_cache)  # in case of changing this method do not return a reference to the original set!
+                leaves = self._get_all_leaf_nodes()
+                result = []
+                for leaf in leaves:
+                    result.append((leaf.name, set(leaf.vaccine_cache)))
+                return result
 
         def get_registration_caches(self):
-            """Return a tuple of sets containing the currently registered admissions, doctors, and vaccines."""
+            """Return a list of tuples (hash, set(admissions), set(doctors), set(vaccines))."""
             with self._lock:
-                return set(self.block_creation_cache), set(self.doctors_cache), set(self.vaccine_cache)
+                leaves = self._get_all_leaf_nodes()
+                result = []
+                for leaf in leaves:
+                    result.append((leaf.name, set(leaf.block_creation_cache), set(leaf.doctors_cache), set(leaf.vaccine_cache)))
+                return result
 
         def get_registration_caches_by_blockhash(self, hash):
             """Return a tuple of sets containing the registered admissions, doctors,
             and vaccines at the blockheight of the given hash."""
             with self._lock:
-                block_creation_cache = deque()
-                doctors_cache = set()
-                vaccine_cache = set()
-                max_chain_index = self.size() - 1
-                current_index = 0
-                while current_index <= max_chain_index:
-                    current_block = self.find_block_by_index(current_index)
-                    self._update_caches(current_block, block_creation_cache, doctors_cache, vaccine_cache)
-                    if current_block.hash == hash:
-                        return set(block_creation_cache), set(doctors_cache), set(vaccine_cache)
-                    if current_index == max_chain_index:
-                        return None  # given block hash was not in the chain
-                    current_index += 1
+                tree_node = self._find_tree_node_by_hash(hash)
+                return set(tree_node.block_creation_cache), set(tree_node.doctors_cache), set(tree_node.vaccine_cache)
 
         def get_registration_caches_by_blockindex(self, index):
-            """Return a tuple of sets containing the registered admissions, doctors,
-            and vaccines at the blockheight of the given blockindex."""
+            """Return a list of tuples of hash and sets containing the registered admissions, doctors,
+            and vaccines of blocks with the given blockindex."""
             with self._lock:
-                if (index < 0 or index > self.size() - 1):
-                    return None  # given index is out of bounds
-                block_creation_cache = deque()
-                doctors_cache = set()
-                vaccine_cache = set()
-                current_index = 0
-                while current_index <= index:
-                    current_block = self.find_block_by_index(current_index)
-                    self._update_caches(current_block, block_creation_cache, doctors_cache, vaccine_cache)
-                    current_index += 1
-                return set(block_creation_cache), set(doctors_cache), set(vaccine_cache)
+                tree_nodes = self._find_tree_nodes_by_index(index)
+                result = []
+                for node in tree_nodes:
+                    result.append((node.name,
+                                   set(node.block_creation_cache),
+                                   set(node.doctors_cache),
+                                   set(node.vaccine_cache)
+                                   ))
+                return result
 
-        def size(self):
-            """Get length of the chain."""
-            with self._lock:
-                return len(self.chain)
+        def get_parent_block_by_hash(self, hash):
+            node = self._find_tree_node_by_hash(hash)
+            parent_node = node.parent
+            return parent_node.block
 
         def lock_state(self):
             return self._lock._is_owned()
@@ -202,3 +304,15 @@ class Chain(object):
 
     def __setattr__(self, name, value):
         return setattr(self.instance, name, value)
+
+
+def nodenamefunc(node):
+    return "Index: {}\n" \
+           "Hash: {}".format(node.index, node.name)
+
+
+def nodeattrfunc(node):
+    if node.index == 0:
+        return "style = filled,fillcolor = red, shape = rectangle"
+    else:
+        return "shape = rectangle"
