@@ -87,7 +87,7 @@ class FullClient(object):
 
         Returns True if the block is created by the correct creator
         """
-        logger.debug("Asking for blog with hash {}".format(block.previous_block))
+        logger.debug("Asking for block with hash {}".format(block.previous_block))
         parent_block = self.chain.find_block_by_hash(block.previous_block)
         admissions, _, _ = self.chain.get_registration_caches_by_blockhash(block.previous_block)
         number_of_admissions = len(admissions)
