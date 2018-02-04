@@ -71,7 +71,7 @@ class Block(object):
                 "  Block {}\n"
                 "  Previous block: {}\n"
                 "  Number of transactions: {}\n"
-                "  Public key: {}...\n"
+                "  Public key: {}\n"
                 "  hash: {}\n"
                 "=======================").format(self.index,
                                                   self.previous_block,

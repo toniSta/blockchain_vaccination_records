@@ -4,6 +4,9 @@ import os
 from collections import deque
 from subprocess import CalledProcessError
 from threading import RLock, current_thread
+
+from Crypto.PublicKey import RSA
+
 from .block import Block
 from .config import CONFIG
 from blockchain.transaction import *
@@ -91,6 +94,8 @@ class Chain(object):
                 self._persist_judgements_for_node(node)
                 self._check_branch_for_deletion(node)
 
+                self._render_current_tree()
+
         def _persist_judgements_for_node(self, node):
             file_name = self._get_file_name(node)
             judgement_path = os.path.join(CONFIG["persistance_folder"], 'judgements', file_name)
@@ -155,16 +160,19 @@ class Chain(object):
 
                 logger.debug("Added block {} to chain.".format(block.index))
 
-                if os.getenv("RENDER_CHAIN_TREE") == '1':
-                    # graphviz needs to be installed for the next line!
-                    try:
-                        DotExporter(self.chain_tree,
-                                    nodenamefunc=nodenamefunc,
-                                    nodeattrfunc=nodeattrfunc
-                                    ).to_picture(os.path.join(CONFIG["persistance_folder"], 'current_state.png'))
-                    except CalledProcessError as e:
-                        logger.debug("Couldn't print chain tree: {}".format(e.stdout))
+                self._render_current_tree()
                 return True
+
+        def _render_current_tree(self):
+            if os.getenv("RENDER_CHAIN_TREE") == '1':
+                # graphviz needs to be installed for the next line!
+                try:
+                    DotExporter(self.chain_tree,
+                                nodenamefunc=nodenamefunc,
+                                nodeattrfunc=nodeattrfunc
+                                ).to_picture(os.path.join(CONFIG["persistance_folder"], 'current_state.png'))
+                except CalledProcessError as e:
+                    logger.debug("Couldn't print chain tree: {}".format(e.stdout))
 
         def _generate_tree_node(self, block, block_creation_cache, doctors_cache, vaccine_cache, parent_node=None,
                                 judgements={}):
@@ -426,12 +434,34 @@ class Chain(object):
 
 
 def nodenamefunc(node):
+    denies = 0
+    accepts = 0
+    for judgement in node.judgements:
+        if judgement.accept_block:
+            accepts += 1
+        else:
+            denies += 1
     return "Index: {}\n" \
-           "Hash: {}".format(node.index, node.name)
+           "Hash: {}\n" \
+           "Accepts: {} Denies: {}".format(
+                                        node.index,
+                                        node.name,
+                                        accepts,
+                                        denies)
 
 
 def nodeattrfunc(node):
-    if node.index == 0:
-        return "style = filled,fillcolor = red, shape = rectangle"
+    key_folder = CONFIG["key_folder"]
+    path = os.path.join(key_folder, CONFIG["key_file_names"][0])
+    with open(path, "rb") as key_file:
+        public_key = RSA.import_key(key_file.read()).exportKey("DER")
+
+    if public_key == node.block.public_key:
+        return "style = filled,fillcolor = green3, shape = rectangle"
+    elif public_key in node.judgements:
+        if node.judgements[public_key].accept_block:
+            return "style = filled,fillcolor = green3, shape = rectangle"
+        else:
+            return "style = filled,fillcolor = red3, shape = rectangle"
     else:
         return "shape = rectangle"
