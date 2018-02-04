@@ -89,6 +89,7 @@ class Chain(object):
                 else:
                     node.judgements[judgement.sender_pubkey] = judgement
                 self._persist_judgements_for_node(node)
+                self._check_branch_for_deletion(node)
 
         def _persist_judgements_for_node(self, node):
             file_name = "_".join([str(node.block.index), node.block.previous_block, node.block.hash])
@@ -233,20 +234,21 @@ class Chain(object):
                 leaves = self._get_all_leaf_nodes()
                 return [leaf.block for leaf in leaves]
 
-        def remove_tree_at_hash(self, node_hash):
+        def _remove_tree_at_node(self, node):
             """Delete a side chain by removing a branch.
 
-            Remove a whole branch by detaching its root node.
+            Remove a whole branch by detaching its root node and deleting all files associated with any node of
+            the sub-tree.
             """
             with self._lock:
-                node_to_delete = find(self.chain_tree, lambda node: node.hash == node_hash)
-                if node_to_delete:
-                    node_to_delete.parent = None
-                    blocks_to_delete = node_to_delete.descendants
-                    for block in blocks_to_delete:
-                        self._remove_block_file(block)
-                else:
-                    logger.info("Block with hash {} not found".format(node_hash))
+                node.parent = None
+                nodes_to_delete = node.descendants
+                for node in nodes_to_delete:
+                    self._remove_block_file(node)
+                    self._remove_judgement_file(node)
+                self._remove_block_file(node)
+                self._save_dead_branch(node)
+
 
         def get_tree_list_at_hash(self, hash):
             """Collect all descendants from the specified node."""
@@ -341,13 +343,61 @@ class Chain(object):
         def lock_state(self):
             return self._lock._is_owned()
 
-        def _remove_block_file(self, block):
-            file_name = "_".join([str(block.index),
-                                  block.previous_block,
-                                  block.hash])
+        def _remove_block_file(self, node):
+            file_name = "_".join([str(node.block.index),
+                                  node.block.previous_block,
+                                  node.block.hash])
             persistence_folder = CONFIG["persistance_folder"]
             file_path = os.path.join(persistence_folder, file_name)
-            os.remove(file_path)
+            try:
+                os.remove(file_path)
+            except FileNotFoundError:
+                pass
+
+        def _check_branch_for_deletion(self, node):
+            number_of_denies = 0
+            for judgement in node.judgements:
+                if not judgement.accept_block:
+                    number_of_denies += 1
+            # The admission that created the block doesn't judge. Therefore '-1'
+            number_of_admissions = len(self.get_registration_caches_by_blockhash(node.block.previous_block)) - 1
+            if number_of_denies > number_of_admissions / 2:
+                self._remove_tree_at_node(node)
+
+        def _remove_judgement_file(self, node):
+            '''
+            Remove judgement files associated with this node.
+
+            The method removes the current judgement file of the node and checks if there are any dead branch files of
+            former childs.
+            :param node:
+            :return:
+            '''
+            file_name = "_".join([str(node.block.index), node.block.previous_block, node.block.hash])
+            judgement_path = os.path.join(CONFIG["persistance_folder"], 'judgements', file_name)
+            try:
+                os.remove(judgement_path)
+            except FileNotFoundError:
+                pass
+
+            dead_branch_path = os.path.join(CONFIG["persistance_folder"], 'dead_branches')
+            try:
+                dead_branch_files = os.listdir(dead_branch_path)
+            except FileNotFoundError:
+                dead_branch_files = []
+            level_prefix = str(node.block.index + 1) + "_" + str(node.block.hash)
+            old_dead_branches = [f for f in dead_branch_files if f.startswith(level_prefix)]
+
+            for dead_branch in old_dead_branches:
+                os.remove(dead_branch)
+
+        def _save_dead_branch(self, node):
+            file_name = "_".join([str(node.block.index), node.block.previous_block, node.block.hash])
+            judgement_path = os.path.join(CONFIG["persistance_folder"], 'judgements', file_name)
+            dead_branch_path = os.path.join(CONFIG["persistance_folder"], 'dead_branches', file_name)
+            if not os.path.exists(os.path.dirname(dead_branch_path)):
+                os.makedirs(os.path.dirname(dead_branch_path))
+            os.rename(judgement_path, dead_branch_path)
 
     __instance = None
 
