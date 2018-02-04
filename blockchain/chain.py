@@ -21,6 +21,7 @@ class Chain(object):
             """Create initial chain and tries to load saved state from disk."""
             self.genesis_block = None
             self.chain_tree = None
+            self.dangling_blocks = set()
             self._lock = RLock()
             if load_persisted and self._can_be_loaded_from_disk():
                 self._load_from_disk()
@@ -33,10 +34,9 @@ class Chain(object):
             if exc_type or exc_val or exc_tb:
                 logger.exception("Thread '{}' got an exception within a with \
                                  statement. Type: {}; Value: {}; Traceback:"
-                    .format(
-                    current_thread(),
-                    exc_type,
-                    exc_val))
+                                 .format(current_thread(),
+                                         exc_type,
+                                         exc_val))
 
         def __str__(self):
             tree_representation = ""
@@ -259,7 +259,10 @@ class Chain(object):
                 leaves = self._get_all_leaf_nodes()
                 result = []
                 for leaf in leaves:
-                    result.append((leaf.name, set(leaf.block_creation_cache), set(leaf.doctors_cache), set(leaf.vaccine_cache)))
+                    result.append((leaf.name,
+                                   set(leaf.block_creation_cache),
+                                   set(leaf.doctors_cache),
+                                   set(leaf.vaccine_cache)))
                 return result
 
         def get_registration_caches_by_blockhash(self, hash):

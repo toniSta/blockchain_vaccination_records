@@ -34,8 +34,6 @@ class FullClient(object):
         self.chain = Chain()
         self.transaction_set = TransactionSet()
         self.invalid_transactions = set()
-        # TODO: dangling blocks should be managed by the Chain itself. Change methods in full client accordingly.
-        self.dangling_blocks = set()
         self.creator_election_thread = None
         self._start_election_thread()
 
@@ -43,7 +41,8 @@ class FullClient(object):
             self._register_self_as_admission()
 
         logger.debug("Finished full_client init.")
-        logger.debug("My public key is: {} or {}".format(self.public_key, self.public_key.hex()))
+        logger.debug("My public key is: {} or {}".format(self.public_key,
+                                                         self.public_key.hex()))
 
     def _start_election_thread(self):
         self.creator_election_thread = threading.Thread(target=self.creator_election, name="election thread", daemon=True)
@@ -182,27 +181,31 @@ class FullClient(object):
     def received_new_block(self, block_representation):
         """This method is called when receiving a new block.
 
-        It will check if the block was received earlier. If not it will process and broadcast the block and adding it
-        to the chain or dangling blocks."""
+        It will check if the block was received earlier. If not it will process
+        and broadcast the block and adding it to the chain or dangling blocks.
+        """
         try:
             new_block = Block(block_representation)
         except Exception as e:
-            logger.error("Received new block but couldn't process: {} {}".format(repr(block_representation), e))
-            # TODO define behaviour here
+            logger.error("Received new block but couldn't process:\
+                         {} {}".format(repr(block_representation), e))
             return
         logger.debug("Received new block: {}".format(str(new_block)))
 
         with self.chain:
-            if self.chain.find_block_by_hash(new_block.hash) or new_block in self.dangling_blocks:
-                logger.debug("The received block is already part of chain or a dangling block: {}".format(str(new_block)))
+            if self.chain.find_block_by_hash(new_block.hash) or\
+               new_block in self.chain.dangling_blocks:
+                logger.debug("The received block is already part of chain or\
+                             a dangling block: {}".format(str(new_block)))
                 return
 
             self._broadcast_new_block(new_block)
 
             if not self._is_block_created_by_expected_creator(new_block):
-                logger.debug("Received block doesn't match as next block in chain. Adding it to dangling blocks: {}"
+                logger.debug("Received block doesn't match as next block in\
+                    chain. Adding it to dangling blocks: {}"
                              .format(str(new_block)))
-                self.dangling_blocks.add(new_block)
+                self.chain.dangling_blocks.add(new_block)
             else:
                 self._add_block_if_valid(new_block)
 
@@ -214,7 +217,7 @@ class FullClient(object):
 
         while True:
             try:
-                time.sleep(CONFIG["block_time"]/2) # block_time needs to be at least 2s
+                time.sleep(CONFIG["block_time"] / 2) # block_time needs to be at least 2s
                 admission = False
                 for _, admissions in self.chain.get_admissions():
                     if self.public_key in admissions:
@@ -237,7 +240,7 @@ class FullClient(object):
                             self.submit_block(new_block)
                         else:
                             logger.debug("creator_election: next creator is other")
-            except Exception as e:
+            except Exception:
                 logger.exception("Exception in election thread:")
 
         logger.debug("Thread {} is dead.".format(threading.current_thread()))
@@ -368,7 +371,7 @@ class FullClient(object):
     def process_dangling_blocks(self):
         #TODO use multiple leaves
         latest_block = self.chain.get_leaves()[0]
-        for block in self.dangling_blocks:
+        for block in self.chain.dangling_blocks:
             expected_pub_key = self.determine_block_creation_node(timestamp=block.timestamp)
             if block.previous_block == latest_block.hash and expected_pub_key == block.public_key:
                 if block.validate():
