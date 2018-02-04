@@ -67,7 +67,7 @@ class Block(object):
         return block
 
     def __str__(self):
-        return ("=======================\n"
+        return ("\n=======================\n"
                 "  Block {}\n"
                 "  Previous block: {}\n"
                 "  Number of transactions: {}\n"

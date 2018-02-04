@@ -196,8 +196,8 @@ class FullClient(object):
         with self.chain:
             if self.chain.find_block_by_hash(new_block.hash) or\
                self.chain.is_block_dangling(new_block):
-                logger.debug("The received block is already part of chain or\
-                             a dangling block: {}".format(str(new_block)))
+                logger.debug("The received block is already part of chain or "
+                             "a dangling block: {}".format(str(new_block)))
                 return
             self._broadcast_new_block(new_block)
             self._process_new_block(new_block)
