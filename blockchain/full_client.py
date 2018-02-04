@@ -300,7 +300,8 @@ class FullClient(object):
 
     def handle_received_judgement(self, judgement):
         judgement_object = eval(judgement)
-        self.chain.update_judgements(judgement_object)
+        if self.chain.update_judgements(judgement_object):
+            self._broadcast_new_judgement(judgement_object)
 
     def handle_incoming_transaction(self, transaction):
         transaction_object = eval(transaction)
