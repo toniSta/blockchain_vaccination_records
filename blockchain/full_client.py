@@ -199,16 +199,38 @@ class FullClient(object):
                 logger.debug("The received block is already part of chain or\
                              a dangling block: {}".format(str(new_block)))
                 return
-
             self._broadcast_new_block(new_block)
 
-            if not self._is_block_created_by_expected_creator(new_block):
-                logger.debug("Received block doesn't match as next block in\
-                    chain. Adding it to dangling blocks: {}"
-                             .format(str(new_block)))
+
+            parent_block = self.chain.find_block_by_hash(new_block.previous_block)
+            if not parent_block:
+                # TODO chain should provide a method add_dangling_block. Convert block into node...
                 self.chain.dangling_blocks.add(new_block)
+                logger.debug("Parent block of received block not yet received. Adding new block to dangling blocks: {}"
+                             .format(str(new_block)))
+                return
+
+            if not self._is_block_created_by_expected_creator(new_block):
+                logger.debug("Creator of received block doesn't match expected creator. Creating deny judgement: {}"
+                             .format(str(new_block)))
+                self._create_and_submit_judgement(new_block, False)
+                return
             else:
-                self._add_block_if_valid(new_block)
+                if not new_block.validate(parent_block):
+                    logger.debug("Received block is not valid. Creating deny judgement: {}"
+                                 .format(str(new_block)))
+                    self._create_and_submit_judgement(new_block, False)
+                    return
+                else:
+                    new_block.persist()
+                    invalidated_blocks = self.chain.add_block(new_block)
+
+                    for block in invalidated_blocks:
+                        self._create_and_submit_judgement(block, False)
+                    self._create_and_submit_judgement(new_block, True)
+                    self.transaction_set.discard_multiple(new_block.transactions)
+                    #Todo this method should be a method of chain. and won't work right now
+                    self.process_dangling_blocks()
 
     def creator_election(self):
         """This method checks if this node needs to generate a new block.
@@ -252,6 +274,7 @@ class FullClient(object):
         return Block(block.text)
 
     def _add_block_if_valid(self, block, broadcast_block=False):
+        # TODO this method is obsolete and should be deleted after implementing sync
         previous = self.chain.find_block_by_hash(block.previous_block)
         if block.validate(previous):
             self.chain.add_block(block)
@@ -282,8 +305,7 @@ class FullClient(object):
 
     def handle_received_judgement(self, judgement):
         judgement_object = eval(judgement)
-        # TODO: handle the judgement stuff here
-        raise NotImplementedError
+        self.chain.update_judgements(judgement_object)
 
     def handle_incoming_transaction(self, transaction):
         transaction_object = eval(transaction)
@@ -405,3 +427,9 @@ class FullClient(object):
         tx = PermissionTransaction(Permission["admission"], self.public_key)
         tx.sign(self.private_key)
         self._broadcast_new_transaction(tx)
+
+    def _create_and_submit_judgement(self, block, accepted):
+        judgement = Judgement(block.hash, accepted, self.public_key)
+        judgement.sign(self.private_key)
+        self.chain.update_judgements(judgement)
+        self._broadcast_new_judgement(judgement)

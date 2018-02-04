@@ -78,13 +78,14 @@ class Chain(object):
                 blocks_at_current_level = [f for f in block_files if f.startswith(level_prefix)]
             logger.info("Finished loading chain from disk")
 
-        def update_judgements_for_blockhash(self, blockhash, judgement):
+        def update_judgements(self, judgement):
             """Attaches the judgement to node with the corresponding blockhash."""
             with self._lock:
-                node = self._find_tree_node_by_hash(blockhash)
+                node = self._find_tree_node_by_hash(judgement.hash_of_judged_block)
                 if not node:
                     # since blocks are send before judgements by every node, this shouldn't happen.
-                    logger.debug("Could not add judgement, block with hash {} not found in tree".format(blockhash))
+                    logger.debug("Could not add judgement, block with hash {} not found in tree".format(
+                        judgement.hash_of_judged_block))
                     return
                 if judgement.sender_pubkey in node.judgements:  # already received a judgement from that node
                     if node.judgements[judgement.sender_pubkey].accept_block and not judgement.accept_block:  # judgement was revoked
@@ -128,11 +129,12 @@ class Chain(object):
 
             TODO: It might happen that a block does not fit into the chain, because the
             previous block was not received until that point. Thus, we have to add
-            to the set of dangling block. This methods returns True, if the new
-            block was added to the chain, otherwise False.
+            to the set of dangling block. This method returns a set of blocks, that needs
+            to be denied due to the new block.
             """
             with self._lock:
                 # Check if block is genesis and no genesis is present
+                invalidated_blocks = set()
                 if not self.chain_tree and block.index == 0:
                     block_creation_cache = deque()
                     doctors_cache = set()
@@ -155,13 +157,26 @@ class Chain(object):
                     doctors_cache = set().union(parent_node.doctors_cache)
                     vaccine_cache = set().union(parent_node.vaccine_cache)
                     self._update_caches(block, block_creation_cache, doctors_cache, vaccine_cache)
-                    self._generate_tree_node(block, block_creation_cache, doctors_cache, vaccine_cache,
+                    new_node = self._generate_tree_node(block, block_creation_cache, doctors_cache, vaccine_cache,
                                              parent_node=parent_node, judgements=judgements)
+
+                    for node in new_node.siblings:
+                        if new_node.block.timestamp > node.block.timestamp:
+                            invalidated_blocks.add(new_node.block)
+                            break
+
+                    if len(invalidated_blocks) == 0:
+                        # TODO only return branch that is still accepted by the current full client.
+                        # This will need some architectural changes
+                        for node in new_node.siblings:
+                            invalidated_blocks.add(node.block)
+                            for node2 in node.descendants:
+                                invalidated_blocks.add(node2.block)
 
                 logger.debug("Added block {} to chain.".format(block.index))
 
                 self._render_current_tree()
-                return True
+                return invalidated_blocks
 
         def _render_current_tree(self):
             if os.getenv("RENDER_CHAIN_TREE") == '1':
@@ -250,6 +265,7 @@ class Chain(object):
             Remove a whole branch by detaching its root node and deleting all files associated with any node of
             the sub-tree.
             """
+            #TODO transactions unique to one branch should be saved!
             with self._lock:
                 node.parent = None
                 nodes_to_delete = node.descendants
@@ -457,6 +473,7 @@ def nodeattrfunc(node):
         public_key = RSA.import_key(key_file.read()).exportKey("DER")
 
     if public_key == node.block.public_key:
+        # TODO change color for blocks created by self.
         return "style = filled,fillcolor = green3, shape = rectangle"
     elif public_key in node.judgements:
         if node.judgements[public_key].accept_block:
