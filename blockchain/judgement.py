@@ -1,17 +1,19 @@
 import logging
 from time import time
-from config import CONFIG
-import helper.cryptography as crypto
+from blockchain.config import CONFIG
+import blockchain.helper.cryptography as crypto
 logger = logging.getLogger("judgement")
 
 class Judgement(object):
     """This class implements the judgement functionality."""
 
-    def __init__(self, judged_block, accept_block, sender_pubkey, signature=None, timestamp=None, version=None):
+    def __init__(self, hash_of_judged_block, accept_block, sender_pubkey, signature=None, timestamp=None, version=None):
         if type(sender_pubkey).__name__ == "RsaKey":
             sender_pubkey = sender_pubkey.exportKey("DER")
+        elif type(sender_pubkey).__name__ == "str":
+            sender_pubkey = bytes.fromhex(sender_pubkey)
 
-        self.judged_block = judged_block
+        self.hash_of_judged_block = hash_of_judged_block
         self.accept_block = accept_block
         self.sender_pubkey = sender_pubkey
         self.signature = signature
@@ -26,7 +28,7 @@ class Judgement(object):
                 "  Public key: {}\n"
                 "  Timestamp: {}\n"
                 "  Version: {}\n"
-                "-----------------------").format(self.judged_block,
+                "-----------------------").format(self.hash_of_judged_block,
                                                   self.accept_block,
                                                   self.sender_pubkey,
                                                   self.timestamp,
@@ -35,7 +37,7 @@ class Judgement(object):
     def _get_data_for_hashing(self):
         """Return a string representation of the contained data for hashing"""
         return str({
-            "judged_block": self.judged_block,
+            "judged_block": self.hash_of_judged_block,
             "accept_block": self.accept_block,
             "sender_pubkey": self.sender_pubkey,
             "timestamp": self.timestamp,
@@ -61,7 +63,7 @@ class Judgement(object):
         return crypto.verify(message, self.signature, RSA.import_key(self.sender_pubkey))
 
     def validate(self):
-        # TODO: check for anything else?
+        # TODO: check if judge is an admission node
         return self._verify_signature()
 
     def deny(self, private_key):
