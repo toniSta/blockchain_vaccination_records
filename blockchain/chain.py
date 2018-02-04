@@ -533,8 +533,7 @@ def nodeattrfunc(node):
         public_key = RSA.import_key(key_file.read()).exportKey("DER")
 
     if public_key == node.block.public_key:
-        # TODO change color for blocks created by self.
-        return "style = filled,fillcolor = green3, shape = rectangle"
+        return "style = filled,fillcolor = green4, shape = rectangle"
     elif public_key in node.judgements:
         if node.judgements[public_key].accept_block:
             return "style = filled,fillcolor = green3, shape = rectangle"
