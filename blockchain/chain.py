@@ -104,7 +104,7 @@ class Chain(object):
                 os.makedirs(os.path.dirname(judgement_path))
             with open(judgement_path, 'w') as file:
                 for judgement in node.judgements:
-                    file.write(repr(node.judgements[judgement]))
+                    file.write(repr(node.judgements[judgement]) + '\n')
 
         def _load_judgements_from_disk(self, file_name):
             '''
@@ -381,7 +381,7 @@ class Chain(object):
         def _check_branch_for_deletion(self, node):
             number_of_denies = 0
             for judgement in node.judgements:
-                if not judgement.accept_block:
+                if not node.judgements[judgement].accept_block:
                     number_of_denies += 1
             # The admission that created the block doesn't judge. Therefore '-1'
             number_of_admissions = len(self.get_registration_caches_by_blockhash(node.block.previous_block)) - 1
@@ -453,7 +453,7 @@ def nodenamefunc(node):
     denies = 0
     accepts = 0
     for judgement in node.judgements:
-        if judgement.accept_block:
+        if node.judgements[judgement].accept_block:
             accepts += 1
         else:
             denies += 1
