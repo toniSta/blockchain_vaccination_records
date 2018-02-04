@@ -68,23 +68,54 @@ class Chain(object):
                     with open(block_path, "r") as block_file:
                         logger.info("Loading block {} from disk".format(block_path))
                         recreated_block = Block(block_file.read())
-                        self.add_block(recreated_block)
+                        judgements = self._load_judgements_from_disk(block_name)
+                        self.add_block(recreated_block, judgements=judgements)
                 current_block_level += 1
                 level_prefix = str(current_block_level) + "_"
                 blocks_at_current_level = [f for f in block_files if f.startswith(level_prefix)]
             logger.info("Finished loading chain from disk")
 
-        def add_judgement_for_blockhash(self, blockhash, judgement):
+        def update_judgements_for_blockhash(self, blockhash, judgement):
             """Attaches the judgement to node with the corresponding blockhash."""
             with self._lock:
                 node = self._find_tree_node_by_hash(blockhash)
                 if not node:
+                    # since blocks are send before judgements by every node, this shouldn't happen.
                     logger.debug("Could not add judgement, block with hash {} not found in tree".format(blockhash))
+                    return
                 if judgement.sender_pubkey in node.judgements:  # already received a judgement from that node
-                    if node.judgements[sender_pubkey].accept_block and not judgement.accept_block:  # judgement was revoked
-                        node.judgements[sender_pubkey] = judgement  # replace old judgement with the new one
+                    if node.judgements[judgement.sender_pubkey].accept_block and not judgement.accept_block:  # judgement was revoked
+                        node.judgements[judgement.sender_pubkey] = judgement  # replace old judgement with the new one
+                else:
+                    node.judgements[judgement.sender_pubkey] = judgement
+                self._persist_judgements_for_node(node)
 
-        def add_block(self, block):
+        def _persist_judgements_for_node(self, node):
+            file_name = "_".join([str(node.block.index), node.block.previous_block, node.block.hash])
+            judgement_path = os.path.join(CONFIG["persistance_folder"], 'judgements', file_name)
+            with open(judgement_path, 'w') as file:
+                for judgement in node.judgements:
+                    file.write(repr(node.judgements[judgement]))
+
+        def _load_judgements_from_disk(self, file_name):
+            '''
+            Load judgements from a file.
+
+            :param file_name: Filename of the file containing judgements. 1 per line
+            :return: dict of judgements <sender of judgement>: <judgement>
+            '''
+            judgement_path = os.path.join(CONFIG["persistance_folder"], 'judgements', file_name)
+            judgements = {}
+            try:
+                with open(judgement_path, "r") as file:
+                    for line in file:
+                        judgement = eval(line)
+                        judgements[judgement.sender_pubkey] = judgement
+            except FileNotFoundError:
+                pass
+            return judgements
+
+        def add_block(self, block, judgements={}):
             """Add a block to the blockchain tree.
 
             TODO: It might happen that a block does not fit into the chain, because the
@@ -103,7 +134,8 @@ class Chain(object):
                     self.chain_tree = self._generate_tree_node(block,
                                                                block_creation_cache,
                                                                doctors_cache,
-                                                               vaccine_cache)
+                                                               vaccine_cache,
+                                                               judgements=judgements)
                     self.genesis_block = block
                     logger.debug("Added genesis to chain.")
                 else:
@@ -115,7 +147,8 @@ class Chain(object):
                     doctors_cache = set().union(parent_node.doctors_cache)
                     vaccine_cache = set().union(parent_node.vaccine_cache)
                     self._update_caches(block, block_creation_cache, doctors_cache, vaccine_cache)
-                    self._generate_tree_node(block, block_creation_cache, doctors_cache, vaccine_cache, parent_node)
+                    self._generate_tree_node(block, block_creation_cache, doctors_cache, vaccine_cache,
+                                             parent_node=parent_node, judgements=judgements)
 
                 logger.debug("Added block {} to chain.".format(block.index))
 
@@ -130,7 +163,8 @@ class Chain(object):
                         logger.debug("Couldn't print chain tree: {}".format(e.stdout))
                 return True
 
-        def _generate_tree_node(self, block, block_creation_cache, doctors_cache, vaccine_cache, parent_node=None):
+        def _generate_tree_node(self, block, block_creation_cache, doctors_cache, vaccine_cache, parent_node=None,
+                                judgements={}):
             return Node(block.hash,
                         index=block.index,
                         parent=parent_node,
@@ -138,7 +172,7 @@ class Chain(object):
                         block_creation_cache=block_creation_cache,
                         doctors_cache=doctors_cache,
                         vaccine_cache=vaccine_cache,
-                        judgements={})
+                        judgements=judgements)
 
         def _update_caches(self, block, block_creation_cache, doctors_cache, vaccine_cache):
             """Update the block creation cache and refresh the registered doctors and vaccines."""
