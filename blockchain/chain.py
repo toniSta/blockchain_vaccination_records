@@ -124,7 +124,7 @@ class Chain(object):
                 pass
             return judgements
 
-        def add_block(self, block, judgements={}):
+        def add_block(self, block, judgements=None):
             """Add a block to the blockchain tree.
 
             TODO: It might happen that a block does not fit into the chain, because the
@@ -132,6 +132,8 @@ class Chain(object):
             to the set of dangling block. This method returns a set of blocks, that needs
             to be denied due to the new block.
             """
+            if not judgements:
+                judgements = {}
             with self._lock:
                 # Check if block is genesis and no genesis is present
                 invalidated_blocks = set()
