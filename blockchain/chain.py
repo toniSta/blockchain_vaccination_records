@@ -94,6 +94,8 @@ class Chain(object):
         def _persist_judgements_for_node(self, node):
             file_name = self._get_file_name(node)
             judgement_path = os.path.join(CONFIG["persistance_folder"], 'judgements', file_name)
+            if not os.path.exists(os.path.dirname(judgement_path)):
+                os.makedirs(os.path.dirname(judgement_path))
             with open(judgement_path, 'w') as file:
                 for judgement in node.judgements:
                     file.write(repr(node.judgements[judgement]))
