@@ -158,18 +158,17 @@ class FullClient(object):
                           self.public_key)
         new_block.timestamp = timestamp
 
+        admissions, doctors, vaccines = self.chain.get_registration_caches_by_blockhash(parent_hash)
         for _ in range(CONFIG["block_size"]):
-            # Transcation set must contain at least one transaction
-            if len(self.transaction_set):
-                transaction = self.transaction_set.pop()
-                admissions, doctors, vaccines = self.chain.get_registration_caches_by_blockhash(parent_hash)
+            transaction = self.transaction_set.pop()
+            if transaction:
                 if transaction.validate(admissions, doctors, vaccines):
                     new_block.add_transaction(transaction)
                 else:
                     logger.debug("Adding Transaction not to next block (invalid): {}".format(transaction))
                     self.invalid_transactions.add(transaction)
             else:
-                # Break if transaction contains at maximum one transaction
+                # Transaction set is empty
                 break
         new_block.sign(self.private_key)
         new_block.update_hash()
@@ -259,7 +258,7 @@ class FullClient(object):
                             new_block = self.create_next_block(hash, timestamp)
                             if not new_block.validate(self.chain.find_block_by_hash(hash)):
                                 logger.error("New generated block is not valid! {}".format(repr(new_block)))
-                                # TODO: Add transactions  of false block to queue
+                                self.transaction_set.add_multiple(self.new_block.transactions)
                                 continue
                             self.submit_block(new_block)
                         else:
