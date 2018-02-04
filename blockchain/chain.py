@@ -197,7 +197,9 @@ class Chain(object):
                 node_to_delete = find(self.chain_tree, lambda node: node.hash == node_hash)
                 if node_to_delete:
                     node_to_delete.parent = None
-                    #TODO delete block file from disk
+                    blocks_to_delete = node_to_delete.descendants
+                    for block in blocks_to_delete:
+                        self._remove_block_file(block)
                 else:
                     logger.info("Block with hash {} not found".format(node_hash))
 
@@ -293,6 +295,14 @@ class Chain(object):
 
         def lock_state(self):
             return self._lock._is_owned()
+
+        def _remove_block_file(self, block):
+            file_name = "_".join([str(block.index),
+                                  block.previous_block,
+                                  block.hash])
+            persistence_folder = CONFIG["persistance_folder"]
+            file_path = os.path.join(persistence_folder, file_name)
+            os.remove(file_path)
 
     __instance = None
 
