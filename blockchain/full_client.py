@@ -159,7 +159,8 @@ class FullClient(object):
         new_block.timestamp = timestamp
 
         for _ in range(CONFIG["block_size"]):
-            if len(self.transaction_set):
+            # Transcation set must contain at least one transaction
+            if len(self.transaction_set) <= 1:
                 transaction = self.transaction_set.pop()
                 admissions, doctors, vaccines = self.chain.get_registration_caches_by_blockhash(parent_hash)
                 if transaction.validate(admissions, doctors, vaccines):
@@ -168,7 +169,7 @@ class FullClient(object):
                     logger.debug("Adding Transaction not to next block (invalid): {}".format(transaction))
                     self.invalid_transactions.add(transaction)
             else:
-                # Break if transaction set is empty
+                # Break if transaction contains at maximum one transaction
                 break
         new_block.sign(self.private_key)
         new_block.update_hash()
@@ -293,12 +294,6 @@ class FullClient(object):
         block = Network.request_latest_block(random_node)
         return Block(block.text)
 
-    def recover_after_shutdown(self):
-        # Steps:
-        #   1. read in files from disk -> maybe in __init__ of chain
-        #   2. sync with other node(s)
-        pass
-
     def _broadcast_new_judgement(self, judgement):
         for node in self.nodes:
             Network.send_judgement(node, repr(judgement))
@@ -314,16 +309,16 @@ class FullClient(object):
     def handle_transaction(self, transaction, broadcast=False):
         if broadcast:
             self._broadcast_new_transaction(transaction)
-        # TODO use multiple leaves
-        if self.public_key not in self.chain.get_admissions()[0][1]:
-            logger.debug("Received transaction but this node is no admission node. Quit...")
-            return
         if self.transaction_set.contains(transaction):
             return  # Transaction was already received
-        if self._check_if_transaction_in_chain(transaction):
-            return
-        else:
-            self.transaction_set.add(transaction)
+        admissions_at_leaf = self.chain.get_admissions()
+        for admissions in admissions_at_leaf:
+            if self.public_key not in admissions[1]:
+                logger.debug("Received transaction but this node is no admission node. Quit...")
+                return
+            if self._check_if_transaction_in_chain(transaction):
+                return
+        self.transaction_set.add(transaction)
 
     def _check_if_transaction_in_chain(self, transaction):
         """Check if the transaction is already part of the chain.
@@ -419,10 +414,11 @@ class FullClient(object):
                 return
 
     def _register_self_as_admission(self):
-        # TODO use multiple leaves
-        if self.public_key in self.chain.get_admissions()[0][1]:
-            logger.debug("Already admission node, don't need to register.")
-            return
+        admissions_at_leaf = self.chain.get_admissions()
+        for admissions in admissions_at_leaf:
+            if self.public_key in admissions[1]:
+                logger.debug("Already admission node, don't need to register.")
+                return
         logger.debug("Going to register as admission node.")
         tx = PermissionTransaction(Permission["admission"], self.public_key)
         tx.sign(self.private_key)
