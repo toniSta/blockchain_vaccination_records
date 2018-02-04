@@ -21,6 +21,7 @@ class Chain(object):
             """Create initial chain and tries to load saved state from disk."""
             self.genesis_block = None
             self.chain_tree = None
+            self.dangling_blocks = set()
             self._lock = RLock()
             if load_persisted and self._can_be_loaded_from_disk():
                 self._load_from_disk()
@@ -33,10 +34,9 @@ class Chain(object):
             if exc_type or exc_val or exc_tb:
                 logger.exception("Thread '{}' got an exception within a with \
                                  statement. Type: {}; Value: {}; Traceback:"
-                    .format(
-                    current_thread(),
-                    exc_type,
-                    exc_val))
+                                 .format(current_thread(),
+                                         exc_type,
+                                         exc_val))
 
         def __str__(self):
             tree_representation = ""
@@ -242,7 +242,9 @@ class Chain(object):
                 node_to_delete = find(self.chain_tree, lambda node: node.hash == node_hash)
                 if node_to_delete:
                     node_to_delete.parent = None
-                    #TODO delete block file from disk
+                    blocks_to_delete = node_to_delete.descendants
+                    for block in blocks_to_delete:
+                        self._remove_block_file(block)
                 else:
                     logger.info("Block with hash {} not found".format(node_hash))
 
@@ -304,7 +306,10 @@ class Chain(object):
                 leaves = self._get_all_leaf_nodes()
                 result = []
                 for leaf in leaves:
-                    result.append((leaf.name, set(leaf.block_creation_cache), set(leaf.doctors_cache), set(leaf.vaccine_cache)))
+                    result.append((leaf.name,
+                                   set(leaf.block_creation_cache),
+                                   set(leaf.doctors_cache),
+                                   set(leaf.vaccine_cache)))
                 return result
 
         def get_registration_caches_by_blockhash(self, hash):
@@ -335,6 +340,14 @@ class Chain(object):
 
         def lock_state(self):
             return self._lock._is_owned()
+
+        def _remove_block_file(self, block):
+            file_name = "_".join([str(block.index),
+                                  block.previous_block,
+                                  block.hash])
+            persistence_folder = CONFIG["persistance_folder"]
+            file_path = os.path.join(persistence_folder, file_name)
+            os.remove(file_path)
 
     __instance = None
 
