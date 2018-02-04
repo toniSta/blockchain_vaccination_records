@@ -160,7 +160,7 @@ class FullClient(object):
 
         for _ in range(CONFIG["block_size"]):
             # Transcation set must contain at least one transaction
-            if len(self.transaction_set) <= 1:
+            if len(self.transaction_set):
                 transaction = self.transaction_set.pop()
                 admissions, doctors, vaccines = self.chain.get_registration_caches_by_blockhash(parent_hash)
                 if transaction.validate(admissions, doctors, vaccines):
