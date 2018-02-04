@@ -13,6 +13,7 @@ from blockchain.transaction import *
 from anytree import Node, RenderTree
 from anytree.search import find, findall
 from anytree.exporter import DotExporter
+from blockchain.judgement import Judgement
 
 logger = logging.getLogger("blockchain")
 
@@ -79,23 +80,31 @@ class Chain(object):
             logger.info("Finished loading chain from disk")
 
         def update_judgements(self, judgement):
-            """Attaches the judgement to node with the corresponding blockhash."""
+            """Attaches the judgement to node with the corresponding blockhash.
+
+            return True if the judgement was new, False if it was already there
+            """
+            changed_judgments= False
             with self._lock:
                 node = self._find_tree_node_by_hash(judgement.hash_of_judged_block)
                 if not node:
                     # since blocks are send before judgements by every node, this shouldn't happen.
                     logger.debug("Could not add judgement, block with hash {} not found in tree".format(
                         judgement.hash_of_judged_block))
-                    return
+                    changed_judgments = True
                 if judgement.sender_pubkey in node.judgements:  # already received a judgement from that node
                     if node.judgements[judgement.sender_pubkey].accept_block and not judgement.accept_block:  # judgement was revoked
                         node.judgements[judgement.sender_pubkey] = judgement  # replace old judgement with the new one
+                        changed_judgments = True
                 else:
                     node.judgements[judgement.sender_pubkey] = judgement
+                    changed_judgments = True
+
                 self._persist_judgements_for_node(node)
                 self._check_branch_for_deletion(node)
 
                 self._render_current_tree()
+                return changed_judgments
 
         def _persist_judgements_for_node(self, node):
             file_name = self._get_file_name(node)
