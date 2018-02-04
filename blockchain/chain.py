@@ -13,6 +13,7 @@ from blockchain.transaction import *
 from anytree import Node, RenderTree
 from anytree.search import find, findall
 from anytree.exporter import DotExporter
+# noinspection PyUnresolvedReferences
 from blockchain.judgement import Judgement
 
 logger = logging.getLogger("blockchain")
@@ -25,7 +26,7 @@ class Chain(object):
             """Create initial chain and tries to load saved state from disk."""
             self.genesis_block = None
             self.chain_tree = None
-            self.dangling_blocks = set()
+            self.dangling_nodes = set()
             self._lock = RLock()
             if load_persisted and self._can_be_loaded_from_disk():
                 self._load_from_disk()
@@ -87,23 +88,35 @@ class Chain(object):
             changed_judgments= False
             with self._lock:
                 node = self._find_tree_node_by_hash(judgement.hash_of_judged_block)
-                if not node:
-                    # since blocks are send before judgements by every node, this shouldn't happen.
-                    logger.debug("Could not add judgement, block with hash {} not found in tree".format(
-                        judgement.hash_of_judged_block))
-                    changed_judgments = True
-                if judgement.sender_pubkey in node.judgements:  # already received a judgement from that node
-                    if node.judgements[judgement.sender_pubkey].accept_block and not judgement.accept_block:  # judgement was revoked
-                        node.judgements[judgement.sender_pubkey] = judgement  # replace old judgement with the new one
+                if node:
+                    if judgement.sender_pubkey in node.judgements:  # already received a judgement from that node
+                        if node.judgements[judgement.sender_pubkey].accept_block and not judgement.accept_block:  # judgement was revoked
+                            node.judgements[judgement.sender_pubkey] = judgement  # replace old judgement with the new one
+                            changed_judgments = True
+                    else:
+                        node.judgements[judgement.sender_pubkey] = judgement
                         changed_judgments = True
+
+                    self._persist_judgements_for_node(node)
+                    self._check_branch_for_deletion(node)
+
+                    self._render_current_tree()
                 else:
-                    node.judgements[judgement.sender_pubkey] = judgement
-                    changed_judgments = True
+                    node = self._get_dangling_node_by_hash(judgement.hash_of_judged_block)
+                    if not node:
+                        # since blocks are send before judgements by every node, this shouldn't happen.
+                        logger.debug("Could not add judgement, block with hash {} not found in tree".format(
+                            judgement.hash_of_judged_block))
+                        changed_judgments = True
+                        return changed_judgments
 
-                self._persist_judgements_for_node(node)
-                self._check_branch_for_deletion(node)
-
-                self._render_current_tree()
+                    if judgement.sender_pubkey in node.judgements:  # already received a judgement from that node
+                        if node.judgements[judgement.sender_pubkey].accept_block and not judgement.accept_block:  # judgement was revoked
+                            node.judgements[judgement.sender_pubkey] = judgement  # replace old judgement with the new one
+                            changed_judgments = True
+                    else:
+                        node.judgements[judgement.sender_pubkey] = judgement
+                        changed_judgments = True
                 return changed_judgments
 
         def _persist_judgements_for_node(self, node):
@@ -136,9 +149,7 @@ class Chain(object):
         def add_block(self, block, judgements=None):
             """Add a block to the blockchain tree.
 
-            TODO: It might happen that a block does not fit into the chain, because the
-            previous block was not received until that point. Thus, we have to add
-            to the set of dangling block. This method returns a set of blocks, that needs
+            This method adds a block to the chain tree and returns a set of blocks, that needs
             to be denied due to the new block.
             """
             if not judgements:
@@ -146,6 +157,7 @@ class Chain(object):
             with self._lock:
                 # Check if block is genesis and no genesis is present
                 invalidated_blocks = set()
+
                 if not self.chain_tree and block.index == 0:
                     block_creation_cache = deque()
                     doctors_cache = set()
@@ -162,14 +174,22 @@ class Chain(object):
                 else:
                     # No genesis, just regular block
                     # Full client ensures, that previous block is present
+                    if self.find_block_by_hash(block.hash):
+                        # block is already part of the chain
+                        return invalidated_blocks
                     parent_node = find(self.chain_tree,
                                        lambda node: node.name == block.previous_block)
                     block_creation_cache = parent_node.block_creation_cache.copy()
                     doctors_cache = set().union(parent_node.doctors_cache)
                     vaccine_cache = set().union(parent_node.vaccine_cache)
                     self._update_caches(block, block_creation_cache, doctors_cache, vaccine_cache)
+                    if self.is_block_dangling(block):
+                        dangling_node = self._remove_block_from_dangling_list(block)
+                        judgements = dangling_node.judgements
                     new_node = self._generate_tree_node(block, block_creation_cache, doctors_cache, vaccine_cache,
                                              parent_node=parent_node, judgements=judgements)
+
+                    self._persist_judgements_for_node(new_node)
 
                     for node in new_node.siblings:
                         if new_node.block.timestamp > node.block.timestamp:
@@ -200,8 +220,10 @@ class Chain(object):
                 except CalledProcessError as e:
                     logger.debug("Couldn't print chain tree: {}".format(e.stdout))
 
-        def _generate_tree_node(self, block, block_creation_cache, doctors_cache, vaccine_cache, parent_node=None,
-                                judgements={}):
+        def _generate_tree_node(self, block, block_creation_cache=None, doctors_cache=None, vaccine_cache=None,
+                                parent_node=None, judgements=None):
+            if not judgements:
+                judgements = {}
             return Node(block.hash,
                         index=block.index,
                         parent=parent_node,
@@ -255,7 +277,7 @@ class Chain(object):
             return findall(self.chain_tree, lambda node: node.index == index)
 
         def find_block_by_hash(self, hash):
-            """Find a block by its hash. Return None if hash not found."""
+            """Find a block by its hash. Return None if hash not found. Only search the tree. No dangling blocks."""
             block_node = self._find_tree_node_by_hash(hash)
             if block_node:
                 return block_node.block
@@ -444,6 +466,33 @@ class Chain(object):
 
         def _get_file_name(self, node):
             return "_".join([str(node.block.index), node.block.previous_block, node.block.hash])
+
+        def is_block_dangling(self, block):
+            with self._lock:
+                for node in self.dangling_nodes:
+                    if node.block == block:
+                        return True
+                return False
+
+        def add_dangling_block(self, block):
+            with self._lock:
+                node = self._generate_tree_node(block)
+                if not self.is_block_dangling(block):
+                    self.dangling_nodes.add(node)
+
+        def get_list_of_dangling_blocks(self):
+            blocks = []
+            with self._lock:
+                for node in self.dangling_nodes:
+                    blocks.append(node.block)
+                return blocks
+
+        def _remove_block_from_dangling_list(self, block):
+            for node in self.dangling_nodes:
+                if node.block == block:
+                    self.dangling_nodes.discard(node)
+                    return node
+            return None
 
     __instance = None
 

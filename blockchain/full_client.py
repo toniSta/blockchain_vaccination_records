@@ -195,42 +195,42 @@ class FullClient(object):
 
         with self.chain:
             if self.chain.find_block_by_hash(new_block.hash) or\
-               new_block in self.chain.dangling_blocks:
+               self.chain.is_block_dangling(new_block):
                 logger.debug("The received block is already part of chain or\
                              a dangling block: {}".format(str(new_block)))
                 return
             self._broadcast_new_block(new_block)
+            self._process_new_block(new_block)
 
+    def _process_new_block(self, new_block):
+        parent_block = self.chain.find_block_by_hash(new_block.previous_block)
+        if not parent_block:
+            self.chain.add_dangling_block(new_block)
+            logger.debug("Parent block of received block not yet received. Adding new block to dangling blocks: {}"
+                         .format(str(new_block)))
+            return
 
-            parent_block = self.chain.find_block_by_hash(new_block.previous_block)
-            if not parent_block:
-                # TODO chain should provide a method add_dangling_block. Convert block into node...
-                self.chain.dangling_blocks.add(new_block)
-                logger.debug("Parent block of received block not yet received. Adding new block to dangling blocks: {}"
-                             .format(str(new_block)))
-                return
-
-            if not self._is_block_created_by_expected_creator(new_block):
-                logger.debug("Creator of received block doesn't match expected creator. Creating deny judgement: {}"
+        if not self._is_block_created_by_expected_creator(new_block):
+            logger.debug("Creator of received block doesn't match expected creator. Creating deny judgement: {}"
+                         .format(str(new_block)))
+            self._create_and_submit_judgement(new_block, False)
+            return
+        else:
+            if not new_block.validate(parent_block):
+                logger.debug("Received block is not valid. Creating deny judgement: {}"
                              .format(str(new_block)))
                 self._create_and_submit_judgement(new_block, False)
                 return
             else:
-                if not new_block.validate(parent_block):
-                    logger.debug("Received block is not valid. Creating deny judgement: {}"
-                                 .format(str(new_block)))
-                    self._create_and_submit_judgement(new_block, False)
-                    return
-                else:
-                    new_block.persist()
-                    invalidated_blocks = self.chain.add_block(new_block)
+                new_block.persist()
+                invalidated_blocks = self.chain.add_block(new_block)
 
-                    for block in invalidated_blocks:
-                        self._create_and_submit_judgement(block, False)
-                    self._create_and_submit_judgement(new_block, True)
-                    self.transaction_set.discard_multiple(new_block.transactions)
-                    #Todo this method should be a method of chain. and won't work right now
-                    self.process_dangling_blocks()
+                for block in invalidated_blocks:
+                    self._create_and_submit_judgement(block, False)
+                self._create_and_submit_judgement(new_block, True)
+                self.transaction_set.discard_multiple(new_block.transactions)
+                for block in self.chain.get_list_of_dangling_blocks():
+                    self._process_new_block(block)
 
     def creator_election(self):
         """This method checks if this node needs to generate a new block.
@@ -408,16 +408,7 @@ class FullClient(object):
             print("Invalid option {}, aborting.".format(transaction_type))
 
     def process_dangling_blocks(self):
-        #TODO use multiple leaves
-        latest_block = self.chain.get_leaves()[0]
-        for block in self.chain.dangling_blocks:
-            expected_pub_key = self.determine_block_creation_node(timestamp=block.timestamp)
-            if block.previous_block == latest_block.hash and expected_pub_key == block.public_key:
-                if block.validate():
-                    self.chain.add_block(block)
-                    block.persist()
-                    self.process_dangling_blocks()
-                return
+        raise DeprecationWarning("This method shouldn't be used anymore")
 
     def _register_self_as_admission(self):
         # TODO use multiple leaves
