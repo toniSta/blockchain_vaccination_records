@@ -46,6 +46,9 @@ class FullClient(object):
         logger.debug("My public key is: {} or {}".format(self.public_key,
                                                          self.public_key.hex()))
 
+        if os.getenv('START_TRANSACTION_CLI'):
+            self._start_create_transaction_loop()
+
     def _start_election_thread(self):
         self.creator_election_thread = threading.Thread(target=self.creator_election, name="election thread", daemon=True)
         self.creator_election_thread.start()
@@ -354,19 +357,22 @@ class FullClient(object):
         for node in self.nodes:
             Network.broadcast_new_transaction(node, repr(transaction))
 
-    def create_transaction(self):
+    def _create_transaction(self):
         transaction_type = input("What kind of transaction should be created? (Vaccination/Vaccine/Permission)").lower()
         if transaction_type == "vaccination":
+            patient_pubkey, patient_privkey = generate_keypair()  # mock patient by randomly generating new patient
             vaccine = input("Which vaccine was given?").lower()
-            doctor_pubkey = eval(input("Enter doctors public key"))
-            patient_pubkey = eval(input("Enter patients public key"))
+            doctor_pubkey = self.public_key
+            patient_pubkey = patient_pubkey
             transaction = VaccinationTransaction(doctor_pubkey, patient_pubkey, vaccine)
+            print("Created Transaction:")
             print(transaction)
             sign_now = input("Sign transaction now? (Y/N)").lower()
             if sign_now == "y":
-                doctor_privkey = eval(input("Enter doctors private key"))
-                patient_privkey = eval(input("Enter patients private key"))
+                doctor_privkey = self.private_key  # would it be better to visually enter the key?
+                patient_privkey = patient_privkey
                 transaction.sign(doctor_privkey, patient_privkey)
+                print("Trying to send transaction:")
                 print(transaction)
                 self.handle_transaction(transaction, broadcast=True)
             elif sign_now == "n":
@@ -374,14 +380,17 @@ class FullClient(object):
             else:
                 print("Invalid option {}, aborting.".format(sign_now))
         elif transaction_type == "vaccine":
+            # TODO: check if node is registered as admission, else it should not be able to create VaccineTransactions
             vaccine = input("Which vaccine should be registered?").lower()
-            admission_pubkey = eval(input("Enter admissions public key"))
+            admission_pubkey = self.public_key
             transaction = VaccineTransaction(vaccine, admission_pubkey)
+            print("Created Transaction:")
             print(transaction)
             sign_now = input("Sign transaction now? (Y/N)").lower()
             if sign_now == "y":
-                admission_privkey = eval(input("Enter admission private key"))
+                admission_privkey = self.private_key  # would it be better to visually enter the key?
                 transaction.sign(admission_privkey)
+                print("Trying to send transaction:")
                 print(transaction)
                 self._handle_transaction(transaction, broadcast=True)
             elif sign_now == "n":
@@ -391,13 +400,15 @@ class FullClient(object):
         elif transaction_type == "permission":
             permission_name = input("Which permission should be granted? (Patient/Doctor/Admission)").lower()
             permission = Permission[permission_name]
-            sender_pubkey = eval(input("Enter sender public key"))
+            sender_pubkey = self.public_key
             transaction = PermissionTransaction(permission, sender_pubkey)
+            print("Created Transaction:")
             print(transaction)
             sign_now = input("Sign transaction now? (Y/N)").lower()
             if sign_now == "y":
-                sender_privkey = eval(input("Enter sender private key"))
+                sender_privkey = self.private_key  # would it be better to visually enter the key?
                 transaction.sign(sender_privkey)
+                print("Trying to send transaction:")
                 print(transaction)
                 self.handle_transaction(transaction, broadcast=True)
             elif sign_now == "n":
@@ -406,6 +417,14 @@ class FullClient(object):
                 print("Invalid option {}, aborting.".format(sign_now))
         else:
             print("Invalid option {}, aborting.".format(transaction_type))
+
+
+    def _start_create_transaction_loop(self):
+        try:
+            while True:
+                self._create_transaction()
+        except KeyboardInterrupt:
+            logger.debug("Exiting...")
 
     def process_dangling_blocks(self):
         raise DeprecationWarning("This method shouldn't be used anymore")
