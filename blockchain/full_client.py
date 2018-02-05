@@ -294,17 +294,13 @@ class FullClient(object):
         for node in self.nodes:
             Network.send_block(node, repr(block))
 
-    def _get_status_from_different_node(self, node):
-        random_node = random.choice(self.nodes)
-        block = Network.request_latest_block(random_node)
-        return Block(block.text)
-
     def _broadcast_new_judgement(self, judgement):
         for node in self.nodes:
             Network.send_judgement(node, repr(judgement))
 
     def handle_received_judgement(self, judgement):
         judgement_object = eval(judgement)
+        logger.debug("Received Judgement: {} Raw input: {}".format(judgement_object, judgement))
         if self.chain.update_judgements(judgement_object):
             self._broadcast_new_judgement(judgement_object)
 
