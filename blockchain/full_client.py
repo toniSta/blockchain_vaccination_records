@@ -37,9 +37,10 @@ class FullClient(object):
         self.invalid_transactions = set()
         self.creator_election_thread = None
         self._start_election_thread()
-
-        if os.getenv('REGISTER_AS_ADMISSION') == '1':
-            self._register_self_as_admission()
+        # Call this after starting the server.
+        # self.synchronize_blockchain()
+        # if os.getenv('REGISTER_AS_ADMISSION') == '1':
+        #     self.register_self_as_admission()
 
         logger.debug("Finished full_client init.")
         logger.debug("My public key is: {} or {}".format(self.public_key,
@@ -138,7 +139,14 @@ class FullClient(object):
         self.public_key = self.public_key.exportKey("DER")
 
     def synchronize_blockchain(self):
-        random_node = random.choice(self.nodes)
+        block = self.chain.get_first_branching_block()
+        for node in self.nodes:
+            logger.debug("Trying to synchronize with: {}".format(node))
+            if Network.send_sync_request(node, repr(block)):
+                return
+        logger.debug("Couldn't synchronize chain. No neighbour answered")
+
+        return
         last_block_remote = self._get_status_from_different_node(random_node)
         if last_block_remote.index == self.chain.last_block().index and \
            last_block_remote.hash == self.chain.last_block().hash:
@@ -152,6 +160,27 @@ class FullClient(object):
             syncing_block = self._request_block_at_index(self.chain.last_block().index + 1, random_node)
             self._add_block_if_valid(syncing_block)
             self.synchronize_blockchain()
+
+    def handle_sync_request(self, sender_host, block):
+        sender_address = "http://" + sender_host + ":9000"
+        block = eval(block)
+        first_branch_block = self.chain.get_first_branching_block()
+        if first_branch_block.index < block.index:
+            block = first_branch_block
+        if not self.chain.find_block_by_hash(block.hash):
+            # received block is not part of chain. send complete chain to be save
+            block = self.chain.find_blocks_by_index(0)
+
+        blocks_to_sync = self.chain.get_tree_list_at_hash(block.hash)
+        for block in blocks_to_sync:
+            Network.send_block(sender_address, repr(block))
+            judgements = self.chain.get_judgements_for_blockhash(block.hash)
+            for judgement in judgements:
+                Network.send_judgement(sender_address, repr(judgement))
+
+        dead_branch_judgements = self.chain.get_dead_branches_since_blockhash(block.hash)
+        for judgement in dead_branch_judgements:
+            Network.send_judgement(sender_address, repr(judgement))
 
     def create_next_block(self, parent_hash, timestamp):
         new_block = Block(self.chain.find_block_by_hash(parent_hash).get_block_information(),
@@ -404,7 +433,7 @@ class FullClient(object):
     def process_dangling_blocks(self):
         raise DeprecationWarning("This method shouldn't be used anymore")
 
-    def _register_self_as_admission(self):
+    def register_self_as_admission(self):
         admissions_at_leaf = self.chain.get_admissions()
         for admissions in admissions_at_leaf:
             if self.public_key in admissions[1]:

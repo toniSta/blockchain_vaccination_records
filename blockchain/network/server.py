@@ -3,11 +3,15 @@
 This module defines the interface for the REST API for incoming requests.
 Needs to be replaced, when a P2P is estabished.
 """
+import threading
 
 from flask import Flask, request
 import os
 from threading import Thread
 from ..config import CONFIG
+import logging
+
+logger = logging.getLogger('server')
 
 app = Flask(__name__)
 
@@ -25,6 +29,12 @@ def handle_received_transaction(transaction):
 def handle_received_judgement(judgement):
     """Handle new judgement in extra thread for early return."""
     full_client.handle_received_judgement(judgement)
+
+
+def handle_sync_request(data):
+    sender_host = data[0]
+    block = data[1]
+    full_client.handle_sync_request(sender_host, block)
 
 
 @app.route(CONFIG["ROUTES"]["new_block"], methods=["POST"])
@@ -67,6 +77,15 @@ def _new_judgement():
     return "success"
 
 
+@app.route(CONFIG["ROUTES"]["sync_request"], methods=["POST"])
+def _sync_request():
+    #TODO start thread that send all the blocks
+    data = eval(request.data.decode("utf-8")) # Don't do this in real life!
+
+    Thread(target=handle_sync_request, args=(data,), daemon=True, name="handle_sync_request_thread").start()
+    return "success"
+
+
 def start_server(client):
     """Start the flask server."""
     global full_client
@@ -75,4 +94,9 @@ def start_server(client):
     if os.getenv("SERVER_PORT"):
         port = int(os.getenv("SERVER_PORT"))
     print("running on port {}".format(port))
-    app.run(host="0.0.0.0", port=port)
+    t = threading.Thread(target=app.run, kwargs={'host': "0.0.0.0", 'port': port}, name='Flask Server')
+    t.start()
+    client.synchronize_blockchain()
+    if os.getenv('REGISTER_AS_ADMISSION') == '1':
+        client.register_self_as_admission()
+    t.join()

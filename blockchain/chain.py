@@ -73,7 +73,7 @@ class Chain(object):
                     with open(block_path, "r") as block_file:
                         logger.info("Loading block {} from disk".format(block_path))
                         recreated_block = Block(block_file.read())
-                        judgements = self._load_judgements_from_disk(block_name)
+                        judgements = self._load_judgements_from_disk(self._get_judgement_path(block_name))
                         self.add_block(recreated_block, judgements=judgements)
                 current_block_level += 1
                 level_prefix = str(current_block_level) + "_"
@@ -128,17 +128,16 @@ class Chain(object):
                 for judgement in node.judgements:
                     file.write(repr(node.judgements[judgement]) + '\n')
 
-        def _load_judgements_from_disk(self, file_name):
+        def _load_judgements_from_disk(self, file_path):
             '''
             Load judgements from a file.
 
-            :param file_name: Filename of the file containing judgements. 1 per line
+            :param file_path: Filename of the file containing judgements. 1 per line
             :return: dict of judgements <sender of judgement>: <judgement>
             '''
-            judgement_path = os.path.join(CONFIG["persistance_folder"], 'judgements', file_name)
             judgements = {}
             try:
-                with open(judgement_path, "r") as file:
+                with open(file_path, "r") as file:
                     for line in file:
                         judgement = eval(line)
                         judgements[judgement.sender_pubkey] = judgement
@@ -494,6 +493,41 @@ class Chain(object):
                     self.dangling_nodes.discard(node)
                     return node
             return None
+
+        def get_first_branching_block(self):
+            '''
+            Return the first block which has more than one following block.
+            '''
+            with self._lock:
+                current_node = self.chain_tree
+                while current_node.children:
+                    if current_node.children != 1:
+                        # The current node has no children == end of chain or we have more than one branch
+                        return current_node.block
+                    current_node = current_node.children[0]
+                return current_node
+
+        def get_judgements_for_blockhash(self, blockhash):
+            return self._find_tree_node_by_hash(blockhash).judgements
+
+        def get_dead_branches_since_blockhash(self, blockhash):
+            '''
+            Return a list of judgements of all dead_branches since block with blockhash
+            '''
+            path = self._get_dead_branch_path()
+            content = os.listdir(path)
+            min_index = self._find_tree_node_by_hash(blockhash).block.index
+            if not content:
+                return []
+            max_index = int(max(content).split('_')[0])
+            judgements = []
+            for index in range(min_index, max_index+1):
+                files = [s for s in content if s.startswith(str(index)+'_')]
+                for file in files:
+                    judgement_dict = self._load_judgements_from_disk(self._get_dead_branch_path(file))
+                    for judge in judgement_dict:
+                        judgements.append(judgement_dict[judge])
+            return judgements
 
     __instance = None
 

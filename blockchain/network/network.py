@@ -4,7 +4,7 @@ Since we are not establishing a Peer-To-Peer network in this prototype, we
 implement the necessary network operations via REST-Api calls. All REST calls
 are bundled in this file in order to provide easy exchangeability.
 """
-
+import socket
 from abc import ABCMeta
 import requests
 from ..config import CONFIG
@@ -59,6 +59,20 @@ class Network(ABCMeta):
         except requests.exceptions.ConnectionError as r:
             logger.debug("Got Exception while connecting to {}: {}".format(route, r))
 
+    @staticmethod
+    def send_sync_request(node, block):
+        route = node + CONFIG["ROUTES"]["sync_request"]
+        hostname = socket.gethostname()
+        data = [hostname, block]
+        try:
+            r = requests.post(route, data=repr(data))
+        except requests.exceptions.ReadTimeout as r:
+            logger.debug("Got a ReadTimeout while sending sync request to {}: {}".format(route, r))
+            return False
+        except requests.exceptions.ConnectionError as r:
+            logger.debug("Got Exception while connecting to {}: {}".format(route, r))
+            return False
+        return r.ok
 
 def simulate_latency():
     """Wait for a short period to simulate network latency.
