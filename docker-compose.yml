@@ -10,7 +10,7 @@ services:
       - ./blockchain/keys:/app/blockchain/keys
     environment:
       SERVER_PORT: 9000
-      NEIGHBORS_HOST_PORT: admission:9000
+      NEIGHBORS_HOST_PORT: admission:9000, doctor:9000
       RENDER_CHAIN_TREE: 1
     ports:
       - "9000"
@@ -21,12 +21,26 @@ services:
       dockerfile: Full_Client.Dockerfile
     environment:
       SERVER_PORT: 9000
-      NEIGHBORS_HOST_PORT: genesis_admission:9000 #,full_client:9000
+      NEIGHBORS_HOST_PORT: genesis_admission:9000, doctor:9000
       REGISTER_AS_ADMISSION: 1
     ports:
       - "9000"
     depends_on:
       - genesis_admission
+
+  doctor:
+      build:
+        context: .
+        dockerfile: Full_Client.Dockerfile
+      environment:
+        SERVER_PORT: 9000
+        NEIGHBORS_HOST_PORT: genesis_admission:9000, admission:9000
+        REGISTER_AS_DOCTOR: 1
+      ports:
+        - "9000"
+      depends_on:
+        - genesis_admission
+        - admission
 
 #  full_client:
 #    build:
