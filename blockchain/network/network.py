@@ -25,11 +25,14 @@ class Network(ABCMeta):
         route = node + CONFIG["ROUTES"]["new_block"]
         simulate_latency()
         try:
-            requests.post(route, data=block_data, timeout=5)
+            r = requests.post(route, data=block_data, timeout=5)
         except requests.exceptions.ReadTimeout as r:
             logger.debug("Got a ReadTimeout while sending block to {}: {}".format(route, r))
+            return False
         except requests.exceptions.ConnectionError as r:
             logger.debug("Got Exception while connecting to {}: {}".format(route, r))
+            return  False
+        return r.ok
 
     @staticmethod
     def request_latest_block(node):

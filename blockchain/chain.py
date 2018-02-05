@@ -311,7 +311,7 @@ class Chain(object):
 
         def get_tree_list_at_hash(self, hash):
             """Collect all descendants from the specified node."""
-            selected_node = find(self.chain_tree, lambda node: node.hash == hash)
+            selected_node = find(self.chain_tree, lambda node: node.block.hash == hash)
             if selected_node:
                 return [node.block for node in selected_node.descendants]
             else:
@@ -502,11 +502,11 @@ class Chain(object):
             with self._lock:
                 current_node = self.chain_tree
                 while current_node.children:
-                    if current_node.children != 1:
+                    if len(current_node.children) != 1:
                         # The current node has no children == end of chain or we have more than one branch
                         return current_node.block
                     current_node = current_node.children[0]
-                return current_node
+                return current_node.block
 
         def get_judgements_for_blockhash(self, blockhash):
             return self._find_tree_node_by_hash(blockhash).judgements
@@ -516,7 +516,10 @@ class Chain(object):
             Return a list of judgements of all dead_branches since block with blockhash
             '''
             path = self._get_dead_branch_path()
-            content = os.listdir(path)
+            try:
+                content = os.listdir(path)
+            except FileNotFoundError:
+                content = []
             min_index = self._find_tree_node_by_hash(blockhash).block.index
             if not content:
                 return []
