@@ -70,6 +70,6 @@ def simulate_latency():
     if ARTIFICIAL_LATENCY_ENABLED:
         sleep_interval = CONFIG["sleep_interval"]
         sleep_time = random.uniform(sleep_interval[0], sleep_interval[1])
-        logger.debug("Set random sleep time to {} ms"
+        logger.debug("Set random sleep time to {} seconds."
                      .format(round(sleep_time, 3)))
         time.sleep(sleep_time)
