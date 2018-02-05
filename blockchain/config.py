@@ -33,7 +33,7 @@ CONFIG = {
     "default_port": 9000,
     # Enable/disable extra sleep, when making network requests
     # in order to simulate network latency
-    "artificial_latency_enabled": True,
+    "artificial_latency_enabled": False,
     # Time interval the network component will wait before making a request
     # (values are seconds)
     "sleep_interval": (0.1, 0.5)
