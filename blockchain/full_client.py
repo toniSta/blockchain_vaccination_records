@@ -416,6 +416,10 @@ class FullClient(object):
         self._broadcast_new_transaction(tx)
 
     def _create_and_submit_judgement(self, block, accepted):
+        admissions, _, _ = self.chain.get_registration_caches_by_blockhash(block.previous_block)
+        if self.public_key not in admissions:
+            logger.debug("No admission in branch of block: {}".format(block))
+            return
         judgement = Judgement(block.hash, accepted, self.public_key)
         judgement.sign(self.private_key)
         self.chain.update_judgements(judgement)
