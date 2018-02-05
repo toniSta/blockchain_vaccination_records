@@ -85,6 +85,7 @@ class Chain(object):
 
             return True if the judgement was new, False if it was already there
             """
+            logger.debug("Trying to update judgements with: {}".format(judgement))
             changed_judgments= False
             with self._lock:
                 node = self._find_tree_node_by_hash(judgement.hash_of_judged_block)
@@ -528,6 +529,11 @@ class Chain(object):
                     for judge in judgement_dict:
                         judgements.append(judgement_dict[judge])
             return judgements
+
+        def _get_dangling_node_by_hash(self, hash_of_judged_block):
+            for node in self.dangling_nodes:
+                if node.block.hash == hash_of_judged_block:
+                    return node
 
     __instance = None
 
