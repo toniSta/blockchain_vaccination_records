@@ -120,7 +120,7 @@ class Chain(object):
                 return changed_judgments
 
         def _persist_judgements_for_node(self, node):
-            file_name = self._get_file_name(node)
+            file_name = self._get_file_name(node=node)
             judgement_path = os.path.join(CONFIG["persistance_folder"], 'judgements', file_name)
             if not os.path.exists(os.path.dirname(judgement_path)):
                 os.makedirs(os.path.dirname(judgement_path))
@@ -402,7 +402,7 @@ class Chain(object):
             return self._lock._is_owned()
 
         def _remove_block_file(self, node):
-            file_name = self._get_file_name(node)
+            file_name = self._get_file_name(node=node)
             persistence_folder = CONFIG["persistance_folder"]
             file_path = os.path.join(persistence_folder, file_name)
             try:
@@ -430,7 +430,7 @@ class Chain(object):
             :param node:
             :return:
             '''
-            file_name = self._get_file_name(node)
+            file_name = self._get_file_name(node=node)
             judgement_path = self._get_judgement_path(file_name)
             try:
                 os.remove(judgement_path)
@@ -457,15 +457,23 @@ class Chain(object):
             return os.path.join(CONFIG["persistance_folder"], 'dead_branches')
 
         def _save_dead_branch(self, node):
-            file_name = self._get_file_name(node)
+            file_name = self._get_file_name(node=node)
             judgement_path = self._get_judgement_path(file_name)
             dead_branch_path = self._get_dead_branch_path(file_name)
             if not os.path.exists(os.path.dirname(dead_branch_path)):
                 os.makedirs(os.path.dirname(dead_branch_path))
             os.rename(judgement_path, dead_branch_path)
 
-        def _get_file_name(self, node):
-            return "_".join([str(node.block.index), node.block.previous_block, node.block.hash])
+        def is_dead_branch_root(self, block):
+            file_name = self._get_file_name(block=block)
+            dead_branch_path = self._get_dead_branch_path(file_name)
+            return os.path.exists(dead_branch_path)
+
+        def _get_file_name(self, node=None, block=None):
+            if node:
+                return "_".join([str(node.block.index), node.block.previous_block, node.block.hash])
+            if block:
+                return "_".join([str(block.index), block.previous_block, block.hash])
 
         def is_block_dangling(self, block):
             with self._lock:

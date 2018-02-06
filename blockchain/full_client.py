@@ -213,8 +213,10 @@ class FullClient(object):
         logger.debug("Received new block: {}".format(str(new_block)))
 
         with self.chain:
-            if self.chain.find_block_by_hash(new_block.hash) or\
-               self.chain.is_block_dangling(new_block):
+            if self.chain.find_block_by_hash(new_block.hash) or \
+               self.chain.is_block_dangling(new_block) or \
+               self.chain.is_dead_branch_root(new_block):
+                # It would be better to check if the block is part of a dead branch. Won't implement this.
                 logger.debug("The received block is already part of chain or "
                              "a dangling block: {}".format(str(new_block)))
                 return
