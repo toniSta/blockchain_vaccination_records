@@ -321,7 +321,6 @@ class Chain(object):
 
         def _resend_transactions(self, transactions):
             for tx in transactions:
-                logger.debug("Resending Transaction: {}".format(tx))
                 Network.broadcast_new_transaction('http://localhost:9000', repr(tx))
 
         def _is_transaction_in_subtree(self, tx, root_node):
