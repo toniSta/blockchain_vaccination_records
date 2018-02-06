@@ -97,7 +97,7 @@ def start_server(client):
     print("running on port {}".format(port))
     t = threading.Thread(target=app.run, kwargs={'host': "0.0.0.0", 'port': port}, name='Flask Server')
     t.start()
-    sleep(.01)  # wait until server started up
+    sleep(1)  # wait until server started up
     client.synchronize_blockchain()
     if os.getenv('REGISTER_AS_ADMISSION') == '1':
         client.register_self_as_admission()
