@@ -96,7 +96,7 @@ def start_server(client):
     port = CONFIG["default_port"]
     if os.getenv("SERVER_PORT"):
         port = int(os.getenv("SERVER_PORT"))
-    print("running on port {}".format(port))
+    logger.debug("running on port {}".format(port))
     t = threading.Thread(target=app.run, kwargs={'host': "0.0.0.0", 'port': port}, name='Flask Server')
     t.start()
     sleep(1)  # wait until server started up

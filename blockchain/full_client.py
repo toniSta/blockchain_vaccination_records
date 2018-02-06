@@ -459,20 +459,20 @@ class FullClient(object):
         with self.chain:
             leaf_blocks = self.chain.get_leaves()
             leaf_hashes = [block.hash for block in leaf_blocks]
-            print("Available Leaf Block Hashes are:")
-            print(leaf_hashes)
-            selected_hash = input("Enter Leaf Block Hash to append to or 'r' to refresh: ")
-            if selected_hash == 'r':
-                return
-            timestamp = int(time.time())
-            new_block = self.create_next_block(selected_hash, timestamp)
-            print("Created Block:")
-            print(new_block)
-            send_now = input("Confirm to send block. (Y)").lower()
-            if send_now == "y":
-                self.submit_block(new_block)
-            else:
-                print("Invalid option {}, aborting.".format(send_now))
+        print("Available Leaf Block Hashes are:")
+        print(leaf_hashes)
+        selected_hash = input("Enter Leaf Block Hash to append to or 'r' to refresh: ")
+        if selected_hash == 'r':
+            return
+        timestamp = int(time.time())
+        new_block = self.create_next_block(selected_hash, timestamp)
+        print("Created Block:")
+        print(new_block)
+        send_now = input("Confirm to send block. (Y)").lower()
+        if send_now == "y":
+            self.submit_block(new_block)
+        else:
+            print("Invalid option {}, aborting.".format(send_now))
 
     def process_dangling_blocks(self):
         raise DeprecationWarning("This method shouldn't be used anymore")
