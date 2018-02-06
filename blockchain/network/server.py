@@ -49,7 +49,7 @@ def _new_block():
 
 @app.route(CONFIG["ROUTES"]["block_by_index"], methods=["GET"])
 def _send_block_by_id(index):
-    # TODO use multiple leaves
+    # TODO use multiple leaves. Is this used somewhere?
     block = full_client.chain.find_blocks_by_index(int(index))[0]
     return repr(block)
 
@@ -82,9 +82,7 @@ def _new_judgement():
 
 @app.route(CONFIG["ROUTES"]["sync_request"], methods=["POST"])
 def _sync_request():
-    #TODO start thread that send all the blocks
     data = eval(request.data.decode("utf-8")) # Don't do this in real life!
-
     Thread(target=handle_sync_request, args=(data,), daemon=True, name="handle_sync_request_thread").start()
     return "success"
 

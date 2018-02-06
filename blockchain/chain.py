@@ -194,7 +194,7 @@ class Chain(object):
                             break
 
                     if len(invalidated_blocks) == 0:
-                        # TODO only return branch that is still accepted by the current full client.
+                        # WONTFIX: only return list of blocks of nodes in the branch that needs to be invalidated.
                         # This will need some architectural changes
                         for node in new_node.siblings:
                             invalidated_blocks.add(node.block)
@@ -415,7 +415,6 @@ class Chain(object):
                     number_of_denies += 1
             # The admission that created the block doesn't judge. Therefore '-1'
             number_of_admissions = len(self.get_registration_caches_by_blockhash(node.block.previous_block)) - 1
-            #TODO test if this realy works. needs sync and some interaction ui
             if number_of_denies > number_of_admissions / 2:
                 logger.debug("Going to remove sub tree starting with block: {}".format(node.block))
                 self._remove_tree_at_node(node)

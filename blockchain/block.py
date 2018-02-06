@@ -199,7 +199,7 @@ class Block(object):
 
 def create_initial_block(public_key, private_key):
     """Create the genesis block."""
-    # TODO: remove before final code submission
+    # TODO: Add description how to generate genesis block with this code
     logger.info("Creating new genesis block")
     genesis = Block({
         "index": -1,  # index is always incremented by one, so genesis index is actually 0
