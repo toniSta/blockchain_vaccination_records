@@ -38,3 +38,9 @@ If you want to access you client, use `docker exec -it custom_client bash`
 
 - run tests with `pytest` in root directory of the repo
 - in order to get the test coverage run: `py.test --cov blockchain tests --cov-report=html`
+
+
+### Demo Interactions
+- ENV Variable START_CLI -> starts CLI for doctor (transaction creation) or admission (block creation)
+- ENV Variable REGISTER_AS_ADMISSION -> necessary to enable start_cli to find out if doctor or admission
+- ENV Variable CONFIRM_BLOCKSENDING -> if set the node participates in creator election and if it becomes the blockcreator it creates the blocks and waits for confirmation before sending
