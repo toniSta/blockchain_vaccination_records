@@ -330,9 +330,9 @@ class FullClient(object):
         logger.debug("Received Transaction: {}".format(transaction))
         self.handle_transaction(transaction_object, broadcast=False)
 
-    def handle_transaction(self, transaction, broadcast=False):
+    def handle_transaction(self, transaction, broadcast=False, print_nodes=False):
         if broadcast:
-            self._broadcast_new_transaction(transaction)
+            self._broadcast_new_transaction(transaction, print_nodes=print_nodes)
         if self.transaction_set.contains(transaction):
             return  # Transaction was already received
         if self._check_if_transaction_in_chain(transaction):
@@ -369,11 +369,12 @@ class FullClient(object):
                 blocks_checked += 1
         return False
 
-    def _broadcast_new_transaction(self, transaction):
+    def _broadcast_new_transaction(self, transaction, print_nodes=False):
         """Broadcast transaction to required number of admission nodes."""
         # WONTFIX: should send to admissions only but any other node currently ignores
         for node in self.nodes:
-            print("Sending transaction to {}".format(node))
+            if print_nodes:
+                print("Sending transaction to {}".format(node))
             Network.broadcast_new_transaction(node, repr(transaction))
 
     def _create_transaction(self):
@@ -411,7 +412,7 @@ class FullClient(object):
                 transaction.sign(admission_privkey)
                 print("Trying to send transaction:")
                 print(transaction)
-                self.handle_transaction(transaction, broadcast=True)
+                self.handle_transaction(transaction, broadcast=True, print_nodes=True)
             elif sign_now == "n":
                 print("Cannot broadcast unsigned transactions, aborting.")
             else:
