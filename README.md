@@ -33,7 +33,12 @@ You can stop the client with `docker stop custom_client` and don't forget to cle
 
 If you want to access you client, use `docker exec -it custom_client bash`
 
-
+a4:
+docker run --name a4 -it -p 9000 --network blockchainvaccinationrecords_default -e "REGISTER_AS_ADMISSION=1"  -e "START_CLI=1" -e "NEIGHBORS_HOST_PORT=a3:9000,genesis_admission:9000" full_client_image
+a5:
+docker run --name a5 -it -p 9000 --network blockchainvaccinationrecords_default -e "REGISTER_AS_ADMISSION=1"  -e "CONFIRM_BLOCKSENDING=1" -e "NEIGHBORS_HOST_PORT=genesis_admission:9000,d1:9000" full_client_image
+d3:
+docker run --name d3 -it -p 9000 --network blockchainvaccinationrecords_default -e "START_CLI=1" -e "NEIGHBORS_HOST_PORT=d1:9000,a2:9000,d2:9000" full_client_image
 ### Testing
 
 - run tests with `pytest` in root directory of the repo

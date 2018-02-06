@@ -271,6 +271,8 @@ class FullClient(object):
 
         while True:
             try:
+                if os.getenv('CONFIRM_BLOCKSENDING') == '1':
+                    print('Waiting to be next block creator...')
                 time.sleep(CONFIG["block_time"] / 2) # block_time needs to be at least 2s
                 admission = False
                 for _, admissions in self.chain.get_admissions():
@@ -283,24 +285,25 @@ class FullClient(object):
                     timestamp = int(time.time())
                     next_creators_list = self.determine_block_creation_node(timestamp)
 
-                    for hash, next_creator in next_creators_list:
-                        if next_creator == self.public_key:
-                            logger.debug("creator_election: next creator is self")
-                            new_block = self.create_next_block(hash, timestamp)
-                            if not new_block.validate(self.chain.find_block_by_hash(hash)):
-                                logger.error("New generated block is not valid! {}".format(repr(new_block)))
-                                self.transaction_set.add_multiple(self.new_block.transactions)
-                                continue
-                            if os.getenv('CONFIRM_BLOCKSENDING') == '1':
-                                send_now = input("Confirm to send block. (Y)").lower()
-                                if send_now == "y":
-                                    self.submit_block(new_block)
-                                else:
-                                    print("Invalid option {}, aborting.".format(send_now))
-                            else:
+                for hash, next_creator in next_creators_list:
+                    if next_creator == self.public_key:
+                        logger.debug("creator_election: next creator is self")
+                        new_block = self.create_next_block(hash, timestamp)
+                        if not new_block.validate(self.chain.find_block_by_hash(hash)):
+                            logger.error("New generated block is not valid! {}".format(repr(new_block)))
+                            self.transaction_set.add_multiple(self.new_block.transactions)
+                            continue
+                        if os.getenv('CONFIRM_BLOCKSENDING') == '1':
+                            print("Crafted the follwoing block: {}".format(new_block))
+                            send_now = input("Confirm to send block. (Y)").lower()
+                            if send_now == "y":
                                 self.submit_block(new_block)
+                            else:
+                                print("Invalid option {}, aborting.".format(send_now))
                         else:
-                            logger.debug("creator_election: next creator is other")
+                            self.submit_block(new_block)
+                    else:
+                        logger.debug("creator_election: next creator is other")
             except Exception:
                 logger.exception("Exception in election thread:")
 

@@ -300,11 +300,12 @@ class Chain(object):
             with self._lock:
                 node.parent = None
                 nodes_to_delete = node.descendants
+                self._remove_block_file(node)
+                self._save_dead_branch(node)
                 for node in nodes_to_delete:
                     self._remove_block_file(node)
                     self._remove_judgement_file(node)
-                self._remove_block_file(node)
-                self._save_dead_branch(node)
+
 
 
         def get_tree_list_at_hash(self, hash):
@@ -418,6 +419,7 @@ class Chain(object):
             number_of_admissions = len(self.get_registration_caches_by_blockhash(node.block.previous_block)) - 1
             #TODO test if this realy works. needs sync and some interaction ui
             if number_of_denies > number_of_admissions / 2:
+                logger.debug("Going to remove sub tree starting with block: {}".format(node.block))
                 self._remove_tree_at_node(node)
 
         def _remove_judgement_file(self, node):
@@ -461,7 +463,10 @@ class Chain(object):
             dead_branch_path = self._get_dead_branch_path(file_name)
             if not os.path.exists(os.path.dirname(dead_branch_path)):
                 os.makedirs(os.path.dirname(dead_branch_path))
-            os.rename(judgement_path, dead_branch_path)
+            try:
+                os.rename(judgement_path, dead_branch_path)
+            except FileNotFoundError:
+                pass  # For safety. Shouldn't occur.
 
         def is_dead_branch_root(self, block):
             file_name = self._get_file_name(block=block)
