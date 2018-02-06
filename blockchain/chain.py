@@ -85,7 +85,6 @@ class Chain(object):
 
             return True if the judgement was new, False if it was already there
             """
-            logger.debug("Trying to update judgements with: {}".format(judgement))
             changed_judgments= False
             with self._lock:
                 node = self._find_tree_node_by_hash(judgement.hash_of_judged_block)

@@ -142,7 +142,7 @@ class FullClient(object):
         block = self.chain.get_first_branching_block()
         for node in self.nodes:
             if Network.send_sync_request(node, repr(block)):
-                logger.debug("Synchronize with: {}".format(node))
+                logger.debug("Synchronize with {} starting from index {}".format(node, block.index))
                 return
         logger.debug("Couldn't synchronize chain. No neighbour answered")
 
@@ -164,11 +164,12 @@ class FullClient(object):
 
             judgements = self.chain.get_judgements_for_blockhash(block.hash)
             for judgement in judgements:
-                logger.debug("Resending Judgement: {} Raw: {}".format(judgement, repr(judgement)))
+                logger.debug("Resending judgement: {}".format(judgement))
                 Network.send_judgement(sender_address, repr(judgement))
 
         dead_branch_judgements = self.chain.get_dead_branches_since_blockhash(block.hash)
         for judgement in dead_branch_judgements:
+            logger.debug("Resending dead branch judgement: {}".format(judgement))
             Network.send_judgement(sender_address, repr(judgement))
 
     def create_next_block(self, parent_hash, timestamp):
@@ -301,7 +302,7 @@ class FullClient(object):
 
     def handle_received_judgement(self, judgement):
         judgement_object = eval(judgement)
-        logger.debug("Received Judgement: {} Raw input: {}".format(judgement_object, judgement))
+        logger.debug("Received Judgement: {}".format(judgement_object))
         if self.chain.update_judgements(judgement_object):
             self._broadcast_new_judgement(judgement_object)
 
