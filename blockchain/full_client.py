@@ -15,6 +15,7 @@ from .network.network import Network
 from .transaction import *
 from .helper.cryptography import generate_keypair
 from Crypto.PublicKey import RSA
+from blockchain.helper.logger import write_logs_to_file
 
 logger = logging.getLogger("client")
 scheduler = sched.scheduler(time.time, time.sleep)
@@ -46,7 +47,8 @@ class FullClient(object):
         logger.debug("My public key is: {} or {}".format(self.public_key,
                                                          self.public_key.hex()))
 
-        if os.getenv('START_TRANSACTION_CLI'):
+        if os.getenv('START_CLI') == '1':
+            write_logs_to_file()
             self._start_create_transaction_loop()
 
     def _start_election_thread(self):

@@ -11,7 +11,9 @@ import os
 from threading import Thread
 from ..config import CONFIG
 import logging
+from blockchain.helper.logger import setup_basic_logger_config
 
+setup_basic_logger_config()
 logger = logging.getLogger('server')
 
 app = Flask(__name__)

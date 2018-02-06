@@ -18,13 +18,14 @@ docker build -t full_client_image -f Full_Client.Dockerfile .
 
 You can start a client with the following commands:
 
-`docker run --name custom_client -p 9000 --network blockchainvaccinationrecords_default -e "SERVER_PORT=9000" full_client_image`
+`docker run --name custom_client -it -p 9000 --network blockchainvaccinationrecords_default full_client_image`
 
 You may add one or more of the following options:
 ```
 -e "NEIGHBORS_HOST_PORT=host:9000,host2:9000" # This option defines the direct neighbours of your client. You can use any service name of `docker-compose.yml` or any custom client (`--name` option)
 -e "REGISTER_AS_ADMISSION=1" # Wheather the client should register itself as admission node after startup.
 -e "RENDER_CHAIN_TREE=1" # Wheather the client should render the tree as a picture (best to combine with `-v`
+-e "START_CLI=1"  # This will start a cli dependend on REGISTER_AS_ADMISSION you will get a doctor cli oder a admission cli
 -v /path/to/directory/containing/genesis_block:/app/blockchain/blockchain_files # Mount a directoryto store the blockchainfiles (and the rendered picture)
 ```
 
