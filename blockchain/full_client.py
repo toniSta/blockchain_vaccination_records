@@ -231,6 +231,12 @@ class FullClient(object):
                 logger.debug("The received block is already part of chain or "
                              "a dangling block: {}".format(str(new_block)))
                 return
+
+            if not self._is_block_created_by_expected_creator(new_block):
+                logger.debug("Creator of received block doesn't match expected creator. Creating deny judgement: {}"
+                             .format(str(new_block)))
+                self._create_and_submit_judgement(new_block, False)
+                return
             self._broadcast_new_block(new_block)
             self._process_new_block(new_block)
 
@@ -240,12 +246,6 @@ class FullClient(object):
             self.chain.add_dangling_block(new_block)
             logger.debug("Parent block of received block not yet received. Adding new block to dangling blocks: {}"
                          .format(str(new_block)))
-            return
-
-        if not self._is_block_created_by_expected_creator(new_block):
-            logger.debug("Creator of received block doesn't match expected creator. Creating deny judgement: {}"
-                         .format(str(new_block)))
-            self._create_and_submit_judgement(new_block, False)
             return
         else:
             if not new_block.validate(parent_block):
