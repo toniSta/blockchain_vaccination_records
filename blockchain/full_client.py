@@ -37,11 +37,11 @@ class FullClient(object):
         self.transaction_set = TransactionSet()
         self.invalid_transactions = set()
         self.creator_election_thread = None
+
+        if os.getenv('CONFIRM_BLOCKSENDING') == '1':
+            write_logs_to_file()
+
         self._start_election_thread()
-        # Call this after starting the server.
-        # self.synchronize_blockchain()
-        # if os.getenv('REGISTER_AS_ADMISSION') == '1':
-        #     self.register_self_as_admission()
 
         logger.debug("Finished full_client init.")
         logger.debug("My public key is: {} or {}".format(self.public_key,
@@ -49,12 +49,12 @@ class FullClient(object):
 
         if os.getenv('START_CLI') == '1':
             write_logs_to_file()
-            t = threading.Thread(target=self._start_create_transaction_loop, daemon=True, name="doctor cli")
+            if os.getenv('REGISTER_AS_ADMISSION') == '1':  # start block creation cli
+                t = threading.Thread(target=self._start_block_creation_repl, daemon=True, name="admission cli")
+            else:  # start transaction creation cli
+                t = threading.Thread(target=self._start_create_transaction_loop, daemon=True, name="doctor cli")
             time.sleep(0.5)
             t.start()
-
-        if os.getenv('START_RANDOM_BLOCK_CREATION_CLI'):
-            self._start_random_block_creation_loop()
 
     def _start_election_thread(self):
         self.creator_election_thread = threading.Thread(target=self.creator_election, name="election thread", daemon=True)
@@ -291,7 +291,14 @@ class FullClient(object):
                                 logger.error("New generated block is not valid! {}".format(repr(new_block)))
                                 self.transaction_set.add_multiple(self.new_block.transactions)
                                 continue
-                            self.submit_block(new_block)
+                            if os.getenv('CONFIRM_BLOCKSENDING') == '1':
+                                send_now = input("Confirm to send block. (Y)").lower()
+                                if send_now == "y":
+                                    self.submit_block(new_block)
+                                else:
+                                    print("Invalid option {}, aborting.".format(send_now))
+                            else:
+                                self.submit_block(new_block)
                         else:
                             logger.debug("creator_election: next creator is other")
             except Exception:
@@ -360,7 +367,7 @@ class FullClient(object):
 
     def _broadcast_new_transaction(self, transaction):
         """Broadcast transaction to required number of admission nodes."""
-        # TODO: send to admissions only
+        # WONTFIX: should send to admissions only but any other node currently ignores
         for node in self.nodes:
             Network.broadcast_new_transaction(node, repr(transaction))
 
@@ -434,27 +441,31 @@ class FullClient(object):
         except KeyboardInterrupt:
             logger.debug("Exiting...")
 
-    def _start_random_block_creation_loop(self):
+    def _start_block_creation_repl(self):
         """Start a CLI REPL for creating and sending blocks at will."""
         try:
             while True:
-                self._randomly_create_block()
+                self._create_block_on_demand()
         except KeyboardInterrupt:
             logger.debug("Exiting...")
 
-    def _randomly_create_block(self):
-        """Allows random generation of blocks and sending them at arbitrary time."""
-        random_time = random.randrange(10, 60)  # in seconds
-        time.sleep(random_time)
-        new_block = self.create_next_block(hash, timestamp)
-        print("Randomly created Block:")
-        print(new_block)
-        send_now = input("Confirm to send block. (Y)").lower()
-        if send_now == "y":
-            self.submit_block(new_block)
-        else:
-            print("Invalid option {}, aborting.".format(send_now))
-
+    def _create_block_on_demand(self):
+        """Allows block generation and sending on demand."""
+        with self.chain:
+            leaf_blocks = self.chain.get_leaves()
+            leaf_hashes = [block.hash for block in leaf_blocks]
+            print("Available Leaf Block Hashes are:")
+            print(leaf_hashes)
+            selected_hash = input("Enter Leaf Block Hash to append to: ")
+            timestamp = int(time.time())
+            new_block = self.create_next_block(selected_hash, timestamp)
+            print("Created Block:")
+            print(new_block)
+            send_now = input("Confirm to send block. (Y)").lower()
+            if send_now == "y":
+                self.submit_block(new_block)
+            else:
+                print("Invalid option {}, aborting.".format(send_now))
 
     def process_dangling_blocks(self):
         raise DeprecationWarning("This method shouldn't be used anymore")
