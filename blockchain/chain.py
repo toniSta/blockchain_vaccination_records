@@ -100,7 +100,6 @@ class Chain(object):
                     self._persist_judgements_for_node(node)
                     self._check_branch_for_deletion(node)
 
-                    self._render_current_tree()
                 else:
                     node = self._get_dangling_node_by_hash(judgement.hash_of_judged_block)
                     if not node:
@@ -204,10 +203,9 @@ class Chain(object):
 
                 logger.debug("Added block {} to chain.".format(block.index))
 
-                self._render_current_tree()
                 return invalidated_blocks
 
-        def _render_current_tree(self):
+        def render_current_tree(self):
             if os.getenv("RENDER_CHAIN_TREE") == '1':
                 # graphviz needs to be installed for the next line!
                 try:
@@ -447,7 +445,10 @@ class Chain(object):
             old_dead_branches = [f for f in dead_branch_files if f.startswith(level_prefix)]
 
             for dead_branch in old_dead_branches:
-                os.remove(dead_branch)
+                try:
+                    os.remove(dead_branch)
+                except FileNotFoundError:
+                    pass  #file already removed by another thread
 
         def _get_judgement_path(self, file_name):
             return os.path.join(CONFIG["persistance_folder"], 'judgements', file_name)

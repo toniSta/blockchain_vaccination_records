@@ -206,6 +206,7 @@ class FullClient(object):
     def submit_block(self, block):
         self.chain.add_block(block)
         block.persist()
+        self.chain.render_current_tree()
         self._broadcast_new_block(block)
 
     def received_new_block(self, block_representation):
@@ -262,6 +263,7 @@ class FullClient(object):
                 self.transaction_set.discard_multiple(new_block.transactions)
                 for block in self.chain.get_list_of_dangling_blocks():
                     self._process_new_block(block)
+        self.chain.render_current_tree()
 
     def creator_election(self):
         """This method checks if this node needs to generate a new block.
