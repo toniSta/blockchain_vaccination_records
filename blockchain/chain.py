@@ -85,7 +85,6 @@ class Chain(object):
 
             return True if the judgement was new, False if it was already there
             """
-            logger.debug("Trying to update judgements with: {}".format(judgement))
             changed_judgments= False
             with self._lock:
                 node = self._find_tree_node_by_hash(judgement.hash_of_judged_block)
@@ -106,9 +105,8 @@ class Chain(object):
                     node = self._get_dangling_node_by_hash(judgement.hash_of_judged_block)
                     if not node:
                         # since blocks are send before judgements by every node, this shouldn't happen.
-                        logger.debug("Could not add judgement, block with hash {} not found in tree".format(
-                            judgement.hash_of_judged_block))
-                        changed_judgments = True
+                        logger.debug("Could not add judgement, block with hash {} not found in tree or dangling blocks"
+                                     .format(judgement.hash_of_judged_block))
                         return changed_judgments
 
                     if judgement.sender_pubkey in node.judgements:  # already received a judgement from that node
@@ -121,7 +119,7 @@ class Chain(object):
                 return changed_judgments
 
         def _persist_judgements_for_node(self, node):
-            file_name = self._get_file_name(node)
+            file_name = self._get_file_name(node=node)
             judgement_path = os.path.join(CONFIG["persistance_folder"], 'judgements', file_name)
             if not os.path.exists(os.path.dirname(judgement_path)):
                 os.makedirs(os.path.dirname(judgement_path))
@@ -403,7 +401,7 @@ class Chain(object):
             return self._lock._is_owned()
 
         def _remove_block_file(self, node):
-            file_name = self._get_file_name(node)
+            file_name = self._get_file_name(node=node)
             persistence_folder = CONFIG["persistance_folder"]
             file_path = os.path.join(persistence_folder, file_name)
             try:
@@ -431,7 +429,7 @@ class Chain(object):
             :param node:
             :return:
             '''
-            file_name = self._get_file_name(node)
+            file_name = self._get_file_name(node=node)
             judgement_path = self._get_judgement_path(file_name)
             try:
                 os.remove(judgement_path)
@@ -458,15 +456,23 @@ class Chain(object):
             return os.path.join(CONFIG["persistance_folder"], 'dead_branches')
 
         def _save_dead_branch(self, node):
-            file_name = self._get_file_name(node)
+            file_name = self._get_file_name(node=node)
             judgement_path = self._get_judgement_path(file_name)
             dead_branch_path = self._get_dead_branch_path(file_name)
             if not os.path.exists(os.path.dirname(dead_branch_path)):
                 os.makedirs(os.path.dirname(dead_branch_path))
             os.rename(judgement_path, dead_branch_path)
 
-        def _get_file_name(self, node):
-            return "_".join([str(node.block.index), node.block.previous_block, node.block.hash])
+        def is_dead_branch_root(self, block):
+            file_name = self._get_file_name(block=block)
+            dead_branch_path = self._get_dead_branch_path(file_name)
+            return os.path.exists(dead_branch_path)
+
+        def _get_file_name(self, node=None, block=None):
+            if node:
+                return "_".join([str(node.block.index), node.block.previous_block, node.block.hash])
+            if block:
+                return "_".join([str(block.index), block.previous_block, block.hash])
 
         def is_block_dangling(self, block):
             with self._lock:
@@ -509,7 +515,15 @@ class Chain(object):
                 return current_node.block
 
         def get_judgements_for_blockhash(self, blockhash):
-            return self._find_tree_node_by_hash(blockhash).judgements
+            '''
+            Return list of judgements of a block.
+            '''
+            judgement_dict = self._find_tree_node_by_hash(blockhash).judgements
+            judgements = []
+            for judge in judgement_dict:
+                judgements.append(judgement_dict[judge])
+
+            return judgements
 
         def get_dead_branches_since_blockhash(self, blockhash):
             '''

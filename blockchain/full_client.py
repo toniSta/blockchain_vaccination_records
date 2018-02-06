@@ -145,7 +145,7 @@ class FullClient(object):
         block = self.chain.get_first_branching_block()
         for node in self.nodes:
             if Network.send_sync_request(node, repr(block)):
-                logger.debug("Synchronize with: {}".format(node))
+                logger.debug("Synchronize with {} starting from index {}".format(node, block.index))
                 return
         logger.debug("Couldn't synchronize chain. No neighbour answered")
 
@@ -167,10 +167,12 @@ class FullClient(object):
 
             judgements = self.chain.get_judgements_for_blockhash(block.hash)
             for judgement in judgements:
+                logger.debug("Resending judgement: {}".format(judgement))
                 Network.send_judgement(sender_address, repr(judgement))
 
         dead_branch_judgements = self.chain.get_dead_branches_since_blockhash(block.hash)
         for judgement in dead_branch_judgements:
+            logger.debug("Resending dead branch judgement: {}".format(judgement))
             Network.send_judgement(sender_address, repr(judgement))
 
     def create_next_block(self, parent_hash, timestamp):
@@ -214,8 +216,10 @@ class FullClient(object):
         logger.debug("Received new block: {}".format(str(new_block)))
 
         with self.chain:
-            if self.chain.find_block_by_hash(new_block.hash) or\
-               self.chain.is_block_dangling(new_block):
+            if self.chain.find_block_by_hash(new_block.hash) or \
+               self.chain.is_block_dangling(new_block) or \
+               self.chain.is_dead_branch_root(new_block):
+                # It would be better to check if the block is part of a dead branch. Won't implement this.
                 logger.debug("The received block is already part of chain or "
                              "a dangling block: {}".format(str(new_block)))
                 return
@@ -297,17 +301,13 @@ class FullClient(object):
         for node in self.nodes:
             Network.send_block(node, repr(block))
 
-    def _get_status_from_different_node(self, node):
-        random_node = random.choice(self.nodes)
-        block = Network.request_latest_block(random_node)
-        return Block(block.text)
-
     def _broadcast_new_judgement(self, judgement):
         for node in self.nodes:
             Network.send_judgement(node, repr(judgement))
 
     def handle_received_judgement(self, judgement):
         judgement_object = eval(judgement)
+        logger.debug("Received Judgement: {}".format(judgement_object))
         if self.chain.update_judgements(judgement_object):
             self._broadcast_new_judgement(judgement_object)
 
