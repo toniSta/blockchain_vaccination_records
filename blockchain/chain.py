@@ -1,12 +1,14 @@
 """This module implements the chain functionality."""
 import logging
 import os
+import threading
 from collections import deque
 from subprocess import CalledProcessError
 from threading import RLock, current_thread
 
 from Crypto.PublicKey import RSA
 
+from blockchain.network.network import Network
 from .block import Block
 from .config import CONFIG
 from blockchain.transaction import *
@@ -293,18 +295,43 @@ class Chain(object):
 
             Remove a whole branch by detaching its root node and deleting all files associated with any node of
             the sub-tree.
+            resends a list of transactions that was unique in this subtree
             """
-            #TODO transactions unique to one branch should be saved!
+            unique_transactions = []
             with self._lock:
+                parent_node = node.parent
                 node.parent = None
                 nodes_to_delete = node.descendants
+                for tx in node.block.transactions:
+                    if not self._is_transaction_in_subtree(tx, parent_node):
+                        unique_transactions.append(tx)
                 self._remove_block_file(node)
                 self._save_dead_branch(node)
                 for node in nodes_to_delete:
+                    for tx in node.block.transactions:
+                        if not self._is_transaction_in_subtree(tx, parent_node):
+                            unique_transactions.append(tx)
                     self._remove_block_file(node)
                     self._remove_judgement_file(node)
+                t = threading.Thread(target=self._resend_transactions,
+                                     args=(unique_transactions,),
+                                     name="resend transactions",
+                                     daemon=True)
+                t.start()
 
+        def _resend_transactions(self, transactions):
+            for tx in transactions:
+                logger.debug("Resending Transaction: {}".format(tx))
+                Network.broadcast_new_transaction('http://localhost:9000', repr(tx))
 
+        def _is_transaction_in_subtree(self, tx, root_node):
+            '''
+            Check if a transaction is contained in a subtree.
+            '''
+            for node in root_node.descendants:
+                if tx in node.block.transactions:
+                    return True
+            return False
 
         def get_tree_list_at_hash(self, hash):
             """Collect all descendants from the specified node."""
@@ -409,10 +436,14 @@ class Chain(object):
                 pass
 
         def _check_branch_for_deletion(self, node):
+            '''
+            Check if a branchs needs to be deleted and delete if necessary
+            '''
             number_of_denies = 0
             for judgement in node.judgements:
                 if not node.judgements[judgement].accept_block:
                     number_of_denies += 1
+
             # The admission that created the block doesn't judge. Therefore '-1'
             number_of_admissions = len(self.get_registration_caches_by_blockhash(node.block.previous_block)) - 1
             if number_of_denies > number_of_admissions / 2:
