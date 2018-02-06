@@ -23,6 +23,7 @@ services:
       SERVER_PORT: 9000
       NEIGHBORS_HOST_PORT: genesis_admission:9000,doctor:9000,custom_client:9000
       REGISTER_AS_ADMISSION: 1
+      START_RANDOM_BLOCK_CREATION_CLI: 1
 #      RENDER_CHAIN_TREE: 1
 #    volumes:
 #      - ./blockchain/blockchain_files2:/app/blockchain/blockchain_files
