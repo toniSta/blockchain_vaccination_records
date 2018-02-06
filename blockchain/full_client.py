@@ -164,6 +164,7 @@ class FullClient(object):
 
             judgements = self.chain.get_judgements_for_blockhash(block.hash)
             for judgement in judgements:
+                logger.debug("Resending Judgement: {} Raw: {}".format(judgement, repr(judgement)))
                 Network.send_judgement(sender_address, repr(judgement))
 
         dead_branch_judgements = self.chain.get_dead_branches_since_blockhash(block.hash)

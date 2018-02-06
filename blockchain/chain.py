@@ -509,7 +509,15 @@ class Chain(object):
                 return current_node.block
 
         def get_judgements_for_blockhash(self, blockhash):
-            return self._find_tree_node_by_hash(blockhash).judgements
+            '''
+            Return list of judgements of a block.
+            '''
+            judgement_dict = self._find_tree_node_by_hash(blockhash).judgements
+            judgements = []
+            for judge in judgement_dict:
+                judgements.append(judgement_dict[judge])
+
+            return judgements
 
         def get_dead_branches_since_blockhash(self, blockhash):
             '''
