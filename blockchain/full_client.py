@@ -399,7 +399,7 @@ class FullClient(object):
                 transaction.sign(doctor_privkey, patient_privkey)
                 print("Trying to send transaction:")
                 print(transaction)
-                self.handle_transaction(transaction, broadcast=True)
+                self.handle_transaction(transaction, broadcast=True, print_nodes=True)
             elif sign_now == "n":
                 print("Cannot broadcast unsigned transactions, aborting.")
             else:
@@ -435,7 +435,7 @@ class FullClient(object):
                 transaction.sign(sender_privkey)
                 print("Trying to send transaction:")
                 print(transaction)
-                self.handle_transaction(transaction, broadcast=True)
+                self.handle_transaction(transaction, broadcast=True, print_nodes=True)
             elif sign_now == "n":
                 print("Cannot broadcast unsigned transactions, aborting.")
             else:
