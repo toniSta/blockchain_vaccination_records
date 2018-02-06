@@ -577,9 +577,10 @@ def nodenamefunc(node):
             denies += 1
     return "Index: {}\n" \
            "Hash: {}\n" \
-           "Accepts: {} Denies: {}".format(
+           "Transactions: {} | Accepts: {} | Denies: {}".format(
                                         node.index,
                                         node.name,
+                                        len(node.block.transactions),
                                         accepts,
                                         denies)
 
