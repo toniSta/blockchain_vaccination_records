@@ -327,14 +327,17 @@ class FullClient(object):
             self._broadcast_new_transaction(transaction)
         if self.transaction_set.contains(transaction):
             return  # Transaction was already received
+        if self._check_if_transaction_in_chain(transaction):
+            return
         admissions_at_leaf = self.chain.get_admissions()
         for admissions in admissions_at_leaf:
             if self.public_key not in admissions[1]:
-                logger.debug("Received transaction but this node is no admission node. Quit...")
+                continue
+            else:
+                self.transaction_set.add(transaction)
                 return
-            if self._check_if_transaction_in_chain(transaction):
-                return
-        self.transaction_set.add(transaction)
+        if os.getenv('REGISTER_AS_ADMISSION') == '1':
+            self.transaction_set.add(transaction)
 
     def _check_if_transaction_in_chain(self, transaction):
         """Check if the transaction is already part of the chain.
