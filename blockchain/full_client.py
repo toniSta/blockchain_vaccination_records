@@ -327,6 +327,7 @@ class FullClient(object):
 
     def handle_incoming_transaction(self, transaction):
         transaction_object = eval(transaction)
+        logger.debug("Received Transaction: {}".format(transaction))
         self.handle_transaction(transaction_object, broadcast=False)
 
     def handle_transaction(self, transaction, broadcast=False):
@@ -372,6 +373,7 @@ class FullClient(object):
         """Broadcast transaction to required number of admission nodes."""
         # WONTFIX: should send to admissions only but any other node currently ignores
         for node in self.nodes:
+            print("Sending transaction to {}".format(node))
             Network.broadcast_new_transaction(node, repr(transaction))
 
     def _create_transaction(self):
@@ -397,7 +399,7 @@ class FullClient(object):
             else:
                 print("Invalid option {}, aborting.".format(sign_now))
         elif transaction_type == "vaccine":
-            # TODO: check if node is registered as admission, else it should not be able to create VaccineTransactions
+            # WONTFIX: check if node is registered as admission, else it should not be able to create VaccineTransactions
             vaccine = input("Which vaccine should be registered?").lower()
             admission_pubkey = self.public_key
             transaction = VaccineTransaction(vaccine, admission_pubkey)
@@ -409,7 +411,7 @@ class FullClient(object):
                 transaction.sign(admission_privkey)
                 print("Trying to send transaction:")
                 print(transaction)
-                self._handle_transaction(transaction, broadcast=True)
+                self.handle_transaction(transaction, broadcast=True)
             elif sign_now == "n":
                 print("Cannot broadcast unsigned transactions, aborting.")
             else:
@@ -459,7 +461,9 @@ class FullClient(object):
             leaf_hashes = [block.hash for block in leaf_blocks]
             print("Available Leaf Block Hashes are:")
             print(leaf_hashes)
-            selected_hash = input("Enter Leaf Block Hash to append to: ")
+            selected_hash = input("Enter Leaf Block Hash to append to or 'r' to refresh: ")
+            if selected_hash == 'r':
+                return
             timestamp = int(time.time())
             new_block = self.create_next_block(selected_hash, timestamp)
             print("Created Block:")

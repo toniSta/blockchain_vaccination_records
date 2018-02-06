@@ -50,6 +50,10 @@ class VaccinationTransaction(TransactionBase):
         if self.doctor_pub_key not in doctors:
             logger.debug("doctor is not registered.")
             return False
+
+        if not self.doctor_signature or not self.patient_signature:
+            return False
+
         bin_doctor_key = RSA.import_key(self.doctor_pub_key)
         doctor_signature = self._verify_doctor_signature(bin_doctor_key)
 

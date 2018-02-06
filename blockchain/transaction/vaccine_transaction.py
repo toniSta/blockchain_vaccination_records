@@ -29,9 +29,10 @@ class VaccineTransaction(TransactionBase):
         """
         checks if the transaction fulfills the requirements
         """
-        if self.sender_pubkey not in admissions:
-            logger.debug("admission is not registered.")
-            return False
+        # For demo we accept vaccine records from every node (demo setup would be to complex)
+        # if self.sender_pubkey not in admissions:
+        #     logger.debug("admission is not registered.")
+        #     return False
         return self._verify_signature() # TODO check other requirements
 
     def _create_signature(self, private_key):
