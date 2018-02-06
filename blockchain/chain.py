@@ -105,9 +105,8 @@ class Chain(object):
                     node = self._get_dangling_node_by_hash(judgement.hash_of_judged_block)
                     if not node:
                         # since blocks are send before judgements by every node, this shouldn't happen.
-                        logger.debug("Could not add judgement, block with hash {} not found in tree".format(
-                            judgement.hash_of_judged_block))
-                        changed_judgments = True
+                        logger.debug("Could not add judgement, block with hash {} not found in tree or dangling blocks"
+                                     .format(judgement.hash_of_judged_block))
                         return changed_judgments
 
                     if judgement.sender_pubkey in node.judgements:  # already received a judgement from that node
