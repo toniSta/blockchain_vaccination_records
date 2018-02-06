@@ -46,6 +46,9 @@ class FullClient(object):
         logger.debug("My public key is: {} or {}".format(self.public_key,
                                                          self.public_key.hex()))
 
+        if os.getenv('START_RANDOM_BLOCK_CREATION_CLI'):
+            self._start_random_block_creation_loop()
+
         if os.getenv('START_TRANSACTION_CLI'):
             self._start_create_transaction_loop()
 
@@ -420,11 +423,34 @@ class FullClient(object):
 
 
     def _start_create_transaction_loop(self):
+        """Start a CLI REPL for creating and sending transactions."""
         try:
             while True:
                 self._create_transaction()
         except KeyboardInterrupt:
             logger.debug("Exiting...")
+
+    def _start_random_block_creation_loop(self):
+        """Start a CLI REPL for creating and sending blocks at will."""
+        try:
+            while True:
+                self._randomly_create_block()
+        except KeyboardInterrupt:
+            logger.debug("Exiting...")
+
+    def _randomly_create_block(self):
+        """Allows random generation of blocks and sending them at arbitrary time."""
+        random_time = random.randrange(10, 60)  # in seconds
+        time.sleep(random_time)
+        new_block = self.create_next_block(hash, timestamp)
+        print("Randomly created Block:")
+        print(new_block)
+        send_now = input("Confirm to send block. (Y)").lower()
+        if send_now == "y":
+            self.submit_block(new_block)
+        else:
+            print("Invalid option {}, aborting.".format(send_now))
+
 
     def process_dangling_blocks(self):
         raise DeprecationWarning("This method shouldn't be used anymore")
