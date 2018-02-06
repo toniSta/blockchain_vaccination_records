@@ -49,7 +49,9 @@ class FullClient(object):
 
         if os.getenv('START_CLI') == '1':
             write_logs_to_file()
-            self._start_create_transaction_loop()
+            t = threading.Thread(target=self._start_create_transaction_loop, daemon=True, name="doctor cli")
+            time.sleep(0.5)
+            t.start()
 
         if os.getenv('START_RANDOM_BLOCK_CREATION_CLI'):
             self._start_random_block_creation_loop()
