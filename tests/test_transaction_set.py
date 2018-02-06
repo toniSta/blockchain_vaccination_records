@@ -45,9 +45,7 @@ def test_pop(transaction_set):
     tx2 = transaction_set.pop()
     assert tx2 is "tx2"
     assert len(transaction_set) == 0
-    with pytest.raises(Exception) as excinfo:
-        transaction_set.pop()
-    assert excinfo.type == KeyError
+    assert transaction_set.pop() is None
 
 
 def test_discard(transaction_set):
@@ -64,3 +62,20 @@ def test_iterator(transaction_set):
 
 def test_repr(transaction_set):
     assert repr(transaction_set) == "OrderedSet(['tx1', 'tx2'])"
+
+
+def test_discard_multiple(transaction_set):
+    transaction_set.add("tx3")
+    transaction_set.add("tx4")
+    assert len(transaction_set) == 4
+
+    transaction_set.discard_multiple(["tx1", "tx3", "tx4"])
+
+    assert len(transaction_set) == 1
+    assert transaction_set.pop() == "tx2"
+
+
+def test_add_multiple(transaction_set):
+    transaction_set.add_multiple(["tx2", "tx4"])
+    assert len(transaction_set) == 3
+    assert transaction_set.pop() == "tx2"

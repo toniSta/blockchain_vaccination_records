@@ -21,7 +21,11 @@ class TransactionSet(object):
 
     def pop(self):
         """Remove and return a transaction from the set."""
-        return self.store.pop(0)
+        try:
+            return self.store.pop(0)
+        # Catch KeyError if set is empty
+        except KeyError:
+            return None
 
     def clear(self):
         """Remove all transactions from the set."""
@@ -34,6 +38,15 @@ class TransactionSet(object):
     def discard_multiple(self, transaction_list):
         """Remove multiple transactions from the set."""
         [self.discard(tx) for tx in transaction_list]
+
+    def add_multiple(self, transaction_list):
+        """Add multiple transactions to the set.
+
+        Since the transactions are re-added to the set (they were in it once),
+        we add them at the front of the existing set.
+        """
+        transaction_list = OrderedSet(transaction_list)
+        self.store = transaction_list.union(self.store)
 
     def contains(self, transaction):
         return self.store.__contains__(transaction)

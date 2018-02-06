@@ -67,11 +67,11 @@ class Block(object):
         return block
 
     def __str__(self):
-        return ("=======================\n"
+        return ("\n=======================\n"
                 "  Block {}\n"
                 "  Previous block: {}\n"
                 "  Number of transactions: {}\n"
-                "  Public key: {}...\n"
+                "  Public key: {}\n"
                 "  hash: {}\n"
                 "=======================").format(self.index,
                                                   self.previous_block,

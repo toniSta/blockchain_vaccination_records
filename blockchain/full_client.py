@@ -9,6 +9,7 @@ import time
 from .transaction_set import TransactionSet
 from .block import Block
 from .chain import Chain
+from .judgement import Judgement
 from .config import CONFIG
 from .network.network import Network
 from .transaction import *
@@ -34,16 +35,16 @@ class FullClient(object):
         self.chain = Chain()
         self.transaction_set = TransactionSet()
         self.invalid_transactions = set()
-        # TODO: dangling blocks should be managed by the Chain itself. Change methods in full client accordingly.
-        self.dangling_blocks = set()
         self.creator_election_thread = None
         self._start_election_thread()
-
-        if os.getenv('REGISTER_AS_ADMISSION') == '1':
-            self._register_self_as_admission()
+        # Call this after starting the server.
+        # self.synchronize_blockchain()
+        # if os.getenv('REGISTER_AS_ADMISSION') == '1':
+        #     self.register_self_as_admission()
 
         logger.debug("Finished full_client init.")
-        logger.debug("My public key is: {} or {}".format(self.public_key, self.public_key.hex()))
+        logger.debug("My public key is: {} or {}".format(self.public_key,
+                                                         self.public_key.hex()))
 
     def _start_election_thread(self):
         self.creator_election_thread = threading.Thread(target=self.creator_election, name="election thread", daemon=True)
@@ -138,37 +139,55 @@ class FullClient(object):
         self.public_key = self.public_key.exportKey("DER")
 
     def synchronize_blockchain(self):
-        random_node = random.choice(self.nodes)
-        last_block_remote = self._get_status_from_different_node(random_node)
-        if last_block_remote.index == self.chain.last_block().index and \
-           last_block_remote.hash == self.chain.last_block().hash:
-            # blockchain is up-to-date
-            return
-        if last_block_remote.index == self.chain.last_block().index and \
-           last_block_remote.hash != self.chain.last_block().hash:
-            # TODO: at least last block is wrong for self or the other node
-            pass
-        if last_block_remote.index > self.chain.last_block().index:
-            syncing_block = self._request_block_at_index(self.chain.last_block().index + 1, random_node)
-            self._add_block_if_valid(syncing_block)
-            self.synchronize_blockchain()
+        block = self.chain.get_first_branching_block()
+        for node in self.nodes:
+            if Network.send_sync_request(node, repr(block)):
+                logger.debug("Synchronize with {} starting from index {}".format(node, block.index))
+                return
+        logger.debug("Couldn't synchronize chain. No neighbour answered")
+
+        return
+
+    def handle_sync_request(self, sender_host, block):
+        sender_address = "http://" + sender_host + ":9000"
+        block = Block(block)
+        first_branch_block = self.chain.get_first_branching_block()
+        if first_branch_block.index < block.index:
+            block = first_branch_block
+        if not self.chain.find_block_by_hash(block.hash):
+            # received block is not part of chain. send complete chain to be save
+            block = self.chain.find_blocks_by_index(0)
+        blocks_to_sync = self.chain.get_tree_list_at_hash(block.hash)
+        for block in blocks_to_sync:
+            logger.debug("Resending Block: {}".format(block))
+            Network.send_block(sender_address, repr(block))
+
+            judgements = self.chain.get_judgements_for_blockhash(block.hash)
+            for judgement in judgements:
+                logger.debug("Resending judgement: {}".format(judgement))
+                Network.send_judgement(sender_address, repr(judgement))
+
+        dead_branch_judgements = self.chain.get_dead_branches_since_blockhash(block.hash)
+        for judgement in dead_branch_judgements:
+            logger.debug("Resending dead branch judgement: {}".format(judgement))
+            Network.send_judgement(sender_address, repr(judgement))
 
     def create_next_block(self, parent_hash, timestamp):
         new_block = Block(self.chain.find_block_by_hash(parent_hash).get_block_information(),
                           self.public_key)
         new_block.timestamp = timestamp
 
+        admissions, doctors, vaccines = self.chain.get_registration_caches_by_blockhash(parent_hash)
         for _ in range(CONFIG["block_size"]):
-            if len(self.transaction_set):
-                transaction = self.transaction_set.pop()
-                admissions, doctors, vaccines = self.chain.get_registration_caches_by_blockhash(parent_hash)
+            transaction = self.transaction_set.pop()
+            if transaction:
                 if transaction.validate(admissions, doctors, vaccines):
                     new_block.add_transaction(transaction)
                 else:
                     logger.debug("Adding Transaction not to next block (invalid): {}".format(transaction))
                     self.invalid_transactions.add(transaction)
             else:
-                # Break if transaction set is empty
+                # Transaction set is empty
                 break
         new_block.sign(self.private_key)
         new_block.update_hash()
@@ -182,29 +201,57 @@ class FullClient(object):
     def received_new_block(self, block_representation):
         """This method is called when receiving a new block.
 
-        It will check if the block was received earlier. If not it will process and broadcast the block and adding it
-        to the chain or dangling blocks."""
+        It will check if the block was received earlier. If not it will process
+        and broadcast the block and adding it to the chain or dangling blocks.
+        """
         try:
             new_block = Block(block_representation)
         except Exception as e:
-            logger.error("Received new block but couldn't process: {} {}".format(repr(block_representation), e))
-            # TODO define behaviour here
+            logger.error("Received new block but couldn't process:\
+                         {} {}".format(repr(block_representation), e))
             return
         logger.debug("Received new block: {}".format(str(new_block)))
 
         with self.chain:
-            if self.chain.find_block_by_hash(new_block.hash) or new_block in self.dangling_blocks:
-                logger.debug("The received block is already part of chain or a dangling block: {}".format(str(new_block)))
+            if self.chain.find_block_by_hash(new_block.hash) or \
+               self.chain.is_block_dangling(new_block) or \
+               self.chain.is_dead_branch_root(new_block):
+                # It would be better to check if the block is part of a dead branch. Won't implement this.
+                logger.debug("The received block is already part of chain or "
+                             "a dangling block: {}".format(str(new_block)))
                 return
-
             self._broadcast_new_block(new_block)
+            self._process_new_block(new_block)
 
-            if not self._is_block_created_by_expected_creator(new_block):
-                logger.debug("Received block doesn't match as next block in chain. Adding it to dangling blocks: {}"
+    def _process_new_block(self, new_block):
+        parent_block = self.chain.find_block_by_hash(new_block.previous_block)
+        if not parent_block:
+            self.chain.add_dangling_block(new_block)
+            logger.debug("Parent block of received block not yet received. Adding new block to dangling blocks: {}"
+                         .format(str(new_block)))
+            return
+
+        if not self._is_block_created_by_expected_creator(new_block):
+            logger.debug("Creator of received block doesn't match expected creator. Creating deny judgement: {}"
+                         .format(str(new_block)))
+            self._create_and_submit_judgement(new_block, False)
+            return
+        else:
+            if not new_block.validate(parent_block):
+                logger.debug("Received block is not valid. Creating deny judgement: {}"
                              .format(str(new_block)))
-                self.dangling_blocks.add(new_block)
+                self._create_and_submit_judgement(new_block, False)
+                return
             else:
-                self._add_block_if_valid(new_block)
+                new_block.persist()
+                invalidated_blocks = self.chain.add_block(new_block)
+
+                for block in invalidated_blocks:
+                    self._create_and_submit_judgement(block, False)
+                self._create_and_submit_judgement(new_block, True)
+                self.transaction_set.discard_multiple(new_block.transactions)
+                for block in self.chain.get_list_of_dangling_blocks():
+                    self._process_new_block(block)
 
     def creator_election(self):
         """This method checks if this node needs to generate a new block.
@@ -214,7 +261,7 @@ class FullClient(object):
 
         while True:
             try:
-                time.sleep(CONFIG["block_time"]/2) # block_time needs to be at least 2s
+                time.sleep(CONFIG["block_time"] / 2) # block_time needs to be at least 2s
                 admission = False
                 for _, admissions in self.chain.get_admissions():
                     if self.public_key in admissions:
@@ -232,12 +279,12 @@ class FullClient(object):
                             new_block = self.create_next_block(hash, timestamp)
                             if not new_block.validate(self.chain.find_block_by_hash(hash)):
                                 logger.error("New generated block is not valid! {}".format(repr(new_block)))
-                                # TODO: Add transactions  of false block to queue
+                                self.transaction_set.add_multiple(self.new_block.transactions)
                                 continue
                             self.submit_block(new_block)
                         else:
                             logger.debug("creator_election: next creator is other")
-            except Exception as e:
+            except Exception:
                 logger.exception("Exception in election thread:")
 
         logger.debug("Thread {} is dead.".format(threading.current_thread()))
@@ -247,24 +294,19 @@ class FullClient(object):
         block = requests.get(route)
         return Block(block.text)
 
-    def _add_block_if_valid(self, block, broadcast_block=False):
-        previous = self.chain.find_block_by_hash(block.previous_block)
-        if block.validate(previous):
-            self.chain.add_block(block)
-            block.persist()
-            self.process_dangling_blocks()
-            if broadcast_block:
-                self._broadcast_new_block(block)
-            self.transaction_set.discard_multiple(block.transactions)
-
     def _broadcast_new_block(self, block):
         for node in self.nodes:
             Network.send_block(node, repr(block))
 
-    def _get_status_from_different_node(self, node):
-        random_node = random.choice(self.nodes)
-        block = Network.request_latest_block(random_node)
-        return Block(block.text)
+    def _broadcast_new_judgement(self, judgement):
+        for node in self.nodes:
+            Network.send_judgement(node, repr(judgement))
+
+    def handle_received_judgement(self, judgement):
+        judgement_object = eval(judgement)
+        logger.debug("Received Judgement: {}".format(judgement_object))
+        if self.chain.update_judgements(judgement_object):
+            self._broadcast_new_judgement(judgement_object)
 
     def handle_incoming_transaction(self, transaction):
         transaction_object = eval(transaction)
@@ -273,16 +315,16 @@ class FullClient(object):
     def handle_transaction(self, transaction, broadcast=False):
         if broadcast:
             self._broadcast_new_transaction(transaction)
-        # TODO use multiple leaves
-        if self.public_key not in self.chain.get_admissions()[0][1]:
-            logger.debug("Received transaction but this node is no admission node. Quit...")
-            return
         if self.transaction_set.contains(transaction):
             return  # Transaction was already received
-        if self._check_if_transaction_in_chain(transaction):
-            return
-        else:
-            self.transaction_set.add(transaction)
+        admissions_at_leaf = self.chain.get_admissions()
+        for admissions in admissions_at_leaf:
+            if self.public_key not in admissions[1]:
+                logger.debug("Received transaction but this node is no admission node. Quit...")
+                return
+            if self._check_if_transaction_in_chain(transaction):
+                return
+        self.transaction_set.add(transaction)
 
     def _check_if_transaction_in_chain(self, transaction):
         """Check if the transaction is already part of the chain.
@@ -366,23 +408,25 @@ class FullClient(object):
             print("Invalid option {}, aborting.".format(transaction_type))
 
     def process_dangling_blocks(self):
-        #TODO use multiple leaves
-        latest_block = self.chain.get_leaves()[0]
-        for block in self.dangling_blocks:
-            expected_pub_key = self.determine_block_creation_node(timestamp=block.timestamp)
-            if block.previous_block == latest_block.hash and expected_pub_key == block.public_key:
-                if block.validate():
-                    self.chain.add_block(block)
-                    block.persist()
-                    self.process_dangling_blocks()
-                return
+        raise DeprecationWarning("This method shouldn't be used anymore")
 
-    def _register_self_as_admission(self):
-        # TODO use multiple leaves
-        if self.public_key in self.chain.get_admissions()[0][1]:
-            logger.debug("Already admission node, don't need to register.")
-            return
+    def register_self_as_admission(self):
+        admissions_at_leaf = self.chain.get_admissions()
+        for admissions in admissions_at_leaf:
+            if self.public_key in admissions[1]:
+                logger.debug("Already admission node, don't need to register.")
+                return
         logger.debug("Going to register as admission node.")
         tx = PermissionTransaction(Permission["admission"], self.public_key)
         tx.sign(self.private_key)
         self._broadcast_new_transaction(tx)
+
+    def _create_and_submit_judgement(self, block, accepted):
+        admissions, _, _ = self.chain.get_registration_caches_by_blockhash(block.previous_block)
+        if self.public_key not in admissions:
+            logger.debug("No admission in branch of block: {}".format(block))
+            return
+        judgement = Judgement(block.hash, accepted, self.public_key)
+        judgement.sign(self.private_key)
+        self.chain.update_judgements(judgement)
+        self._broadcast_new_judgement(judgement)
