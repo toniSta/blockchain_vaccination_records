@@ -18,13 +18,14 @@ docker build -t full_client_image -f Full_Client.Dockerfile .
 
 You can start a client with the following commands:
 
-`docker run --name custom_client -p 9000 --network blockchainvaccinationrecords_default -e "SERVER_PORT=9000" full_client_image`
+`docker run --name custom_client -it -p 9000 --network blockchainvaccinationrecords_default full_client_image`
 
 You may add one or more of the following options:
 ```
 -e "NEIGHBORS_HOST_PORT=host:9000,host2:9000" # This option defines the direct neighbours of your client. You can use any service name of `docker-compose.yml` or any custom client (`--name` option)
 -e "REGISTER_AS_ADMISSION=1" # Wheather the client should register itself as admission node after startup.
 -e "RENDER_CHAIN_TREE=1" # Wheather the client should render the tree as a picture (best to combine with `-v`
+-e "START_CLI=1"  # This will start a cli dependend on REGISTER_AS_ADMISSION you will get a doctor cli oder a admission cli
 -v /path/to/directory/containing/genesis_block:/app/blockchain/blockchain_files # Mount a directoryto store the blockchainfiles (and the rendered picture)
 ```
 
@@ -32,8 +33,19 @@ You can stop the client with `docker stop custom_client` and don't forget to cle
 
 If you want to access you client, use `docker exec -it custom_client bash`
 
-
+a4:
+docker run --name a4 -it -p 9000 --network blockchainvaccinationrecords_default -e "REGISTER_AS_ADMISSION=1"  -e "START_CLI=1" -e "NEIGHBORS_HOST_PORT=a3:9000,genesis_admission:9000" full_client_image
+a5:
+docker run --name a5 -it -p 9000 --network blockchainvaccinationrecords_default -e "REGISTER_AS_ADMISSION=1"  -e "CONFIRM_BLOCKSENDING=1" -e "NEIGHBORS_HOST_PORT=genesis_admission:9000,d1:9000" full_client_image
+d3:
+docker run --name d3 -it -p 9000 --network blockchainvaccinationrecords_default -e "START_CLI=1" -e "NEIGHBORS_HOST_PORT=d1:9000,a2:9000,d2:9000" full_client_image
 ### Testing
 
 - run tests with `pytest` in root directory of the repo
 - in order to get the test coverage run: `py.test --cov blockchain tests --cov-report=html`
+
+
+### Demo Interactions
+- ENV Variable START_CLI -> starts CLI for doctor (transaction creation) or admission (block creation)
+- ENV Variable REGISTER_AS_ADMISSION -> necessary to enable start_cli to find out if doctor or admission
+- ENV Variable CONFIRM_BLOCKSENDING -> if set the node participates in creator election and if it becomes the blockcreator it creates the blocks and waits for confirmation before sending

@@ -46,17 +46,32 @@ class VaccinationTransaction(TransactionBase):
         # WONTFIX: won't implement checking if patient is registered in presentation demo
         if self.vaccine not in vaccines:
             logger.debug("vaccine is not registered.")
+            self.validation_text = "vaccine is not registered."
             return False
         if self.doctor_pub_key not in doctors:
             logger.debug("doctor is not registered.")
+            self.validation_text = "doctor is not registered."
             return False
+
+        if not self.doctor_signature or not self.patient_signature:
+            return False
+
         bin_doctor_key = RSA.import_key(self.doctor_pub_key)
         doctor_signature = self._verify_doctor_signature(bin_doctor_key)
+        if not doctor_signature:
+            logger.debug("doctor signature is not valid")
+            self.validation_text = "doctor signature is not valid"
+            return False
 
         bin_patient_key = RSA.import_key(self.patient_pub_key)
         patient_signature = self._verify_patient_signature(bin_patient_key)
+        if not patient_signature:
+            logger.debug("patient signature is not valid")
+            self.validation_text = "patient signature is not valid"
+            return False
 
-        return doctor_signature and patient_signature
+        self.validation_text = "valid"
+        return True
 
     def _create_doctor_signature(self, private_key):
         if self.doctor_signature:

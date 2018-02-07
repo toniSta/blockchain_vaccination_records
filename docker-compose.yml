@@ -10,18 +10,18 @@ services:
       - ./blockchain/keys:/app/blockchain/keys
     environment:
       SERVER_PORT: 9000
-      NEIGHBORS_HOST_PORT: admission:9000
+      NEIGHBORS_HOST_PORT: a1:9000,a3:9000,a4:9000,a6:9000
       RENDER_CHAIN_TREE: 1
     ports:
       - "9000"
 
-  admission:
+  a1:
     build:
       context: .
       dockerfile: Full_Client.Dockerfile
     environment:
       SERVER_PORT: 9000
-      NEIGHBORS_HOST_PORT: genesis_admission:9000,custom_client:9000 #,full_client:9000
+      NEIGHBORS_HOST_PORT: genesis_admission:9000,a2:9000,a3:9000,d1:9000
       REGISTER_AS_ADMISSION: 1
 #      RENDER_CHAIN_TREE: 1
 #    volumes:
@@ -31,15 +31,65 @@ services:
     depends_on:
       - genesis_admission
 
-#  full_client:
-#    build:
-#      context: .
-#      dockerfile: Full_Client.Dockerfile
-#    environment:
-#      SERVER_PORT: 9000
-#      NEIGHBORS_HOST_PORT: admission:9000,genesis_admission:9000
-#    ports:
-#      - "9000"
-#    depends_on:
-#      - admission
-#      - genesis_admission
+  a2:
+    build:
+      context: .
+      dockerfile: Full_Client.Dockerfile
+    environment:
+      SERVER_PORT: 9000
+      NEIGHBORS_HOST_PORT: a1:9000,d2:9000,d3:9000,a6:9000
+      REGISTER_AS_ADMISSION: 1
+#      RENDER_CHAIN_TREE: 1
+#    volumes:
+#      - ./blockchain/blockchain_files2:/app/blockchain/blockchain_files
+    ports:
+      - "9000"
+    depends_on:
+      - a1
+
+  a3:
+    build:
+      context: .
+      dockerfile: Full_Client.Dockerfile
+    environment:
+      SERVER_PORT: 9000
+      NEIGHBORS_HOST_PORT: genesis_admission:9000,a1:9000,d2:9000,a4:9000,a5:9000
+      REGISTER_AS_ADMISSION: 1
+#      RENDER_CHAIN_TREE: 1
+#    volumes:
+#      - ./blockchain/blockchain_files2:/app/blockchain/blockchain_files
+    ports:
+      - "9000"
+    depends_on:
+      - a1
+
+
+  d1:
+    build:
+      context: .
+      dockerfile: Full_Client.Dockerfile
+    environment:
+      SERVER_PORT: 9000
+      NEIGHBORS_HOST_PORT: a1:9000,d3:9000
+#      RENDER_CHAIN_TREE: 1
+#    volumes:
+#      - ./blockchain/blockchain_files2:/app/blockchain/blockchain_files
+    ports:
+      - "9000"
+    depends_on:
+      - a1
+
+  d2:
+    build:
+      context: .
+      dockerfile: Full_Client.Dockerfile
+    environment:
+      SERVER_PORT: 9000
+      NEIGHBORS_HOST_PORT: a2:9000,a3:9000,a5:9000,d3:9000
+#      RENDER_CHAIN_TREE: 1
+#    volumes:
+#      - ./blockchain/blockchain_files2:/app/blockchain/blockchain_files
+    ports:
+      - "9000"
+    depends_on:
+      - a1

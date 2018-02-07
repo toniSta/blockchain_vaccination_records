@@ -71,6 +71,7 @@ class PermissionTransaction(TransactionBase):
         """
         if len(self.approvals) != len(set(self.approvals)):
             logger.debug("Transaction contains duplicate approvals.")
+            self.validation_text = "Transaction contains duplicate approvals."
             return False
         #  WONTFIX: won't register admissions with approvals in presentation demo, therefore commented out
         #if len(self.approvals) < math.ceil(len(current_admissions) / 2):
@@ -78,10 +79,13 @@ class PermissionTransaction(TransactionBase):
         #   return False
         if len(self.approvals) != len([a for a in self.approvals if self._verify_approval_signature(a)]):
             logger.debug("Transaction contains approvals with invalid signature.")
+            self.validation_text = "Transaction contains approvals with invalid signature."
             return False
         if len(self.approvals) != len([a for a in self.approvals if a[0] in current_admissions]):
             logger.debug("Transaction contains approvals from non-admission nodes.")
+            self.validation_text = "Transaction contains approvals from non-admission nodes."
             return False
+        self.validation_text = "valid"
         return True
 
     def _verify_approval_signature(self, approval):

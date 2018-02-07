@@ -31,6 +31,7 @@ class VaccineTransaction(TransactionBase):
         """
         if self.sender_pubkey not in admissions:
             logger.debug("admission is not registered.")
+            self.validation_text = "admission is not registered."
             return False
         return self._verify_signature() # TODO check other requirements
 

@@ -1,12 +1,14 @@
 """This module implements the chain functionality."""
 import logging
 import os
+import threading
 from collections import deque
 from subprocess import CalledProcessError
 from threading import RLock, current_thread
 
 from Crypto.PublicKey import RSA
 
+from blockchain.network.network import Network
 from .block import Block
 from .config import CONFIG
 from blockchain.transaction import *
@@ -100,7 +102,6 @@ class Chain(object):
                     self._persist_judgements_for_node(node)
                     self._check_branch_for_deletion(node)
 
-                    self._render_current_tree()
                 else:
                     node = self._get_dangling_node_by_hash(judgement.hash_of_judged_block)
                     if not node:
@@ -195,7 +196,7 @@ class Chain(object):
                             break
 
                     if len(invalidated_blocks) == 0:
-                        # TODO only return branch that is still accepted by the current full client.
+                        # WONTFIX: only return list of blocks of nodes in the branch that needs to be invalidated.
                         # This will need some architectural changes
                         for node in new_node.siblings:
                             invalidated_blocks.add(node.block)
@@ -204,10 +205,9 @@ class Chain(object):
 
                 logger.debug("Added block {} to chain.".format(block.index))
 
-                self._render_current_tree()
                 return invalidated_blocks
 
-        def _render_current_tree(self):
+        def render_current_tree(self):
             if os.getenv("RENDER_CHAIN_TREE") == '1':
                 # graphviz needs to be installed for the next line!
                 try:
@@ -295,17 +295,42 @@ class Chain(object):
 
             Remove a whole branch by detaching its root node and deleting all files associated with any node of
             the sub-tree.
+            resends a list of transactions that was unique in this subtree
             """
-            #TODO transactions unique to one branch should be saved!
+            unique_transactions = []
             with self._lock:
+                parent_node = node.parent
                 node.parent = None
                 nodes_to_delete = node.descendants
-                for node in nodes_to_delete:
-                    self._remove_block_file(node)
-                    self._remove_judgement_file(node)
+                for tx in node.block.transactions:
+                    if not self._is_transaction_in_subtree(tx, parent_node):
+                        unique_transactions.append(tx)
                 self._remove_block_file(node)
                 self._save_dead_branch(node)
+                for node in nodes_to_delete:
+                    for tx in node.block.transactions:
+                        if not self._is_transaction_in_subtree(tx, parent_node):
+                            unique_transactions.append(tx)
+                    self._remove_block_file(node)
+                    self._remove_judgement_file(node)
+                t = threading.Thread(target=self._resend_transactions,
+                                     args=(unique_transactions,),
+                                     name="resend transactions",
+                                     daemon=True)
+                t.start()
 
+        def _resend_transactions(self, transactions):
+            for tx in transactions:
+                Network.broadcast_new_transaction('http://localhost:9000', repr(tx))
+
+        def _is_transaction_in_subtree(self, tx, root_node):
+            '''
+            Check if a transaction is contained in a subtree.
+            '''
+            for node in root_node.descendants:
+                if tx in node.block.transactions:
+                    return True
+            return False
 
         def get_tree_list_at_hash(self, hash):
             """Collect all descendants from the specified node."""
@@ -410,14 +435,18 @@ class Chain(object):
                 pass
 
         def _check_branch_for_deletion(self, node):
+            '''
+            Check if a branchs needs to be deleted and delete if necessary
+            '''
             number_of_denies = 0
             for judgement in node.judgements:
                 if not node.judgements[judgement].accept_block:
                     number_of_denies += 1
+
             # The admission that created the block doesn't judge. Therefore '-1'
             number_of_admissions = len(self.get_registration_caches_by_blockhash(node.block.previous_block)) - 1
-            #TODO test if this realy works. needs sync and some interaction ui
             if number_of_denies > number_of_admissions / 2:
+                logger.debug("Going to remove sub tree starting with block: {}".format(node.block))
                 self._remove_tree_at_node(node)
 
         def _remove_judgement_file(self, node):
@@ -445,7 +474,10 @@ class Chain(object):
             old_dead_branches = [f for f in dead_branch_files if f.startswith(level_prefix)]
 
             for dead_branch in old_dead_branches:
-                os.remove(dead_branch)
+                try:
+                    os.remove(dead_branch)
+                except FileNotFoundError:
+                    pass  #file already removed by another thread
 
         def _get_judgement_path(self, file_name):
             return os.path.join(CONFIG["persistance_folder"], 'judgements', file_name)
@@ -461,7 +493,10 @@ class Chain(object):
             dead_branch_path = self._get_dead_branch_path(file_name)
             if not os.path.exists(os.path.dirname(dead_branch_path)):
                 os.makedirs(os.path.dirname(dead_branch_path))
-            os.rename(judgement_path, dead_branch_path)
+            try:
+                os.rename(judgement_path, dead_branch_path)
+            except FileNotFoundError:
+                pass  # For safety. Shouldn't occur.
 
         def is_dead_branch_root(self, block):
             file_name = self._get_file_name(block=block)
@@ -577,9 +612,10 @@ def nodenamefunc(node):
             denies += 1
     return "Index: {}\n" \
            "Hash: {}\n" \
-           "Accepts: {} Denies: {}".format(
+           "Transactions: {} | Accepts: {} | Denies: {}".format(
                                         node.index,
                                         node.name,
+                                        len(node.block.transactions),
                                         accepts,
                                         denies)
 
