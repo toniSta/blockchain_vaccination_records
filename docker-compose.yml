@@ -10,7 +10,7 @@ services:
       - ./blockchain/keys:/app/blockchain/keys
     environment:
       SERVER_PORT: 9000
-      NEIGHBORS_HOST_PORT: a1:9000,a3:9000,a4:9000
+      NEIGHBORS_HOST_PORT: a1:9000,a3:9000,a4:9000,a6:9000
       RENDER_CHAIN_TREE: 1
     ports:
       - "9000"
@@ -37,7 +37,7 @@ services:
       dockerfile: Full_Client.Dockerfile
     environment:
       SERVER_PORT: 9000
-      NEIGHBORS_HOST_PORT: a1:9000,d2:9000,d3:9000
+      NEIGHBORS_HOST_PORT: a1:9000,d2:9000,d3:9000,a6:9000
       REGISTER_AS_ADMISSION: 1
 #      RENDER_CHAIN_TREE: 1
 #    volumes:
