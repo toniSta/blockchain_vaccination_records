@@ -18,6 +18,9 @@ logger = logging.getLogger("block-validator")
 
 def validate_block(block, previous_block):
     """Validate correctness of block by defined rules."""
+    if not previous_block:
+        return False
+
     # Index is incremented by 1
     if block.index != previous_block.index + 1:
         logger.info("Wrong index, block index {}, index of last block {}"

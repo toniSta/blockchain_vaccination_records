@@ -78,7 +78,11 @@ class FullClient(object):
             number_of_admissions = len(admissions)
             creator_history = self.chain.get_block_creation_history_by_hash(number_of_admissions, hash)
 
-            last_block_timestamp = self.chain.find_block_by_hash(hash).timestamp
+            last_block = self.chain.find_block_by_hash(hash)
+            if not last_block:
+                continue # branch was deleted in mean time
+
+            last_block_timestamp = last_block.timestamp
 
             delta_time = int(timestamp) - int(last_block_timestamp)
 
@@ -100,6 +104,8 @@ class FullClient(object):
         """
         logger.debug("Asking for block with hash {}".format(block.previous_block))
         parent_block = self.chain.find_block_by_hash(block.previous_block)
+        if not parent_block:
+            return True
         admissions, _, _ = self.chain.get_registration_caches_by_blockhash(block.previous_block)
         number_of_admissions = len(admissions)
         creator_history = self.chain.get_block_creation_history_by_hash(number_of_admissions, block.previous_block)
@@ -183,7 +189,11 @@ class FullClient(object):
             Network.send_judgement(sender_address, repr(judgement))
 
     def create_next_block(self, parent_hash, timestamp):
-        new_block = Block(self.chain.find_block_by_hash(parent_hash).get_block_information(),
+        parent_block = self.chain.find_block_by_hash(parent_hash)
+        if not parent_block:
+            logger.debug("Can't create block without parent block.")
+            return None
+        new_block = Block(parent_block.get_block_information(),
                           self.public_key)
         new_block.timestamp = timestamp
 
@@ -232,22 +242,32 @@ class FullClient(object):
                              "a dangling block: {}".format(str(new_block)))
                 return
 
+            parent_block = self.chain.find_block_by_hash(new_block.previous_block)
+            if not parent_block:
+                self.chain.add_dangling_block(new_block)
+                logger.debug("Parent block of received block not yet received. Adding new block to dangling blocks: {}"
+                             .format(str(new_block)))
+
             if not self._is_block_created_by_expected_creator(new_block):
                 logger.debug("Creator of received block doesn't match expected creator. Creating deny judgement: {}"
                              .format(str(new_block)))
                 self._create_and_submit_judgement(new_block, False)
                 return
+
             self._broadcast_new_block(new_block)
             self._process_new_block(new_block)
 
     def _process_new_block(self, new_block):
         parent_block = self.chain.find_block_by_hash(new_block.previous_block)
         if not parent_block:
-            self.chain.add_dangling_block(new_block)
-            logger.debug("Parent block of received block not yet received. Adding new block to dangling blocks: {}"
-                         .format(str(new_block)))
             return
         else:
+            if not self._is_block_created_by_expected_creator(new_block):
+                logger.debug("Creator of received block doesn't match expected creator. Creating deny judgement: {}"
+                             .format(str(new_block)))
+                self._create_and_submit_judgement(new_block, False)
+                return
+
             if not new_block.validate(parent_block):
                 logger.debug("Received block is not valid. Creating deny judgement: {}"
                              .format(str(new_block)))
@@ -291,6 +311,8 @@ class FullClient(object):
                     if next_creator == self.public_key:
                         logger.debug("creator_election: next creator is self")
                         new_block = self.create_next_block(hash, timestamp)
+                        if not new_block:
+                            continue # Branch was deleted in mean time
                         if not new_block.validate(self.chain.find_block_by_hash(hash)):
                             logger.error("New generated block is not valid! {}".format(repr(new_block)))
                             self.transaction_set.add_multiple(self.new_block.transactions)
@@ -363,6 +385,8 @@ class FullClient(object):
             number_of_blocks_to_check = len(admissions)
             blocks_checked = 0
             block_to_check = self.chain.find_block_by_hash(hash)
+            if not block_to_check:
+                continue
             while blocks_checked < number_of_blocks_to_check:
                 for transaction_in_chain in block_to_check.transactions:
                     if transaction == transaction_in_chain:
@@ -472,13 +496,16 @@ class FullClient(object):
             return
         timestamp = int(time.time())
         new_block = self.create_next_block(selected_hash, timestamp)
-        print("Created Block:")
-        print(new_block)
-        send_now = input("Confirm to send block. (Y)").lower()
-        if send_now == "y":
-            self.submit_block(new_block)
+        if new_block:
+            print("Created Block:")
+            print(new_block)
+            send_now = input("Confirm to send block. (Y)").lower()
+            if send_now == "y":
+                self.submit_block(new_block)
+            else:
+                print("Invalid option {}, aborting.".format(send_now))
         else:
-            print("Invalid option {}, aborting.".format(send_now))
+            print("Chosen hash isn't a part of the chain anymore. Please choose another Hash.")
 
     def process_dangling_blocks(self):
         raise DeprecationWarning("This method shouldn't be used anymore")
