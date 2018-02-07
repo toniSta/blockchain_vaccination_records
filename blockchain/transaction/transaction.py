@@ -11,6 +11,7 @@ class TransactionBase(metaclass=ABCMeta):
         self.version = kwargs.get("version") or CONFIG["version"]
         self.timestamp = kwargs.get("timestamp") or int(time())
         self.signature = signature
+        self.validation_text = 'Not yet validated.'
 
     @abstractmethod
     def validate(self, admissions, doctors, vaccines):
@@ -21,15 +22,24 @@ class TransactionBase(metaclass=ABCMeta):
     def _get_informations_for_hashing(self):
         raise NotImplementedError("Transaction must offer informations to be hashable")
 
+    def get_validation_result(self):
+        return self.validation_text
+
     def _create_signature(self, private_key):
         message = crypto.get_bytes(self._get_informations_for_hashing())
         return crypto.sign(message, private_key)
 
     def _verify_signature(self):
         if not self.signature:  # fail if object has no signature attribute
+            self.validation_text = "No signature found."
             return False
         message = crypto.get_bytes(self._get_informations_for_hashing())
-        return crypto.verify(message, self.signature, RSA.import_key(self.sender_pubkey))
+        result = crypto.verify(message, self.signature, RSA.import_key(self.sender_pubkey))
+        if not result:
+            self.validation_text = "Signature not valid"
+            return False
+        self.validation_text = "valid"
+        return True
 
     def sign(self, private_key):
         """Create cryptographic signature and add it to the transaction."""
@@ -52,6 +62,9 @@ class TransactionBase(metaclass=ABCMeta):
         """
         instance_member_list = []
         for item in vars(self).items():
+            if item[0] == 'validation_text':
+                continue
+
             if type(item[1]).__name__ == "bytes":
                 instance_member_list.append((item[0].title(), hexify(item[1])))
                 continue
@@ -93,6 +106,8 @@ class TransactionBase(metaclass=ABCMeta):
         """
         instance_member_list =[]
         for item in vars(self).items():
+            if item[0] == 'validation_text':
+                continue
             instance_member_list.append(item)
         instance_member_list.sort(key=lambda tup: tup[0])
 

@@ -360,6 +360,15 @@ class FullClient(object):
     def handle_transaction(self, transaction, broadcast=False, print_nodes=False):
         if broadcast:
             self._broadcast_new_transaction(transaction, print_nodes=print_nodes)
+        if print_nodes:
+            registry_list = self.chain.get_registration_caches()
+            invalid_reasons = []
+            for _, admissions, doctors, vaccines in registry_list:
+                transaction.validate(admissions, doctors, vaccines)
+                invalid_reasons.append(transaction.get_validation_result())
+            print("This are the different results for each current branch:")
+            for result in invalid_reasons:
+                print(result)
         if self.transaction_set.contains(transaction):
             return  # Transaction was already received
         if self._check_if_transaction_in_chain(transaction):
