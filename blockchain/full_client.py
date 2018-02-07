@@ -167,25 +167,31 @@ class FullClient(object):
     def handle_sync_request(self, sender_host, block):
         sender_address = "http://" + sender_host + ":9000"
         block = Block(block)
+        logger.debug("Got sync request at index {}".format(block.index))
+        if not self.chain.find_block_by_hash(block.hash):
+            # received block is not part of chain. send complete chain to be save
+            block = self.chain.find_blocks_by_index(0)[0]
         first_branch_block = self.chain.get_first_branching_block()
         if first_branch_block.index < block.index:
             block = first_branch_block
-        if not self.chain.find_block_by_hash(block.hash):
-            # received block is not part of chain. send complete chain to be save
-            block = self.chain.find_blocks_by_index(0)
-        blocks_to_sync = self.chain.get_tree_list_at_hash(block.hash)
-        for block in blocks_to_sync:
-            logger.debug("Resending Block: {}".format(block))
-            Network.send_block(sender_address, repr(block))
 
-            judgements = self.chain.get_judgements_for_blockhash(block.hash)
-            for judgement in judgements:
-                logger.debug("Resending judgement: {}".format(judgement))
-                Network.send_judgement(sender_address, repr(judgement))
+        blocks_to_sync = self.chain.get_tree_list_at_hash(block.hash)
+        logger.debug("Going to resend {} blocks starting with index {}".format(len(blocks_to_sync)+1, block.index))
+        self._resend_block(block, sender_address)
+        for rblock in blocks_to_sync:
+            self._resend_block(rblock, sender_address)
 
         dead_branch_judgements = self.chain.get_dead_branches_since_blockhash(block.hash)
         for judgement in dead_branch_judgements:
             logger.debug("Resending dead branch judgement: {}".format(judgement))
+            Network.send_judgement(sender_address, repr(judgement))
+
+    def _resend_block(self, block, sender_address):
+        logger.debug("Resending Block: {}".format(block))
+        Network.send_block(sender_address, repr(block))
+        judgements = self.chain.get_judgements_for_blockhash(block.hash)
+        for judgement in judgements:
+            logger.debug("Resending judgement: {}".format(judgement))
             Network.send_judgement(sender_address, repr(judgement))
 
     def create_next_block(self, parent_hash, timestamp):
