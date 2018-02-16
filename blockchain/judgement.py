@@ -66,14 +66,6 @@ class Judgement(object):
         # TODO: check if judge is an admission node
         return self._verify_signature()
 
-    def deny(self, private_key):
-        """Revoke the previous decision to approve a block and change it to deny."""
-        if not self.accept_block:
-            logger.debug("cannot deny judgement that already disapproves a block.")
-        self.accept_block = False
-        self.signature = self._create_signature(private_key)
-        return self
-
     def __repr__(self):
         """
         This method returns a string representation of the object such that eval() can recreate the object.
