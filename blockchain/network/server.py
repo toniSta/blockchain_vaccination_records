@@ -46,14 +46,6 @@ def _new_block():
     Thread(target=handle_received_block, args=(block,), daemon=True, name="handle_received_block_thread").start()
     return "success"
 
-
-@app.route(CONFIG["ROUTES"]["block_by_index"], methods=["GET"])
-def _send_block_by_id(index):
-    # TODO use multiple leaves. Is this used somewhere?
-    block = full_client.chain.find_blocks_by_index(int(index))[0]
-    return repr(block)
-
-
 @app.route(CONFIG["ROUTES"]["block_by_hash"], methods=["GET"])
 def _send_block_by_hash(hash):
     block = full_client.chain.find_block_by_hash(hash)
