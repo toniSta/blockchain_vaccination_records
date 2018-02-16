@@ -366,24 +366,6 @@ class Chain(object):
         def _get_all_leaf_nodes(self):
             return findall(self.chain_tree, lambda node: node.is_leaf is True)
 
-        def get_doctors(self):
-            """Return list of tuples (hash, set of currently registered doctors)."""
-            with self._lock:
-                leaves = self._get_all_leaf_nodes()
-                result = []
-                for leaf in leaves:
-                    result.append((leaf.name, set(leaf.doctors_cache)))
-                return result
-
-        def get_vaccines(self):
-            """Return a list of tuples (hash, set of currently registered vaccines)."""
-            with self._lock:
-                leaves = self._get_all_leaf_nodes()
-                result = []
-                for leaf in leaves:
-                    result.append((leaf.name, set(leaf.vaccine_cache)))
-                return result
-
         def get_registration_caches(self):
             """Return a list of tuples (hash, set(admissions), set(doctors), set(vaccines))."""
             with self._lock:
