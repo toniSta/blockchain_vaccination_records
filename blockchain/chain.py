@@ -385,20 +385,6 @@ class Chain(object):
                 tree_node = self._find_tree_node_by_hash(hash)
                 return set(tree_node.block_creation_cache), set(tree_node.doctors_cache), set(tree_node.vaccine_cache)
 
-        def get_registration_caches_by_blockindex(self, index):
-            """Return a list of tuples of hash and sets containing the registered admissions, doctors,
-            and vaccines of blocks with the given blockindex."""
-            with self._lock:
-                tree_nodes = self._find_tree_nodes_by_index(index)
-                result = []
-                for node in tree_nodes:
-                    result.append((node.name,
-                                   set(node.block_creation_cache),
-                                   set(node.doctors_cache),
-                                   set(node.vaccine_cache)
-                                   ))
-                return result
-
         def get_parent_block_by_hash(self, hash):
             node = self._find_tree_node_by_hash(hash)
             parent_node = node.parent
