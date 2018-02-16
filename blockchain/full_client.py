@@ -339,11 +339,6 @@ class FullClient(object):
 
         logger.debug("Thread {} is dead.".format(threading.current_thread()))
 
-    def _request_block_at_index(self, index, node):
-        route = node + "/request_block/index/" + str(index)
-        block = requests.get(route)
-        return Block(block.text)
-
     def _broadcast_new_block(self, block):
         for node in self.nodes:
             Network.send_block(node, repr(block))
