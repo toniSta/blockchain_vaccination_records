@@ -522,9 +522,6 @@ class FullClient(object):
         else:
             print("Chosen hash isn't a part of the chain anymore. Please choose another Hash.")
 
-    def process_dangling_blocks(self):
-        raise DeprecationWarning("This method shouldn't be used anymore")
-
     def register_self_as_admission(self):
         admissions_at_leaf = self.chain.get_admissions()
         for admissions in admissions_at_leaf:
