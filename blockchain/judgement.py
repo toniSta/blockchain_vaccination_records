@@ -1,8 +1,11 @@
 import logging
 from time import time
+from Crypto.PublicKey import RSA
+
 from blockchain.config import CONFIG
 import blockchain.helper.cryptography as crypto
 logger = logging.getLogger("judgement")
+
 
 class Judgement(object):
     """This class implements the judgement functionality."""
@@ -20,30 +23,6 @@ class Judgement(object):
         self.timestamp = timestamp or int(time())
         self.version = version or CONFIG["version"]
 
-    def __str__(self):
-        return ("-----------------------\n"
-                "  Judgement\n"
-                "  Judged block: {}\n"
-                "  Accept block: {}\n"
-                "  Public key: {}\n"
-                "  Timestamp: {}\n"
-                "  Version: {}\n"
-                "-----------------------").format(self.hash_of_judged_block,
-                                                  self.accept_block,
-                                                  self.sender_pubkey,
-                                                  self.timestamp,
-                                                  self.version)
-
-    def _get_data_for_hashing(self):
-        """Return a string representation of the contained data for hashing"""
-        return str({
-            "judged_block": self.hash_of_judged_block,
-            "accept_block": self.accept_block,
-            "sender_pubkey": self.sender_pubkey,
-            "timestamp": self.timestamp,
-            "version": self.version
-        })
-
     def sign(self, private_key):
         """Create a cryptographic signature and add it to the judgement."""
         if self.signature:
@@ -56,15 +35,25 @@ class Judgement(object):
         message = crypto.get_bytes(self._get_data_for_hashing())
         return crypto.sign(message, private_key)
 
+    def _get_data_for_hashing(self):
+        """Return a string representation of the contained data for hashing"""
+        return str({
+            "judged_block": self.hash_of_judged_block,
+            "accept_block": self.accept_block,
+            "sender_pubkey": self.sender_pubkey,
+            "timestamp": self.timestamp,
+            "version": self.version
+        })
+
+    def validate(self):
+        # TODO: check if judge is an admission node
+        return self._verify_signature()
+
     def _verify_signature(self):
         if not self.signature:  # fail if object has no signature attribute
             return False
         message = crypto.get_bytes(self._get_data_for_hashing())
         return crypto.verify(message, self.signature, RSA.import_key(self.sender_pubkey))
-
-    def validate(self):
-        # TODO: check if judge is an admission node
-        return self._verify_signature()
 
     def __repr__(self):
         """
@@ -81,6 +70,20 @@ class Judgement(object):
             type(self).__name__,
             ", ".join(["{!s}={!r}".format(*item) for item in instance_member_list])
         )
+
+    def __str__(self):
+        return ("-----------------------\n"
+                "  Judgement\n"
+                "  Judged block: {}\n"
+                "  Accept block: {}\n"
+                "  Public key: {}\n"
+                "  Timestamp: {}\n"
+                "  Version: {}\n"
+                "-----------------------").format(self.hash_of_judged_block,
+                                                  self.accept_block,
+                                                  self.sender_pubkey,
+                                                  self.timestamp,
+                                                  self.version)
 
     def __hash__(self):
         return hash(self.__repr__())
