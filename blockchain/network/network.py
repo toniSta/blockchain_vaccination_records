@@ -35,12 +35,6 @@ class Network(ABCMeta):
         return r.ok
 
     @staticmethod
-    def request_latest_block(node):
-        """Ask another node for current chain status."""
-        route = node + CONFIG["ROUTES"]["latest_block"]
-        return requests.get(route)
-
-    @staticmethod
     def broadcast_new_transaction(node, transaction):
         """Broadcast a transaction to neighbours."""
         route = node + CONFIG["ROUTES"]["new_transaction"]

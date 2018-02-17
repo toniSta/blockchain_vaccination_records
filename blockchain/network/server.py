@@ -51,13 +51,6 @@ def _send_block_by_hash(hash):
     block = full_client.chain.find_block_by_hash(hash)
     return repr(block)
 
-
-@app.route(CONFIG["ROUTES"]["latest_block"], methods=["GET"])
-def _latest_block():
-    block = full_client.chain.last_block()
-    return repr(block)
-
-
 @app.route(CONFIG["ROUTES"]["new_transaction"], methods=["POST"])
 def _new_transaction():
     new_transaction = request.data

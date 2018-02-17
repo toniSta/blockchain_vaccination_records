@@ -24,7 +24,6 @@ CONFIG = {
     "ROUTES": {
         "new_block": "/new_block",
         "block_by_hash": "/request_block/hash/<hash>",
-        "latest_block": "/latest_block",
         "new_transaction": "/new_transaction",
         "new_judgement": "/new_judgement",
         "sync_request": "/sync_request"
