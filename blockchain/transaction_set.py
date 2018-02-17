@@ -12,26 +12,6 @@ class TransactionSet(object):
         def add(self, transaction):
             self.store.add(transaction)
 
-        def pop(self):
-            """Remove and return a transaction from the set."""
-            try:
-                return self.store.pop(0)
-            # Catch KeyError if set is empty
-            except KeyError:
-                return None
-
-        def clear(self):
-            """Remove all transactions from the set."""
-            self.store.clear()
-
-        def discard(self, transaction):
-            """Remove the transaction if it was present in the set."""
-            self.store.discard(transaction)
-
-        def discard_multiple(self, transaction_list):
-            """Remove multiple transactions from the set."""
-            [self.discard(tx) for tx in transaction_list]
-
         def add_multiple(self, transaction_list):
             """Add multiple transactions to the set.
 
@@ -43,6 +23,26 @@ class TransactionSet(object):
 
         def contains(self, transaction):
             return self.store.__contains__(transaction)
+
+        def pop(self):
+            """Remove and return a transaction from the set."""
+            try:
+                return self.store.pop(0)
+            # Catch KeyError if set is empty
+            except KeyError:
+                return None
+
+        def discard(self, transaction):
+            """Remove the transaction if it was present in the set."""
+            self.store.discard(transaction)
+
+        def discard_multiple(self, transaction_list):
+            """Remove multiple transactions from the set."""
+            [self.discard(tx) for tx in transaction_list]
+
+        def clear(self):
+            """Remove all transactions from the set."""
+            self.store.clear()
 
         def __len__(self):
             return len(self.store)
