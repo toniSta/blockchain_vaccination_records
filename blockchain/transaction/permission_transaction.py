@@ -1,14 +1,10 @@
 import logging
-import math
-import blockchain.helper.cryptography as crypto
-from Crypto.PublicKey import RSA
 from enum import Enum
+from Crypto.PublicKey import RSA
+
+import blockchain.helper.cryptography as crypto
 from blockchain.transaction.transaction import TransactionBase
 
-# Needs to be moved later
-logging.basicConfig(level=logging.DEBUG,
-                    format="[ %(asctime)s ] %(levelname)-7s %(name)-s: %(message)s",
-                    datefmt="%Y-%m-%d %H:%M:%S")
 logger = logging.getLogger("blockchain")
 
 
