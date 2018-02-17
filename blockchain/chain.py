@@ -5,7 +5,6 @@ import threading
 from collections import deque
 from subprocess import CalledProcessError
 from threading import RLock, current_thread
-
 from Crypto.PublicKey import RSA
 
 from blockchain.network.network import Network
