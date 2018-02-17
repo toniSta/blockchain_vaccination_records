@@ -13,8 +13,6 @@ class TransactionBase(metaclass=ABCMeta):
         self.signature = signature
         self.validation_text = 'Not yet validated.'
         self.sender_pubkey = kwargs.get("sender_pubkey") or None
-        if not self.sender_pubkey:
-            del self.sender_pubkey
 
     @abstractmethod
     def validate(self, admissions, doctors, vaccines):
