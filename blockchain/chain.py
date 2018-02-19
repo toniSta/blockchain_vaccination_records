@@ -21,7 +21,11 @@ logger = logging.getLogger("blockchain")
 
 
 class Chain(object):
-    """Basic chain class."""
+    """Chain Singleton
+
+    Provide methods to load or store blocks, judgements and dead branches.
+    Furthermore handle every interaction with the blockchain itself (e.g. add blocks/judgements, search for blocks).
+    """
     class __Chain:
         def __init__(self, load_persisted=True):
             """Create initial chain and tries to load saved state from disk."""
@@ -35,14 +39,17 @@ class Chain(object):
         def _can_be_loaded_from_disk(self):
             """Return if the blockchain can be loaded from disk.
 
-            True if the blockchain persistance folder
-            and the genesis block file are present.
+            True if the blockchain persistance folder and the genesis block file are present.
             """
             return os.path.isdir(CONFIG["persistance_folder"]) and \
                    len([f for f in os.listdir(CONFIG["persistance_folder"])
                         if f.startswith("0_")]) == 1  # there should only be one genesis file starting with '0_..._...'
 
         def _load_from_disk(self):
+            """Recreate blockchain tree from disk
+
+            Read every block from disk, search its judgements and create tree node.
+            """
             current_block_level = 0
             block_files = os.listdir(CONFIG["persistance_folder"])
             level_prefix = str(current_block_level) + "_"
@@ -61,12 +68,11 @@ class Chain(object):
             logger.info("Finished loading chain from disk")
 
         def _load_judgements_from_disk(self, file_path):
-            '''
-            Load judgements from a file.
+            """Load judgements from a file.
 
             :param file_path: Filename of the file containing judgements. 1 per line
             :return: dict of judgements <sender of judgement>: <judgement>
-            '''
+            """
             judgements = {}
             try:
                 with open(file_path, "r") as file:
@@ -82,6 +88,10 @@ class Chain(object):
 
             This method adds a block to the chain tree and returns a set of blocks, that needs
             to be denied due to the new block.
+
+            :param block: Block object that should be added.
+            :param judgements: Optional dict of judgements <sender of judgement>: <judgement>
+            :return: Set of blocks that needs to be invalidated.
             """
             if not judgements:
                 judgements = {}
@@ -140,7 +150,13 @@ class Chain(object):
                 return invalidated_blocks
 
         def _update_caches(self, block, block_creation_cache, doctors_cache, vaccine_cache):
-            """Update the block creation cache and refresh the registered doctors and vaccines."""
+            """Update the block creation, doctor and vaccine cache.
+
+            :param block: Block object of the new block whose contents should be added to the caches.
+            :param block_creation_cache: A `deque` object representing the queue of admission sorted by age.
+            :param doctors_cache: Set of doctors.
+            :param vaccine_cache: Set of vaccines.
+            """
             with self._lock:
                 self._update_block_creation_cache(block, block_creation_cache)
                 for transaction in block.transactions:
@@ -169,6 +185,19 @@ class Chain(object):
 
         def _generate_tree_node(self, block, block_creation_cache=None, doctors_cache=None, vaccine_cache=None,
                                 parent_node=None, judgements=None):
+            """Create tree node
+
+            The params `block_creation_cache`, `doctors_cache`, `vaccine_cache` should already
+            contain the contents of the block.
+
+            :param block: Block of the node
+            :param block_creation_cache: Queue of block creators.
+            :param doctors_cache: Set of doctors.
+            :param vaccine_cache: Set of vaccines
+            :param parent_node: Parent Node object. If `None` it creates a root Node.
+            :param judgements: Dict of judgements
+            :return: Node object that is already part of the tree.
+            """
             if not judgements:
                 judgements = {}
             return Node(block.hash,
@@ -181,6 +210,10 @@ class Chain(object):
                         judgements=judgements)
 
         def _remove_block_from_dangling_list(self, block):
+            """Remove block from the set of dangling tree nodes.
+
+            :return: tree node containing block. None if block is not dangling.
+            """
             for node in self.dangling_nodes:
                 if node.block == block:
                     self.dangling_nodes.discard(node)
@@ -188,9 +221,9 @@ class Chain(object):
             return None
 
         def update_judgements(self, judgement):
-            """Attaches the judgement to node with the corresponding blockhash.
+            """Attach  judgement to node with the corresponding block.
 
-            return True if the judgement was new, False if it was already there
+            :return: True if the judgement was new, False if it was already there
             """
             changed_judgments= False
             with self._lock:
@@ -225,6 +258,7 @@ class Chain(object):
                 return changed_judgments
 
         def _persist_judgements_for_node(self, node):
+            """Save judgements of contained in node onto disk."""
             file_name = self._get_file_name(node=node)
             judgement_path = os.path.join(CONFIG["persistance_folder"], 'judgements', file_name)
             if not os.path.exists(os.path.dirname(judgement_path)):
@@ -234,14 +268,13 @@ class Chain(object):
                     file.write(repr(node.judgements[judgement]) + '\n')
 
         def _get_dangling_node_by_hash(self, hash_of_judged_block):
+            """Return tree node with corresponding hash_of_judged_block"""
             for node in self.dangling_nodes:
                 if node.block.hash == hash_of_judged_block:
                     return node
 
         def _check_branch_for_deletion(self, node):
-            '''
-            Check if a branchs needs to be deleted and delete if necessary
-            '''
+            """Check if a branchs needs to be deleted and delete if necessary"""
             number_of_denies = 0
             for judgement in node.judgements:
                 if not node.judgements[judgement].accept_block:
@@ -254,11 +287,11 @@ class Chain(object):
                 self._remove_tree_at_node(node)
 
         def _remove_tree_at_node(self, node):
-            """Delete a side chain by removing a branch.
+            """Delete a branch by removing a subtree.
 
             Remove a whole branch by detaching its root node and deleting all files associated with any node of
-            the sub-tree.
-            resends a list of transactions that was unique in this subtree
+            the subtree.
+            Resend a list of transactions that was unique in this subtree concurrently.
             """
             unique_transactions = []
             with self._lock:
@@ -283,15 +316,14 @@ class Chain(object):
                 t.start()
 
         def _is_transaction_in_subtree(self, tx, root_node):
-            '''
-            Check if a transaction is contained in a subtree.
-            '''
+            """Check if a transaction tx is contained in a subtree underneath root_node."""
             for node in root_node.descendants:
                 if tx in node.block.transactions:
                     return True
             return False
 
         def _remove_block_file(self, node):
+            """Remove block in node from disk"""
             file_name = self._get_file_name(node=node)
             persistence_folder = CONFIG["persistance_folder"]
             file_path = os.path.join(persistence_folder, file_name)
@@ -301,14 +333,12 @@ class Chain(object):
                 pass
 
         def _remove_judgement_file(self, node):
-            '''
+            """
             Remove judgement files associated with this node.
 
             The method removes the current judgement file of the node and checks if there are any dead branch files of
-            former childs.
-            :param node:
-            :return:
-            '''
+            former childs. Those files are removed as well.
+            """
             file_name = self._get_file_name(node=node)
             judgement_path = self._get_judgement_path(file_name)
             try:
@@ -331,10 +361,18 @@ class Chain(object):
                     pass  #file already removed by another thread
 
         def _resend_transactions(self, transactions):
+            """Send transactions to myself.
+
+            :param transactions: Iterable of transactions.
+            """
             for tx in transactions:
                 Network.broadcast_new_transaction('http://localhost:9000', repr(tx))
 
         def _save_dead_branch(self, node):
+            """Save dead branch to disk.
+
+            Save node as dead branch to disk and remove the judgements file.
+            """
             file_name = self._get_file_name(node=node)
             judgement_path = self._get_judgement_path(file_name)
             dead_branch_path = self._get_dead_branch_path(file_name)
@@ -346,18 +384,20 @@ class Chain(object):
                 pass  # For safety. Shouldn't occur.
 
         def add_dangling_block(self, block):
+            """Transform node into tree node and add it to the set of dangling nodes."""
             with self._lock:
                 node = self._generate_tree_node(block)
                 if not self.is_block_dangling(block):
                     self.dangling_nodes.add(node)
 
         def get_leaves(self):
-            """Return all possible leaf blocks of the chain."""
+            """Return list of all leaf blocks of the chain."""
             with self._lock:
                 leaves = self._get_all_leaf_nodes()
                 return [leaf.block for leaf in leaves]
 
         def _get_all_leaf_nodes(self):
+            """Return list of all leaf nodes of the chain tree."""
             return findall(self.chain_tree, lambda node: node.is_leaf is True)
 
         def get_admissions(self):
@@ -372,7 +412,8 @@ class Chain(object):
                 return result
 
         def get_registration_caches(self):
-            """Return a list of tuples (hash, set(admissions), set(doctors), set(vaccines))."""
+            """Return a list of tuples (hash, set(admissions), set(doctors), set(vaccines)) of every leaf in the
+            chain tree."""
             with self._lock:
                 leaves = self._get_all_leaf_nodes()
                 result = []
@@ -384,7 +425,11 @@ class Chain(object):
                 return result
 
         def get_tree_list_at_hash(self, hash):
-            """Collect all descendants from the specified node."""
+            """Return all blocks after the given hash.
+
+            :param hash: Hash of the block whose decedents should be returned.
+            :return: [] if hash is not part of the chain.
+            """
             selected_node = find(self.chain_tree, lambda node: node.block.hash == hash)
             if selected_node:
                 return [node.block for node in selected_node.descendants]
@@ -392,7 +437,8 @@ class Chain(object):
                 return []
 
         def find_blocks_by_index(self, index):
-            """Find blocks by its index. Return None at invalid index."""
+            """Find all blocks with index.
+            Return None if index is not part of the chain."""
             with self._lock:
                 nodes = self._find_tree_nodes_by_index(index)
                 if nodes:
@@ -404,21 +450,24 @@ class Chain(object):
                     return
 
         def _find_tree_nodes_by_index(self, index):
+            """Find all nodes with index"""
             return findall(self.chain_tree, lambda node: node.index == index)
 
         def find_block_by_hash(self, hash):
-            """Find a block by its hash. Return None if hash not found. Only search the tree. No dangling blocks."""
+            """Find a block by its hash.
+            Return None if hash not in tree. Dangling Nodes are ignored."""
             block_node = self._find_tree_node_by_hash(hash)
             if block_node:
                 return block_node.block
             return
 
         def _find_tree_node_by_hash(self, hash):
+            """Find tree node with hash."""
             return find(self.chain_tree, lambda node: node.name == hash)
 
         def get_block_creation_history_by_hash(self, n, hash):
             """Return list [public keys of the oldest n blockcreating admission nodes].
-            Return None if n is out of bounds for the given leaf."""
+            Return None if n is out of bounds for the cache of the given hash."""
             with self._lock:
                 node = self._find_tree_node_by_hash(hash)
                 if n > len(node.block_creation_cache) or n < 0:
@@ -430,22 +479,29 @@ class Chain(object):
 
         def get_registration_caches_by_blockhash(self, hash):
             """Return a tuple of sets containing the registered admissions, doctors,
-            and vaccines at the blockheight of the given hash."""
+            and vaccines at hash."""
             with self._lock:
                 tree_node = self._find_tree_node_by_hash(hash)
                 return set(tree_node.block_creation_cache), set(tree_node.doctors_cache), set(tree_node.vaccine_cache)
 
         def get_parent_block_by_hash(self, hash):
+            """Return parent block of hash.
+
+            This method doesn't check if hash is part of the tree. Use `find_block_by_hash` to check if the
+            block is part of the chain.
+            """
             node = self._find_tree_node_by_hash(hash)
             parent_node = node.parent
             return parent_node.block
 
         def is_dead_branch_root(self, block):
+            """Check if block is the root of a dead_branch"""
             file_name = self._get_file_name(block=block)
             dead_branch_path = self._get_dead_branch_path(file_name)
             return os.path.exists(dead_branch_path)
 
         def is_block_dangling(self, block):
+            """Check if block is a dangling block"""
             with self._lock:
                 for node in self.dangling_nodes:
                     if node.block == block:
@@ -453,6 +509,7 @@ class Chain(object):
                 return False
 
         def get_list_of_dangling_blocks(self):
+            """Return list of currently dangling blocks."""
             blocks = []
             with self._lock:
                 for node in self.dangling_nodes:
@@ -460,9 +517,7 @@ class Chain(object):
                 return blocks
 
         def get_first_branching_block(self):
-            '''
-            Return the first block which has more than one following block.
-            '''
+            """Return the first block which has more than one following block."""
             with self._lock:
                 current_node = self.chain_tree
                 while current_node.children:
@@ -473,9 +528,7 @@ class Chain(object):
                 return current_node.block
 
         def get_judgements_for_blockhash(self, blockhash):
-            '''
-            Return list of judgements of a block.
-            '''
+            """Return list of judgements of blockhash."""
             judgement_dict = self._find_tree_node_by_hash(blockhash).judgements
             judgements = []
             for judge in judgement_dict:
@@ -484,9 +537,7 @@ class Chain(object):
             return judgements
 
         def get_dead_branches_since_blockhash(self, blockhash):
-            '''
-            Return a list of judgements of all dead_branches since block with blockhash
-            '''
+            """Return a list of judgements of all dead branches after blockhash."""
             path = self._get_dead_branch_path()
             try:
                 content = os.listdir(path)
@@ -506,6 +557,7 @@ class Chain(object):
             return judgements
 
         def lock_state(self):
+            """Return if Chain is locked by another thread."""
             return self._lock._is_owned()
 
         def _get_judgement_path(self, file_name):
@@ -523,6 +575,10 @@ class Chain(object):
                 return "_".join([str(block.index), block.previous_block, block.hash])
 
         def render_current_tree(self):
+            """Render tree for demo.
+
+            Render tree as png graphic and save in configured persistance folder.
+            """
             if os.getenv("RENDER_CHAIN_TREE") == '1':
                 # graphviz needs to be installed for the next line!
                 try:
@@ -570,6 +626,9 @@ class Chain(object):
 
 
 def nodenamefunc(node):
+    """Render graphic content of node.
+    One Node is represented by its index, Hash, no. of transactions, accepts and denies.
+    """
     denies = 0
     accepts = 0
     for judgement in node.judgements:
@@ -588,6 +647,11 @@ def nodenamefunc(node):
 
 
 def nodeattrfunc(node):
+    """Render appearance of node in graphic.
+    Blocks generated by the client itself are darker green.
+    Path that is currently accepted by the client is lighter green.
+    Every other path is red.
+    """
     key_folder = CONFIG["key_folder"]
     path = os.path.join(key_folder, CONFIG["key_file_names"][0])
     with open(path, "rb") as key_file:
