@@ -88,6 +88,7 @@ class Chain(object):
 
             This method adds a block to the chain tree and returns a set of blocks, that needs
             to be denied due to the new block.
+            Remove block from set of dangling blocks if present.
 
             :param block: Block object that should be added.
             :param judgements: Optional dict of judgements <sender of judgement>: <judgement>
