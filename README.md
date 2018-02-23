@@ -39,6 +39,10 @@ Now you are prepared to run the [tests](#running-the-tests) or to [deploy](#depl
 
 ## Running the tests
 
+**TODO** add correct icons. example:
+[![Build Status](https://travis-ci.org/Benedikt1992/test.svg?branch=readme)](https://travis-ci.org/Benedikt1992/test)
+[![Coverage Status](https://coveralls.io/repos/github/Benedikt1992/test/badge.svg?branch=readme)](https://coveralls.io/github/Benedikt1992/test?branch=readme)
+
 You can run the tests with `pytest` within the root directory of the repository.
 
 To get a report about the test coverage, run:
