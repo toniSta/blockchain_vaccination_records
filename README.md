@@ -65,7 +65,7 @@ This will start and connect the following network (nodes GA, A1-3, D1-2; see [Ne
 
 ![demo network layout](img/network.png "demo network layout")
 
-The nodes A4-6 and D3 can be controlled by you (see [How to interact within the demonstration](#how-to-interact-within-the-demonstration)). 
+The nodes `A4-6` and `D3` can be controlled by you (see [How to interact within the demonstration](#how-to-interact-within-the-demonstration)). 
 You can start them with the following commands (one per window):
 ```bash
 ./start_a4.sh
@@ -84,7 +84,7 @@ However, don't delete the file starting with `0_` (You can restore the file with
 
 First of all you can have a look on the state of the blockchain as seen by the `GA` node. 
 It will store its files in the directory `blockchain/blockchain_files`.
-It will also contain a image `current_state.png`. 
+It will also contain an image `current_state.png`. 
 This is a rendered image of the current chain. 
 It will be renewed whenever the `GA` node adds a block to its chain.
 You may want to use an image viewer with an auto-refresh feature (see [Prerequisites](#prerequisites)).
@@ -109,11 +109,11 @@ The node `D3` has a uni-directional connection to the nodes `A1-3` and `GA`.
 This means it will send new transactions to all admission nodes (see [Network Participants](#network-participants)) of the base network.
 You can start this kind of client by setting the environment variable `START_CLI=1`.
 
-There some more environment variables to setup the nodes:
+There are some more environment variables to setup the nodes:
 
 - `NEIGHBORS_HOST_PORT`  
 This is a `,`-separated list of the nodes neighbors. 
-One entry contains the (resolvable) hostname/ip and the port the neighbor listens to (defaults to `9000`).
+One entry contains the (resolvable) hostname/ip and the port the neighbor listens to (default is `9000`).
 A list may look like this: `a2:9000,d2:9000`.
 If you want to extend the demo network, keep in mind that you need at least 1 bi-directional connection with the existing network.
 - `SERVER_PORT`  
