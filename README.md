@@ -39,9 +39,8 @@ Now you are prepared to run the [tests](#running-the-tests) or to [deploy](#depl
 
 ## Running the tests
 
-**TODO** add correct icons. example:
-[![Build Status](https://travis-ci.org/Benedikt1992/test.svg?branch=readme)](https://travis-ci.org/Benedikt1992/test)
-[![Coverage Status](https://coveralls.io/repos/github/Benedikt1992/test/badge.svg?branch=readme)](https://coveralls.io/github/Benedikt1992/test?branch=readme)
+[![Build Status](https://travis-ci.org/toniSta/blockchain_vaccination_records.svg?branch=master)](https://travis-ci.org/toniSta/blockchain_vaccination_records)
+[![Coverage Status](https://coveralls.io/repos/github/toniSta/blockchain_vaccination_records/badge.svg?branch=master)](https://coveralls.io/github/toniSta/blockchain_vaccination_records?branch=master)
 
 You can run the tests with `pytest` within the root directory of the repository.
 
