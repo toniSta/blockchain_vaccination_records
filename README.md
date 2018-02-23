@@ -57,11 +57,12 @@ docker built.....
 
 ## Documentation
 
-how to build? (Sphinx)
-http://www.sphinx-doc.org/en/master/tutorial.html
-http://docs.python-guide.org/en/latest/writing/documentation/
+**TODO** get Sphinx running. It possible to auto-build docs with sphinx on readthe docs:
+- https://github.com/rtfd/readthedocs.org
+- http://www.sphinx-doc.org/en/master/tutorial.html
+- http://docs.python-guide.org/en/latest/writing/documentation/
 
-python -m pydoc blockchain
+We use python doc strings inside the source files. Each method has it's own documentation.
 
 ## Versioning
 
