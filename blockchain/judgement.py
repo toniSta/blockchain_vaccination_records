@@ -46,7 +46,11 @@ class Judgement(object):
         })
 
     def validate(self):
-        # WONTFIX: check if judge is an admission node
+        """Check if the judgement meets the requirements.
+
+        Checks if the signature is valid,
+        WONTFIX: Should check if the judge is an admission node
+        """
         return self._verify_signature()
 
     def _verify_signature(self):
