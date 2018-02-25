@@ -20,6 +20,7 @@ class VaccinationTransaction(TransactionBase):
         )
 
         del self.signature  # remove the base classes single signature
+        del self.sender_pubkey
 
         if type(doctor_pub_key).__name__ == "RsaKey":
             doctor_pub_key = doctor_pub_key.exportKey("DER")

@@ -64,6 +64,6 @@ def test_serialization_deserialization(new_block):
 
 
 def test_signature_validity(new_block):
-    block_content = str.encode(new_block.get_content_for_signing())
+    block_content = str.encode(new_block._get_content_for_signing())
     signature = bytes.fromhex(new_block.signature)
     assert crypto.verify(block_content, signature, PUBLIC_KEY)

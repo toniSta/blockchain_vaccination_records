@@ -49,36 +49,6 @@ class Block(object):
         else:
             raise ValueError("Given argument is neither string nor dict!")
 
-    def __repr__(self):
-        """Create a string representation of the current block for hashing."""
-        fields = [str(self.index),
-                  self.previous_block,
-                  self.version,
-                  str(self.timestamp),
-                  self.public_key.hex()]
-        if self.signature != "":
-            fields.append(self.signature)
-        if self.hash != "":
-            fields.append(self.hash)
-        block = CONFIG["serializaton"]["separator"].join(fields)
-        block += CONFIG["serializaton"]["line_terminator"]
-        for transaction in self.transactions:
-            block += repr(transaction) + CONFIG["serializaton"]["line_terminator"]
-        return block
-
-    def __str__(self):
-        return ("\n=======================\n"
-                "  Block {}\n"
-                "  Previous block: {}\n"
-                "  Number of transactions: {}\n"
-                "  Public key: {}\n"
-                "  hash: {}\n"
-                "=======================").format(self.index,
-                                                  self.previous_block,
-                                                  len(self.transactions),
-                                                  self.public_key,
-                                                  self.hash)
-
     def _from_string(self, data):
         """Recreate a block by its string representation.
 
@@ -130,6 +100,27 @@ class Block(object):
             "hash": self.hash
         }
 
+    def update_hash(self):
+        """Add hash to the final state of the block."""
+        sha = sha256()
+        sha.update(self.get_content_for_hashing().encode("utf-8"))
+        self.hash = sha.hexdigest()
+        logger.debug("Finished creation of block:\n{}".format(str(self)))
+
+    def get_content_for_hashing(self):
+        """Return relevant block information for hashing."""
+        fields = [str(self.index),
+                  self.previous_block,
+                  self.version,
+                  str(self.timestamp),
+                  self.public_key.hex(),
+                  self.signature]
+        content = CONFIG["serializaton"]["separator"].join(fields)
+        content += CONFIG["serializaton"]["line_terminator"]
+        for transaction in self.transactions:
+            content += repr(transaction) + CONFIG["serializaton"]["line_terminator"]
+        return content
+
     def persist(self):
         """Write the block into a file for persistency."""
         persistence_folder = CONFIG["persistance_folder"]
@@ -140,18 +131,16 @@ class Block(object):
             block_file.write(repr(self))
         logger.debug("Block {} written to disk: {}".format(self.index, str(self)))
 
-    def update_hash(self):
-        """Add hash to the final state of the block."""
-        sha = sha256()
-        sha.update(self.get_content_for_hashing().encode("utf-8"))
-        self.hash = sha.hexdigest()
-        logger.debug("Finished creation of block:\n{}".format(str(self)))
-
     def validate(self, previous_block):
         """Validate block based on defined rules."""
         return validate_block(self, previous_block)
 
-    def get_content_for_signing(self):
+    def sign(self, private_key):
+        """Sign creator's public key, in order to prove identity."""
+        block_content = str.encode(self._get_content_for_signing())
+        self.signature = crypto.sign(block_content, private_key).hex()
+
+    def _get_content_for_signing(self):
         """Return relevant block information for signing.
 
         This method is needed at two points:
@@ -171,30 +160,41 @@ class Block(object):
             content += repr(transaction) + CONFIG["serializaton"]["line_terminator"]
         return content
 
-    def get_content_for_hashing(self):
-        """Return relevant block information for hashing."""
-        fields = [str(self.index),
-                  self.previous_block,
-                  self.version,
-                  str(self.timestamp),
-                  self.public_key.hex(),
-                  self.signature]
-        content = CONFIG["serializaton"]["separator"].join(fields)
-        content += CONFIG["serializaton"]["line_terminator"]
-        for transaction in self.transactions:
-            content += repr(transaction) + CONFIG["serializaton"]["line_terminator"]
-        return content
-
     def __eq__(self, other):
         return self.hash == other.hash
 
     def __hash__(self):
         return hash(self.hash)
 
-    def sign(self, private_key):
-        """Sign creator's public key, in order to prove identity."""
-        block_content = str.encode(self.get_content_for_signing())
-        self.signature = crypto.sign(block_content, private_key).hex()
+    def __repr__(self):
+        """Create a string representation of the current block for hashing."""
+        fields = [str(self.index),
+                  self.previous_block,
+                  self.version,
+                  str(self.timestamp),
+                  self.public_key.hex()]
+        if self.signature != "":
+            fields.append(self.signature)
+        if self.hash != "":
+            fields.append(self.hash)
+        block = CONFIG["serializaton"]["separator"].join(fields)
+        block += CONFIG["serializaton"]["line_terminator"]
+        for transaction in self.transactions:
+            block += repr(transaction) + CONFIG["serializaton"]["line_terminator"]
+        return block
+
+    def __str__(self):
+        return ("\n=======================\n"
+                "  Block {}\n"
+                "  Previous block: {}\n"
+                "  Number of transactions: {}\n"
+                "  Public key: {}\n"
+                "  hash: {}\n"
+                "=======================").format(self.index,
+                                                  self.previous_block,
+                                                  len(self.transactions),
+                                                  self.public_key,
+                                                  self.hash)
 
 
 def create_initial_block(public_key, private_key):

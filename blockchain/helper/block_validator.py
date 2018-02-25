@@ -46,7 +46,7 @@ def validate_block(block, previous_block):
         return False
 
     # Valid signature
-    content_to_sign = str.encode(block.get_content_for_signing())
+    content_to_sign = str.encode(block._get_content_for_signing())
     signature = bytes.fromhex(block.signature)
     public_key = RSA.importKey(block.public_key)
     valid = verify(content_to_sign, signature, public_key)

@@ -12,6 +12,7 @@ class TransactionBase(metaclass=ABCMeta):
         self.timestamp = kwargs.get("timestamp") or int(time())
         self.signature = signature
         self.validation_text = 'Not yet validated.'
+        self.sender_pubkey = kwargs.get("sender_pubkey") or None
 
     @abstractmethod
     def validate(self, admissions, doctors, vaccines):
@@ -24,10 +25,6 @@ class TransactionBase(metaclass=ABCMeta):
 
     def get_validation_result(self):
         return self.validation_text
-
-    def _create_signature(self, private_key):
-        message = crypto.get_bytes(self._get_informations_for_hashing())
-        return crypto.sign(message, private_key)
 
     def _verify_signature(self):
         if not self.signature:  # fail if object has no signature attribute
@@ -47,6 +44,10 @@ class TransactionBase(metaclass=ABCMeta):
             return
         self.signature = self._create_signature(private_key)
         return self
+
+    def _create_signature(self, private_key):
+        message = crypto.get_bytes(self._get_informations_for_hashing())
+        return crypto.sign(message, private_key)
 
     def __str__(self):
         """
@@ -121,4 +122,3 @@ class TransactionBase(metaclass=ABCMeta):
 
     def __eq__(self, other):
         return self.__hash__() == other.__hash__()
-
