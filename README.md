@@ -182,14 +182,79 @@ docker-compose stop d2
 
 Use `docker-compose start <name>` to start the node again.
 
-**TODO below this line**
----
-
 ## Architecture
 
 ### Network Participants
 
-This means genesis admission, admissions, doctors, patients
+In our blockchain network exist 4 kinds of participants. Admissions and doctors should be distinct sets.
+However, we don't check this in the prototype:
+- **Admission**  
+Admissions are the authorative part in the blockchain.
+The job of an admission is to register new admissions, doctors and vaccines (see [Supported Transactions](#supported-transactions)).
+It will receive transactions and create blocks containing the received transactions.
+Admissions will be driven by public institutions.
+Unlike other blockchain technologies we assume that the admission nodes are seen as trustworthy.
+- **Genesis Admission**  
+This admission is special as it generated the genesis block and obtains it right as admission within the genesis block.
+- **Doctor**  
+As the name suggests, doctors are doctors.
+They have to register as doctor within the chain to obtain the right to create vaccination transactions.
+We assume that a doctor won't DoS the network with transactions.
+- **Patient**  
+This participant will receive vaccinations and has no further rights.
+We mock this type of participant in the prototype
+
+### Supported Transactions
+We support 3 kinds of transactions:
+
+- **Permission**  
+Each participant starts without any rights. 
+This transactions allow to obtain further rights. 
+There are 3 sub-types currently:
+    - **Admission**  
+    This kind will grant the status as admission.
+    In general you would have to ask for approvals by other admissions beforehand.
+    We don't check this in the prototype.
+    - **Doctor**  
+    As well this will grant you the doctor rights.
+    In a real deployment an admission has to check if the doctor is a licensed doctor.
+    - **Patient**  
+    This will register your key as patient key
+- **Vaccine**  
+Register a new vaccine in the chain.
+Only registered vaccines can be used in vaccination transactions.
+- **Vaccination**  
+This transactions depicts the process of a patient being vaccinated.
+
+> __Currently unsupported__:
+>
+> - the removal of any registration process.
+
+Transactions aren't stored on persistent storage until they are part of a block.
+To make sure that a new transaction becomes part of the chain the sender needs to send it to multiple admissions.
+We recommend at least to 6 admissions for a fault tolerance > 99,99%.
+We assume a fault probability of 20% per admission node.
+
+
+### Client Types
+
+There are 2 types of clients.
+
+- **Full Client**
+This client supports all actions within the chain dependent on the rights of the participant's key.
+It will contain a complete copy of the blockchain.
+It is used by admissions to receive and validate transactions and to receive, validate and create new blocks.
+Doctors use the client to generate new transactions and to send them to their neighbors.
+- **Look-Up Client** `currently not implemented`  
+Meant to offer a user interface to enable search operations like which vaccinations has a specific patient, what are my upcoming vaccinations?... .
+This client can be used by any person and doesn't demand a valid key.
+Used with a key, it enables push notifications about upcoming vaccinations.
+
+## Consensus
+describe chain structure
+describe how block are accepted to the chain (judgements)
+creator election
+
 
 ## Code Documentation
 
@@ -214,63 +279,8 @@ We use [SemVer](http://semver.org/) for versioning. For the versions available, 
 |Toni Stachewicz   	|Initial work   	|[toniSta](https://github.com/toniSta)          |
 
 ## License
-
-**TODO** which License do we want to use?
-
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details
+This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details
 
 ## Acknowledgments
 
-**TODO** Any?
-
-
-
-
-
-# blockchain_vaccination_records
-
-## Docker
-
-Before you can use the demo compose file of this project, you need to build the base image containing all project dependency.
-Run `docker build -f base.Dockerfile -t blockchain_base .` in the project root directory to build the base image.
-
-After building the base image you can run `docker-compose up` to start the demo network.
-
-## How to attach a controlable client
-
-First you need to build the images in the project root dir (`blockchain_files` directory should only contain the genesis block):
-
-```
-docker build -t blockchain_base -f base.Dockerfile .
-docker build -t full_client_image -f Full_Client.Dockerfile .
-```
-
-You can start a client with the following commands:
-
-`docker run --name custom_client -it -p 9000 --network blockchainvaccinationrecords_default full_client_image`
-
-You may add one or more of the following options:
-```
--e "NEIGHBORS_HOST_PORT=host:9000,host2:9000" # This option defines the direct neighbours of your client. You can use any service name of `docker-compose.yml` or any custom client (`--name` option)
--e "REGISTER_AS_ADMISSION=1" # Wheather the client should register itself as admission node after startup.
--e "RENDER_CHAIN_TREE=1" # Wheather the client should render the tree as a picture (best to combine with `-v`
--e "START_CLI=1"  # This will start a cli dependend on REGISTER_AS_ADMISSION you will get a doctor cli oder a admission cli
--v /path/to/directory/containing/genesis_block:/app/blockchain/blockchain_files # Mount a directoryto store the blockchainfiles (and the rendered picture)
-```
-
-You can stop the client with `docker stop custom_client` and don't forget to clean up with `docker container prune -f && docker volume prune -f`
-
-If you want to access you client, use `docker exec -it custom_client bash`
-
-a4:
-docker run --name a4 -it -p 9000 --network blockchainvaccinationrecords_default -e "REGISTER_AS_ADMISSION=1"  -e "START_CLI=1" -e "NEIGHBORS_HOST_PORT=a3:9000,genesis_admission:9000" full_client_image
-a5:
-docker run --name a5 -it -p 9000 --network blockchainvaccinationrecords_default -e "REGISTER_AS_ADMISSION=1"  -e "CONFIRM_BLOCKSENDING=1" -e "NEIGHBORS_HOST_PORT=genesis_admission:9000,d1:9000" full_client_image
-d3:
-docker run --name d3 -it -p 9000 --network blockchainvaccinationrecords_default -e "START_CLI=1" -e "NEIGHBORS_HOST_PORT=d1:9000,a2:9000,d2:9000" full_client_image
-
-
-### Demo Interactions
-- ENV Variable START_CLI -> starts CLI for doctor (transaction creation) or admission (block creation)
-- ENV Variable REGISTER_AS_ADMISSION -> necessary to enable start_cli to find out if doctor or admission
-- ENV Variable CONFIRM_BLOCKSENDING -> if set the node participates in creator election and if it becomes the blockcreator it creates the blocks and waits for confirmation before sending
+**TODO** Any? -> Thanks to C. Böhm
