@@ -3,8 +3,7 @@
 This project is about the idea to store vaccination records anonymously and publicly available as a blockchain.
 It provides a prototype to demonstrate the principal functionality.
 It solves the problem of an effective, scalable consensus protocol by exploiting general assumptions within the domain of vaccinations.
-
-**TODO**: extend this paragraph
+You will find an implementation of a prototype to demonstrate the general functionality.
 
 ## Getting Started
 
@@ -332,4 +331,4 @@ This project is licensed under the GNU General Public License v3.0 - see the [LI
 
 ## Acknowledgments
 
-**TODO** Any? -> Thanks to C. Böhm
+We would like to thank [chrboehm](https://github.com/chrboehm) for the support during the development of this prototype.
