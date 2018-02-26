@@ -104,7 +104,7 @@ It won't broadcast this block immediately.
 It will ask you for confirmation before broadcasting the block.
 You can start it with the environment variables `REGISTER_AS_ADMISSION=1` and `CONFIRM_BLOCKSENDING=1`.
 - Create and submit transactions (`D3`)  
-This node lets you create any kind of transaction, see **TODO**. 
+This node lets you create any kind of transaction, see [Supported Transactions](#supported-transactions). 
 The node `D3` has a uni-directional connection to the nodes `A1-3` and `GA`. 
 This means it will send new transactions to all admission nodes (see [Network Participants](#network-participants)) of the base network.
 You can start this kind of client by setting the environment variable `START_CLI=1`.
@@ -246,11 +246,26 @@ It will contain a complete copy of the blockchain.
 It is used by admissions to receive and validate transactions and to receive, validate and create new blocks.
 Doctors use the client to generate new transactions and to send them to their neighbors.
 - **Look-Up Client** `currently not implemented`  
-Meant to offer a user interface to enable search operations like which vaccinations has a specific patient, what are my upcoming vaccinations?... .
+Meant to offer a user interface to enable search operations like Which vaccinations has a specific patient?, What are my upcoming vaccinations?... .
 This client can be used by any person and doesn't demand a valid key.
 Used with a key, it enables push notifications about upcoming vaccinations.
 
 ## Consensus
+The goal of this section is to give a brief overview of the implemented consensus protocol.
+Please refer to the source code of [Chain](blockchain/chain.py) and [FullClient](blockchain/full_client.py) for all details.
+To reach consensus between all participants in the network, we introduce the concept of judgements.
+This means we make a decision on a democratic basis. 
+As long as a block holds positive votes from at least the half of entitled voters it is accepted as part of the chain.
+Otherwise it is rejected.
+See [Judgements](#judgements) for more details on the judgement process.
+It will occur that at some point in time one node has more than one block with the same index that fulfills the consensus requirement.
+This means we have (temporarily) multiple possible branches and need to store the chain as a tree structure.
+
+### Judgements
+Who is voter?
+how does he decide? (only one accepted branch per voter)
+
+
 describe chain structure
 describe how block are accepted to the chain (judgements)
 creator election
