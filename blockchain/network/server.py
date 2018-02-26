@@ -36,6 +36,7 @@ def _send_block_by_hash(hash):
     block = full_client.chain.find_block_by_hash(hash)
     return repr(block)
 
+
 @app.route(CONFIG["ROUTES"]["new_transaction"], methods=["POST"])
 def _new_transaction():
     new_transaction = request.data
@@ -88,3 +89,4 @@ def start_server(client):
     if os.getenv('REGISTER_AS_ADMISSION') == '1':
         client.register_self_as_admission()
     t.join()
+
