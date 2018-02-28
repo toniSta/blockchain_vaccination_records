@@ -1,5 +1,8 @@
 # blockchain_vaccination_records
 
+[![Documentation Status](https://readthedocs.org/projects/blockchain-vaccination-records/badge/?version=latest)](http://blockchain-vaccination-records.readthedocs.io/en/latest/?badge=latest)
+
+
 ## Docker
 
 Before you can use the demo compose file of this project, you need to build the base image containing all project dependency.
