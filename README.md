@@ -329,6 +329,8 @@ We use [SemVer](http://semver.org/) for versioning. For the versions available, 
 ## License
 This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details
 
+Copyright (C) 2018  Benedikt Bock, Alexander Preuß, Toni Stachewicz
+
 ## Acknowledgments
 
 We would like to thank [chrboehm](https://github.com/chrboehm) for the support during the development of this prototype.
