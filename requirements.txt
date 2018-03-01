@@ -6,3 +6,5 @@ pycryptodome
 mock
 requests
 anytree
+Sphinx
+coveralls

@@ -8,12 +8,15 @@ Block validation is not and will not be implemented in here.
 
 import logging
 import os
+import shutil
 from hashlib import sha256
 from time import time
 
-from .config import CONFIG
+from blockchain.config import CONFIG
 from blockchain.transaction import *
 import blockchain.helper.cryptography as crypto
+from blockchain.helper.cryptography import generate_keypair
+from blockchain.helper.logger import setup_basic_logger_config
 
 logger = logging.getLogger("blockchain")
 
@@ -26,7 +29,7 @@ class Block(object):
 
         This constructor supports both, recreating a block by its string
         representation and creating a successor block based on the header
-        information (type(date): dict) of the latest block.
+        information (type(data): dict) of the latest block.
         To create the successor block, the passed dictionary has to have
         the following fields:
         {
@@ -197,9 +200,27 @@ class Block(object):
                                                   self.hash)
 
 
-def create_initial_block(public_key, private_key):
-    """Create the genesis block."""
-    # TODO: Add description how to generate genesis block with this code
+def create_initial_block():
+    """Create a new genesis block."""
+    setup_basic_logger_config()
+    logger.info("Creating new keypair for genesis block.")
+    public_key, private_key = generate_keypair()
+
+    key_folder = CONFIG["key_folder"]
+    os.makedirs(CONFIG["key_folder"], exist_ok=True)
+
+    path = os.path.join(key_folder, CONFIG["key_file_names"][0])
+    with open(path, "wb") as key_file:
+        key_file.write(public_key.exportKey())
+
+    path = os.path.join(key_folder, CONFIG["key_file_names"][1])
+    with open(path, "wb") as key_file:
+        key_file.write(private_key.exportKey())
+
+    if os.path.exists(CONFIG["persistance_folder"]):
+        shutil.rmtree(CONFIG["persistance_folder"])
+        os.makedirs(CONFIG["persistance_folder"])
+
     logger.info("Creating new genesis block")
     genesis = Block({
         "index": -1,  # index is always incremented by one, so genesis index is actually 0
