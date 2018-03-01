@@ -5,6 +5,29 @@ It provides a prototype to demonstrate the principal functionality.
 It solves the problem of an effective, scalable consensus protocol by exploiting general assumptions within the domain of vaccinations.
 You will find an implementation of a prototype to demonstrate the general functionality.
 
+- [Getting Started](#getting-started)
+   - [Prerequisites](#prerequisites)
+   - [Installing](#installing)
+- [Running the tests](#running-the-tests)
+- [Deployment of the demonstration](#deployment-of-the-demonstration)
+   - [How to interact within the demonstration](#how-to-interact-within-the-demonstration)
+- [Architecture](#architecture)
+   - [Network Participants](#network-participants)
+   - [Supported Transactions](#supported-transactions)
+   - [Client Types](#client-types)
+- [Consensus](#consensus)
+   - [Judgements](#judgements)
+   - [Creator Election](#creator-election)
+- [Code Documentation](#consensus)
+- [Versioning](#versioning)
+- [Authors](#authors-(alphabetical))
+- [License](#license)
+- [Acknowledgments](#acknowledgments)
+
+
+
+
+
 ## Getting Started
 
 These instructions will get you a copy of the project up and running on your local machine for development and demonstration 
