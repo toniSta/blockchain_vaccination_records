@@ -1,3 +1,5 @@
+"""This module provides functions to setup logging."""
+
 import logging
 import os
 from blockchain.config import CONFIG
