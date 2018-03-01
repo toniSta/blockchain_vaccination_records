@@ -1,8 +1,10 @@
 """This module handles all network requests from client module.
 
-Since we are not establishing a Peer-To-Peer network in this prototype, we
-implement the necessary network operations via REST-Api calls. All REST calls
+We implement the necessary network operations via REST-Api calls. All REST calls
 are bundled in this file in order to provide easy exchangeability.
+
+In general each method takes 2 arguments. First argument will be the base URI of the destination (e.g. 'http://127.0.0.1:9000').
+The second argument is the data that neeeds to be send. It will be the sting representation of a object (`repr()`).
 """
 import socket
 from abc import ABCMeta
@@ -21,7 +23,11 @@ class Network(ABCMeta):
 
     @staticmethod
     def send_block(node, block_data):
-        """Send a block to the specified node."""
+        """Send a block to the specified node.
+
+        :param node: String of complete base URI. E.g. 'http://127.0.0.1:9000'
+        :param block_data: String representation of a block (`repr()`)
+        """
         route = node + CONFIG.ROUTES["new_block"]
         simulate_latency()
         try:
@@ -31,12 +37,16 @@ class Network(ABCMeta):
             return False
         except requests.exceptions.ConnectionError as r:
             logger.debug("Got Exception while connecting to {}: {}".format(route, r))
-            return  False
+            return False
         return r.ok
 
     @staticmethod
     def broadcast_new_transaction(node, transaction):
-        """Broadcast a transaction to neighbours."""
+        """Send a transaction to a neighbour.
+
+        :param node: String of complete base URI. E.g. 'http://127.0.0.1:9000'
+        :param transaction: String representation of a transaction (`repr()`)
+        """
         route = node + CONFIG.ROUTES["new_transaction"]
         try:
             requests.post(route, data=transaction)
@@ -48,6 +58,11 @@ class Network(ABCMeta):
 
     @staticmethod
     def send_judgement(node, judgement):
+        """Send a judgement to a neighbour.
+
+        :param node: String of complete base URI. E.g. 'http://127.0.0.1:9000'
+        :param judgement: String representation of a judgement (`repr()`)
+        """
         route = node + CONFIG.ROUTES["new_judgement"]
         try:
             requests.post(route, data=judgement)
@@ -58,6 +73,11 @@ class Network(ABCMeta):
 
     @staticmethod
     def send_sync_request(node, block):
+        """Send a request for sync to a neighbour.
+
+        :param node: String of complete base URI. E.g. 'http://127.0.0.1:9000'
+        :param block: String representation of a block (`repr()`)
+        """
         route = node + CONFIG.ROUTES["sync_request"]
         hostname = socket.gethostname()
         data = [hostname, block]
@@ -70,6 +90,7 @@ class Network(ABCMeta):
             logger.debug("Got Exception while connecting to {}: {}".format(route, r))
             return False
         return r.ok
+
 
 def simulate_latency():
     """Wait for a short period to simulate network latency.

@@ -1,3 +1,9 @@
+"""This module provides cryptographic helper functions.
+
+Not covered by this module:
+- Loading, storing and converting key representations.
+"""
+
 from Crypto import Random
 from Crypto.PublicKey import RSA
 from Crypto.Hash import SHA256

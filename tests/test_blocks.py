@@ -14,7 +14,7 @@ PRIVATE_KEY = RSA.import_key(open("tests" + os.sep + "testkey_priv.bin", "rb").r
 
 @pytest.fixture()
 def genesis():
-    genesis = create_initial_block(PUBLIC_KEY, PRIVATE_KEY)
+    genesis = create_initial_block()
     yield genesis
 
 

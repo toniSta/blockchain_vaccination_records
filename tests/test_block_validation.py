@@ -21,7 +21,7 @@ def setup_module(module):
 
 @pytest.fixture()
 def genesis():
-    genesis = create_initial_block(PUBLIC_KEY, PRIVATE_KEY)
+    genesis = create_initial_block()
     yield genesis
 
 

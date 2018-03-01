@@ -25,15 +25,12 @@ class VaccineTransaction(TransactionBase):
         self.sender_pubkey = sender_pubkey
         self.signature = signature
 
-    def validate(self, admissions, doctors, vaccines): # TODO Where does the key come from in the future?
-        """
-        checks if the transaction fulfills the requirements
-        """
+    def validate(self, admissions, doctors, vaccines):
         if self.sender_pubkey not in admissions:
             logger.debug("admission is not registered.")
             self.validation_text = "admission is not registered."
             return False
-        return self._verify_signature() # TODO check other requirements
+        return self._verify_signature()
 
     def _create_signature(self, private_key):
         message = crypto.get_bytes(self._get_informations_for_hashing())
