@@ -342,6 +342,20 @@ python recreate_genesis_block.py
 
 We use python doc strings inside the source files. Each method has it's own documentation. You can find a online version at [readthedocs.io](http://blockchain-vaccination-records.readthedocs.io/en/latest/?badge=latest).
 
+You can create a offline documentation with the following commands.
+You will find the documentation in `docs/build/html`:
+```bash
+cd docs
+make html # on *nix systems
+make.bat html # on windows
+```
+
+> *Notice*
+>
+> We are using `sphinx` to generate the documentation.
+> `sphinx` is not able to include inner (private) classes into the documentation.
+> Please refer to the code for a full documentation of singletons.
+
 ## Versioning
 
 We use [SemVer](http://semver.org/) for versioning. For the versions available, see the 
