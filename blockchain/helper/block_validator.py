@@ -35,9 +35,9 @@ def validate_block(block, previous_block):
         return False
 
     # Matching versions
-    if block.version != CONFIG["version"]:
+    if block.version != CONFIG.version:
         logger.info("Different versions, block version {}, chain version {}"
-                    .format(block.version, CONFIG["version"]))
+                    .format(block.version, CONFIG.version))
         return False
 
     # Timestamp not in the future
@@ -68,9 +68,9 @@ def validate_block(block, previous_block):
         return False
 
     # Number of transactions exceeds the maximum
-    if len(block.transactions) > CONFIG["block_size"]:
+    if len(block.transactions) > CONFIG.block_size:
         logger.info("Too many transactions, block has {}, maximum is {}"
-                    .format(len(block.transactions), CONFIG["block_size"]))
+                    .format(len(block.transactions), CONFIG.block_size))
         return False
 
     # Duplicate transactions

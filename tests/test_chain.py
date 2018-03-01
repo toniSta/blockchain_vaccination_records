@@ -12,6 +12,11 @@ PUBLIC_KEY = RSA.import_key(open("tests" + os.sep + "testkey_pub.bin", "rb").rea
 PRIVATE_KEY = RSA.import_key(open("tests" + os.sep + "testkey_priv.bin", "rb").read())
 
 
+def setup_module(module):
+    shutil.rmtree(CONFIG.persistance_folder)
+    os.makedirs(CONFIG.persistance_folder)
+
+
 def test_chain_is_singleton():
     chain_1 = Chain(load_persisted=False)
     chain_2 = Chain(load_persisted=False)
@@ -21,8 +26,6 @@ def test_chain_is_singleton():
 @pytest.fixture()
 def chain():
     chain = Chain(load_persisted=False)
-    genesis = create_initial_block(PUBLIC_KEY, PRIVATE_KEY)
-    chain.add_block(genesis)
     yield chain
 
 
@@ -43,5 +46,5 @@ def test_find_block_by_hash(chain, next_block):
 
 
 def teardown_module(module):
-    shutil.rmtree(CONFIG["persistance_folder"])
-    os.makedirs(CONFIG["persistance_folder"])
+    shutil.rmtree(CONFIG.persistance_folder)
+    os.makedirs(CONFIG.persistance_folder)

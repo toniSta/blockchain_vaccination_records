@@ -38,18 +38,18 @@ class Chain(object):
             True if the blockchain persistance folder
             and the genesis block file are present.
             """
-            return os.path.isdir(CONFIG["persistance_folder"]) and \
-                   len([f for f in os.listdir(CONFIG["persistance_folder"])
+            return os.path.isdir(CONFIG.persistance_folder) and \
+                   len([f for f in os.listdir(CONFIG.persistance_folder)
                         if f.startswith("0_")]) == 1  # there should only be one genesis file starting with '0_..._...'
 
         def _load_from_disk(self):
             current_block_level = 0
-            block_files = os.listdir(CONFIG["persistance_folder"])
+            block_files = os.listdir(CONFIG.persistance_folder)
             level_prefix = str(current_block_level) + "_"
             blocks_at_current_level = [f for f in block_files if f.startswith(level_prefix)]
             while len(blocks_at_current_level) > 0:
                 for block_name in blocks_at_current_level:
-                    block_path = os.path.join(CONFIG["persistance_folder"], block_name)
+                    block_path = os.path.join(CONFIG.persistance_folder, block_name)
                     with open(block_path, "r") as block_file:
                         logger.info("Loading block {} from disk".format(block_path))
                         recreated_block = Block(block_file.read())
@@ -226,7 +226,7 @@ class Chain(object):
 
         def _persist_judgements_for_node(self, node):
             file_name = self._get_file_name(node=node)
-            judgement_path = os.path.join(CONFIG["persistance_folder"], 'judgements', file_name)
+            judgement_path = os.path.join(CONFIG.persistance_folder, 'judgements', file_name)
             if not os.path.exists(os.path.dirname(judgement_path)):
                 os.makedirs(os.path.dirname(judgement_path))
             with open(judgement_path, 'w') as file:
@@ -293,7 +293,7 @@ class Chain(object):
 
         def _remove_block_file(self, node):
             file_name = self._get_file_name(node=node)
-            persistence_folder = CONFIG["persistance_folder"]
+            persistence_folder = CONFIG.persistance_folder
             file_path = os.path.join(persistence_folder, file_name)
             try:
                 os.remove(file_path)
@@ -509,12 +509,12 @@ class Chain(object):
             return self._lock._is_owned()
 
         def _get_judgement_path(self, file_name):
-            return os.path.join(CONFIG["persistance_folder"], 'judgements', file_name)
+            return os.path.join(CONFIG.persistance_folder, 'judgements', file_name)
 
         def _get_dead_branch_path(self, file_name=None):
             if file_name:
-                return os.path.join(CONFIG["persistance_folder"], 'dead_branches', file_name)
-            return os.path.join(CONFIG["persistance_folder"], 'dead_branches')
+                return os.path.join(CONFIG.persistance_folder, 'dead_branches', file_name)
+            return os.path.join(CONFIG.persistance_folder, 'dead_branches')
 
         def _get_file_name(self, node=None, block=None):
             if node:
@@ -529,7 +529,7 @@ class Chain(object):
                     DotExporter(self.chain_tree,
                                 nodenamefunc=nodenamefunc,
                                 nodeattrfunc=nodeattrfunc
-                                ).to_picture(os.path.join(CONFIG["persistance_folder"], 'current_state.png'))
+                                ).to_picture(os.path.join(CONFIG.persistance_folder, 'current_state.png'))
                 except CalledProcessError as e:
                     logger.debug("Couldn't print chain tree: {}".format(e.stdout))
 
@@ -588,8 +588,8 @@ def nodenamefunc(node):
 
 
 def nodeattrfunc(node):
-    key_folder = CONFIG["key_folder"]
-    path = os.path.join(key_folder, CONFIG["key_file_names"][0])
+    key_folder = CONFIG.key_folder
+    path = os.path.join(key_folder, CONFIG.key_file_names[0])
     with open(path, "rb") as key_file:
         public_key = RSA.import_key(key_file.read()).exportKey("DER")
 

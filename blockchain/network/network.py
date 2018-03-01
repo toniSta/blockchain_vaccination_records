@@ -13,7 +13,7 @@ import time
 import random
 
 logger = logging.getLogger("network")
-ARTIFICIAL_LATENCY_ENABLED = CONFIG["artificial_latency_enabled"]
+ARTIFICIAL_LATENCY_ENABLED = CONFIG.artificial_latency_enabled
 
 
 class Network(ABCMeta):
@@ -22,7 +22,7 @@ class Network(ABCMeta):
     @staticmethod
     def send_block(node, block_data):
         """Send a block to the specified node."""
-        route = node + CONFIG["ROUTES"]["new_block"]
+        route = node + CONFIG.ROUTES["new_block"]
         simulate_latency()
         try:
             r = requests.post(route, data=block_data, timeout=5)
@@ -37,7 +37,7 @@ class Network(ABCMeta):
     @staticmethod
     def broadcast_new_transaction(node, transaction):
         """Broadcast a transaction to neighbours."""
-        route = node + CONFIG["ROUTES"]["new_transaction"]
+        route = node + CONFIG.ROUTES["new_transaction"]
         try:
             requests.post(route, data=transaction)
         except requests.exceptions.ReadTimeout as r:
@@ -48,7 +48,7 @@ class Network(ABCMeta):
 
     @staticmethod
     def send_judgement(node, judgement):
-        route = node + CONFIG["ROUTES"]["new_judgement"]
+        route = node + CONFIG.ROUTES["new_judgement"]
         try:
             requests.post(route, data=judgement)
         except requests.exceptions.ReadTimeout as r:
@@ -58,7 +58,7 @@ class Network(ABCMeta):
 
     @staticmethod
     def send_sync_request(node, block):
-        route = node + CONFIG["ROUTES"]["sync_request"]
+        route = node + CONFIG.ROUTES["sync_request"]
         hostname = socket.gethostname()
         data = [hostname, block]
         try:
@@ -79,7 +79,7 @@ def simulate_latency():
     configuration of the waiting is located there as well.
     """
     if ARTIFICIAL_LATENCY_ENABLED:
-        sleep_interval = CONFIG["sleep_interval"]
+        sleep_interval = CONFIG.sleep_interval
         sleep_time = random.uniform(sleep_interval[0], sleep_interval[1])
         logger.debug("Set random sleep time to {} seconds."
                      .format(round(sleep_time, 3)))

@@ -72,5 +72,5 @@ def test_signature_validity(new_block):
 
 
 def teardown_module(module):
-    shutil.rmtree(CONFIG["persistance_folder"])
-    os.makedirs(CONFIG["persistance_folder"])
+    shutil.rmtree(CONFIG.persistance_folder)
+    os.makedirs(CONFIG.persistance_folder)

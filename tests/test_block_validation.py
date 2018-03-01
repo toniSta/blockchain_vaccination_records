@@ -1,6 +1,8 @@
 from Crypto.PublicKey import RSA
 import pytest
 import os
+import shutil
+from time import time
 
 from blockchain.block import Block, create_initial_block
 from blockchain.transaction import *
@@ -10,6 +12,11 @@ from blockchain.config import CONFIG
 
 PUBLIC_KEY = RSA.import_key(open("tests" + os.sep + "testkey_pub.bin", "rb").read())
 PRIVATE_KEY = RSA.import_key(open("tests" + os.sep + "testkey_priv.bin", "rb").read())
+
+
+def setup_module(module):
+    shutil.rmtree(CONFIG.persistance_folder)
+    os.makedirs(CONFIG.persistance_folder)
 
 
 @pytest.fixture()
@@ -59,6 +66,14 @@ def test_version(block, genesis):
     assert is_valid is False, "Did not detect wrong version"
 
 
+def test_timestamp(block, genesis):
+    block.timestamp = int(time()) + 50000000
+    block.sign(PRIVATE_KEY)
+    block.update_hash()
+    is_valid = validate_block(block, genesis)
+    assert is_valid is False, "Did not detect wrong version"
+
+
 def test_signature_validity(block, genesis):
     block.sign(PRIVATE_KEY)
     block.index = 302
@@ -87,7 +102,7 @@ def test_too_few_transactions(block, genesis):
 
 @pytest.mark.long
 def test_too_many_transactions(block, genesis):
-    for index in range(CONFIG["block_size"]):
+    for index in range(CONFIG.block_size):
         new_transaction = VaccineTransaction(str(index), PUBLIC_KEY).sign(PRIVATE_KEY)
         block.add_transaction(new_transaction)
     block.sign(PRIVATE_KEY)
@@ -109,3 +124,8 @@ def test_wrong_hash(block, genesis):
     block.hash = "4886f70d010101050"
     is_valid = validate_block(block, genesis)
     assert is_valid is False, "Invalid hash"
+
+
+def teardown_module(module):
+    shutil.rmtree(CONFIG.persistance_folder)
+    os.makedirs(CONFIG.persistance_folder)

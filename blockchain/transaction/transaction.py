@@ -8,7 +8,7 @@ import blockchain.helper.cryptography as crypto
 class TransactionBase(metaclass=ABCMeta):
 
     def __init__(self, signature=None, *args, **kwargs):
-        self.version = kwargs.get("version") or CONFIG["version"]
+        self.version = kwargs.get("version") or CONFIG.version
         self.timestamp = kwargs.get("timestamp") or int(time())
         self.signature = signature
         self.validation_text = 'Not yet validated.'
