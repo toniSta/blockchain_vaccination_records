@@ -18,15 +18,12 @@ You will find an implementation of a prototype to demonstrate the general functi
 - [Consensus](#consensus)
    - [Judgements](#judgements)
    - [Creator Election](#creator-election)
+- [Recreating the genesis block](#recreating-the-genesis-block)
 - [Code Documentation](#consensus)
 - [Versioning](#versioning)
 - [Authors](#authors-(alphabetical))
 - [License](#license)
 - [Acknowledgments](#acknowledgments)
-
-
-
-
 
 ## Getting Started
 
@@ -327,6 +324,14 @@ During the validation the difference between parent block creation time and bloc
 >
 > While the election is robust to abandoned admissions it would be more efficient if they would be unregistered as admission.
 
+## Recreating the genesis block
+
+It may happen that you want to generate a new genesis block.
+With the following command you can create a new keypair for the genesis admission and recreate the genesis block:
+
+```bash
+python recreate_genesis_block.py
+```
 ## Code Documentation
 
 **TODO** get Sphinx running. It possible to auto-build docs with sphinx on readthe docs:
