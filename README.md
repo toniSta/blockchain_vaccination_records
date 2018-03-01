@@ -1,6 +1,8 @@
 # A Blockchain for vaccinations
 
 [![Documentation Status](https://readthedocs.org/projects/blockchain-vaccination-records/badge/?version=latest)](http://blockchain-vaccination-records.readthedocs.io/en/latest/?badge=latest)
+[![Build Status](https://travis-ci.org/toniSta/blockchain_vaccination_records.svg?branch=master)](https://travis-ci.org/toniSta/blockchain_vaccination_records)
+[![Coverage Status](https://coveralls.io/repos/github/toniSta/blockchain_vaccination_records/badge.svg?branch=master)](https://coveralls.io/github/toniSta/blockchain_vaccination_records?branch=master)
 
 This project is about the idea to store vaccination records anonymously and publicly available as a blockchain.
 It provides a prototype to demonstrate the principal functionality.
@@ -338,7 +340,7 @@ python recreate_genesis_block.py
 
 [![Documentation Status](https://readthedocs.org/projects/blockchain-vaccination-records/badge/?version=latest)](http://blockchain-vaccination-records.readthedocs.io/en/latest/?badge=latest)
 
-We use python doc strings inside the source files. Each method has it's own documentation. You can find a online version at [readthedocs.io]((http://blockchain-vaccination-records.readthedocs.io/en/latest/?badge=latest).
+We use python doc strings inside the source files. Each method has it's own documentation. You can find a online version at [readthedocs.io](http://blockchain-vaccination-records.readthedocs.io/en/latest/?badge=latest).
 
 ## Versioning
 
