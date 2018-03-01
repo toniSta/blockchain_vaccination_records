@@ -1,5 +1,9 @@
 # A Blockchain for vaccinations
 
+[![Documentation Status](https://readthedocs.org/projects/blockchain-vaccination-records/badge/?version=latest)](http://blockchain-vaccination-records.readthedocs.io/en/latest/?badge=latest)
+[![Build Status](https://travis-ci.org/toniSta/blockchain_vaccination_records.svg?branch=master)](https://travis-ci.org/toniSta/blockchain_vaccination_records)
+[![Coverage Status](https://coveralls.io/repos/github/toniSta/blockchain_vaccination_records/badge.svg?branch=master)](https://coveralls.io/github/toniSta/blockchain_vaccination_records?branch=master)
+
 This project is about the idea to store vaccination records anonymously and publicly available as a blockchain.
 It provides a prototype to demonstrate the principal functionality.
 It solves the problem of an effective, scalable consensus protocol by exploiting general assumptions within the domain of vaccinations.
@@ -334,12 +338,23 @@ python recreate_genesis_block.py
 ```
 ## Code Documentation
 
-**TODO** get Sphinx running. It possible to auto-build docs with sphinx on readthe docs:
-- https://github.com/rtfd/readthedocs.org
-- http://www.sphinx-doc.org/en/master/tutorial.html
-- http://docs.python-guide.org/en/latest/writing/documentation/
+[![Documentation Status](https://readthedocs.org/projects/blockchain-vaccination-records/badge/?version=latest)](http://blockchain-vaccination-records.readthedocs.io/en/latest/?badge=latest)
 
-We use python doc strings inside the source files. Each method has it's own documentation.
+We use python doc strings inside the source files. Each method has it's own documentation. You can find a online version at [readthedocs.io](http://blockchain-vaccination-records.readthedocs.io/en/latest/?badge=latest).
+
+You can create a offline documentation with the following commands.
+You will find the documentation in `docs/build/html`:
+```bash
+cd docs
+make html # on *nix systems
+make.bat html # on windows
+```
+
+> *Notice*
+>
+> We are using `sphinx` to generate the documentation.
+> `sphinx` is not able to include inner (private) classes into the documentation.
+> Please refer to the code for a full documentation of singletons.
 
 ## Versioning
 
