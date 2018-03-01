@@ -1,7 +1,9 @@
+import shutil
 from Crypto.PublicKey import RSA
 from blockchain.chain import Chain
 from blockchain.block import Block
 from blockchain.block import create_initial_block
+from blockchain.config import CONFIG
 
 import pytest
 import os
@@ -38,3 +40,8 @@ def test_find_block_by_hash(chain, next_block):
     hash = next_block.hash
     assert chain.find_block_by_hash(hash) == next_block
     assert chain.find_block_by_hash("some random hash") is None
+
+
+def teardown_module(module):
+    shutil.rmtree(CONFIG["persistance_folder"])
+    os.makedirs(CONFIG["persistance_folder"])

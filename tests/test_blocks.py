@@ -1,8 +1,10 @@
+import shutil
 from Crypto.PublicKey import RSA
 import pytest
 import os
 
 
+from blockchain.config import CONFIG
 from blockchain.block import Block, create_initial_block
 import blockchain.helper.cryptography as crypto
 
@@ -67,3 +69,8 @@ def test_signature_validity(new_block):
     block_content = str.encode(new_block._get_content_for_signing())
     signature = bytes.fromhex(new_block.signature)
     assert crypto.verify(block_content, signature, PUBLIC_KEY)
+
+
+def teardown_module(module):
+    shutil.rmtree(CONFIG["persistance_folder"])
+    os.makedirs(CONFIG["persistance_folder"])
