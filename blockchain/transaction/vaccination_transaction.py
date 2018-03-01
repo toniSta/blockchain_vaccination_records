@@ -4,10 +4,6 @@ import blockchain.helper.cryptography as crypto
 from Crypto.PublicKey import RSA
 import sys
 
-# Needs to be moved later
-logging.basicConfig(level=logging.DEBUG,
-                    format="[ %(asctime)s ] %(levelname)-7s %(name)-s: %(message)s",
-                    datefmt="%Y-%m-%d %H:%M:%S")
 logger = logging.getLogger("blockchain")
 
 
@@ -34,17 +30,22 @@ class VaccinationTransaction(TransactionBase):
         self.patient_pub_key = patient_pub_key
 
     def sign(self, doctor_private_key, patient_private_key):
-        """creates a signature and adds it to the transaction"""
-        # TODO Finally the patient privatekey should be given by the patient. More precisely, the key shouldn't even leave the patient's device.
+        """create signatures and add it to the transaction.
+
+        Each patient and doctor will sign.
+
+        WONTFIX: Finally the patient privatekey should be given by the patient. More precisely, the key shouldn't even leave the patient's device.
+        """
         self.doctor_signature = self._create_doctor_signature(doctor_private_key)
         self.patient_signature = self._create_patient_signature(patient_private_key)
         return self
 
-    def validate(self, admissions, doctors, vaccines): # TODO Where does the key come from in the future?
+    def validate(self, admissions, doctors, vaccines):
+        """Validate the existing signatures.
+
+        Check if the transaction fulfills the requirements
+        WONTFIX: won't implement checking if patient is registered in presentation demo
         """
-        checks if the transaction fulfills the requirements
-        """
-        # WONTFIX: won't implement checking if patient is registered in presentation demo
         if self.vaccine not in vaccines:
             logger.debug("vaccine is not registered.")
             self.validation_text = "vaccine is not registered."

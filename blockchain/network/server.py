@@ -1,7 +1,6 @@
 """Python Flask server for restful communication.
 
 This module defines the interface for the REST API for incoming requests.
-Needs to be replaced, when a P2P is estabished.
 """
 import threading
 from time import sleep
