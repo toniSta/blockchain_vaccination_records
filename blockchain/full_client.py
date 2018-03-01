@@ -1,8 +1,8 @@
 import logging
 import os
-import sched
 import threading
 import time
+
 from Crypto.PublicKey import RSA
 
 from blockchain.helper.logger import write_logs_to_file
@@ -19,8 +19,22 @@ logger = logging.getLogger("client")
 
 
 class FullClient(object):
-    """docstring for FullClient"""
+    """Full Client
+
+    This class implements
+     - interactions with the user,
+     - receiving new blocks, judgements and transactions,
+     - creating new blocks, judgements and transactions
+    """
     def __init__(self):
+        """Initialize Client
+
+        Parse neighbor list
+        Load or generate RSA keypair
+        Instanciate all internal data structures
+        Start block creation thread
+        Optionally start user interface
+        """
         # Mock nodes by hard coding
         if os.getenv('NEIGHBORS_HOST_PORT'):
             neighbors_list = os.getenv('NEIGHBORS_HOST_PORT')
@@ -54,7 +68,7 @@ class FullClient(object):
             t.start()
 
     def _setup_public_key(self):
-        """Create new key pair if necessary.
+        """Load RSA keypair.
 
         Create a public/private key pair on setup and save them in files. If
         the full client restarts, file will be read in.
@@ -99,7 +113,9 @@ class FullClient(object):
     def creator_election(self):
         """This method checks if this node needs to generate a new block.
 
-        If it is the next creator it will generate a block and submit it to the chain."""
+        If it is the next creator in any chain branch it will generate a block and submit it to the chain.
+        Supports approval by user before sending the block.
+        """
         logger.debug("Started Thread {}".format(threading.current_thread()))
 
         while True:
@@ -147,9 +163,10 @@ class FullClient(object):
     def _determine_block_creation_node(self, timestamp=None):
         """Determine which admission node has to create the next block in chain for each branch.
 
-        The method takes a timestamp as argument representing the time to for which to determine who should generate the
+        The method takes a timestamp as argument representing the time for which to determine who should generate the
         next block. Defaults to 'now', which means "Who should create a block right now?"
-        Returns a list of tuples (hash, public key) of the determined creator for each branch whose leaf is hash.
+        Returns a list of tuples (hash, public key) of the determined creator for each branch whose leaf
+        is block with hash.
 
         If even the youngest creator failed to create a block within time, the method continues with the
         oldest submission node.
@@ -176,6 +193,15 @@ class FullClient(object):
         return result
 
     def _create_next_block(self, parent_hash, timestamp):
+        """Create a block
+
+        Fill in transactions from the waiting queue fo transactions.
+        Create Block with no transactions if there are no waiting transactions. This is for demo purposes.
+
+        :param parent_hash: Hash of the blocks parent block
+        :param timestamp:  timestamp of the block
+        :return: the new Block
+        """
         parent_block = self.chain.find_block_by_hash(parent_hash)
         if not parent_block:
             logger.debug("Can't create block without parent block.")
@@ -201,6 +227,11 @@ class FullClient(object):
         return new_block
 
     def _submit_block(self, block):
+        """Submit a block to the network.
+
+        Add block to own chain, store it on disk. broadcast it to all neighbors.
+        Render visual representation of chain.
+        """
         self.chain.add_block(block)
         block.persist()
         self.chain.render_current_tree()
@@ -211,6 +242,11 @@ class FullClient(object):
             Network.send_block(node, repr(block))
 
     def synchronize_blockchain(self):
+        """Synchronize chain with neighbor.
+
+        Send requests to neighbors to resend chain for synchronization for last part of the chain.
+        Stop if one neighbor agrees to resend chain.
+        """
         block = self.chain.get_first_branching_block()
         for node in self.nodes:
             if Network.send_sync_request(node, repr(block)):
@@ -221,6 +257,14 @@ class FullClient(object):
         return
 
     def handle_sync_request(self, sender_host, block):
+        """Resend chain to neighbor
+
+         Resend relevant parts of the chain to requesting neighbor.
+         If block is not part of the chain anymore, resend whole chain.
+
+        :param sender_host: requesting neighbor
+        :param block: Block the neighbor asked for sync.
+        """
         sender_address = "http://" + sender_host + ":9000"
         block = Block(block)
         logger.debug("Got sync request at index {}".format(block.index))
@@ -243,6 +287,7 @@ class FullClient(object):
             Network.send_judgement(sender_address, repr(judgement))
 
     def _resend_block(self, block, sender_address):
+        """Resend block to sender_address, including judgements."""
         logger.debug("Resending Block: {}".format(block))
         Network.send_block(sender_address, repr(block))
         judgements = self.chain.get_judgements_for_blockhash(block.hash)
@@ -291,13 +336,14 @@ class FullClient(object):
     def _is_block_created_by_expected_creator(self, block):
         """Determine which admission node should be the creator of a given block.
 
-        The method takes a block as argument representing the the block whose legitimate creator
+        The method takes a block as argument representing the block whose legitimate creator
         should be determined.
 
         If even the youngest creator failed to create a block within time, the method continues with the
         oldest submission node.
 
-        Returns True if the block is created by the correct creator
+        Returns True if the block is created by the correct creator. If parent is not yet received,
+        assume that the creator is correct.
         """
         logger.debug("Asking for block with hash {}".format(block.previous_block))
         parent_block = self.chain.find_block_by_hash(block.previous_block)
@@ -313,6 +359,11 @@ class FullClient(object):
         return creator_history[nth_oldest_block % number_of_admissions] == block.public_key
 
     def _create_and_submit_judgement(self, block, accepted):
+        """Create and send judgement for block
+
+        :param block: Block that should be judged
+        :param accepted: Boolean
+        """
         admissions, _, _ = self.chain.get_registration_caches_by_blockhash(block.previous_block)
         if self.public_key not in admissions:
             logger.debug("No admission in branch of block: {}".format(block))
@@ -323,6 +374,14 @@ class FullClient(object):
         self._broadcast_new_judgement(judgement)
 
     def _process_new_block(self, new_block):
+        """Try to validate new_block and add it to chain.
+
+        Stops processing if parent is not present.
+        Save block to disk if added to Chain.
+        Remove transaction contained in the block from own transaction queue if accepted.
+
+        Recursively try to add every dangling block if the block was accepted.
+        """
         parent_block = self.chain.find_block_by_hash(new_block.previous_block)
         if not parent_block:
             return
@@ -351,6 +410,11 @@ class FullClient(object):
         self.chain.render_current_tree()
 
     def handle_received_judgement(self, judgement):
+        """Process received judgement.
+
+        Add it to the chain.
+        If the judgement was new, broadcast it to neighbors.
+        """
         judgement_object = eval(judgement)
         logger.debug("Received Judgement: {}".format(judgement_object))
         if self.chain.update_judgements(judgement_object):
@@ -361,11 +425,22 @@ class FullClient(object):
             Network.send_judgement(node, repr(judgement))
 
     def handle_incoming_transaction(self, transaction):
+        """Parse received transaction."""
         transaction_object = eval(transaction)
         logger.debug("Received Transaction: {}".format(transaction))
         self._handle_transaction(transaction_object, broadcast=False)
 
     def _handle_transaction(self, transaction, broadcast=False, print_nodes=False):
+        """Process new transaction
+
+        This method processes new received transactions and freshly generated transactions.
+        It can broadcast the transaction and show the expected result for the new transaction.
+        If this client is an admission or is going to be a admission it adds the transaction into the transaction queue.
+
+        :param transaction: Transaction to be processed
+        :param broadcast: If the transaction should be broadcasted to the neighbors
+        :param print_nodes: If the expected result should be printed.
+        """
         if broadcast:
             self._broadcast_new_transaction(transaction, print_nodes=print_nodes)
         if print_nodes:
@@ -392,8 +467,10 @@ class FullClient(object):
             self.transaction_set.add(transaction)
 
     def _broadcast_new_transaction(self, transaction, print_nodes=False):
-        """Broadcast transaction to required number of admission nodes."""
-        # WONTFIX: should send to admissions only but any other node currently ignores
+        """Broadcast transaction to required number of admission nodes.
+
+        WONTFIX: actually broadcasts transaction to all neighbors. Non-admissions will ignore the transaction.
+        """
         for node in self.nodes:
             if print_nodes:
                 print("Sending transaction to {}".format(node))
@@ -402,10 +479,10 @@ class FullClient(object):
     def _check_if_transaction_in_chain(self, transaction):
         """Check if the transaction is already part of the chain.
 
-        Checks the last |number of current admission nodes| blocks
+        Checks the last |number of current admission nodes| blocks of every branch
         by comparing every transaction in the block to the new one.
-        If the genesis block is reached the function stops advancing
-        to the previous block and returns."""
+        If the genesis block is reached the function stops advancing to the previous block and returns.
+        """
         for hash, admissions in self.chain.get_admissions():
             number_of_blocks_to_check = len(admissions)
             blocks_checked = 0
@@ -432,6 +509,7 @@ class FullClient(object):
             logger.debug("Exiting...")
 
     def _create_transaction(self):
+        """Interactively create a transaction."""
         transaction_type = input("What kind of transaction should be created? (Vaccination/Vaccine/Permission)").lower()
         if transaction_type == "vaccination":
             patient_pubkey, patient_privkey = generate_keypair()  # mock patient by randomly generating new patient
@@ -524,6 +602,7 @@ class FullClient(object):
             print("Chosen hash isn't a part of the chain anymore. Please choose another Hash.")
 
     def register_self_as_admission(self):
+        """Register own key as admission key"""
         admissions_at_leaf = self.chain.get_admissions()
         for admissions in admissions_at_leaf:
             if self.public_key in admissions[1]:

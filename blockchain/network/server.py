@@ -1,7 +1,6 @@
 """Python Flask server for restful communication.
 
 This module defines the interface for the REST API for incoming requests.
-Needs to be replaced, when a P2P is estabished.
 """
 import threading
 from time import sleep
@@ -35,6 +34,7 @@ def handle_received_block(block):
 def _send_block_by_hash(hash):
     block = full_client.chain.find_block_by_hash(hash)
     return repr(block)
+
 
 @app.route(CONFIG["ROUTES"]["new_transaction"], methods=["POST"])
 def _new_transaction():
@@ -88,3 +88,4 @@ def start_server(client):
     if os.getenv('REGISTER_AS_ADMISSION') == '1':
         client.register_self_as_admission()
     t.join()
+

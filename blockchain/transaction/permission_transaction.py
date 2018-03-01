@@ -36,7 +36,6 @@ class PermissionTransaction(TransactionBase):
         self.approvals = approvals
 
     def _get_informations_for_hashing(self):
-        """Return a string representation of the contained data for hashing"""
         return str({
             "requested_permission": self.requested_permission,
             "sender_pubkey": self.sender_pubkey,
@@ -46,12 +45,6 @@ class PermissionTransaction(TransactionBase):
         })
 
     def validate(self, admissions, doctors, vaccines):
-        """Check if the transaction fulfills the requirements.
-
-        Check if signature matches,
-        if enough positive votes were cast for an admission,
-        etc.
-        """
         if self.requested_permission is Permission.patient:
             return self._verify_signature()
         else:

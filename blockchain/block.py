@@ -26,7 +26,7 @@ class Block(object):
 
         This constructor supports both, recreating a block by its string
         representation and creating a successor block based on the header
-        information (type(date): dict) of the latest block.
+        information (type(data): dict) of the latest block.
         To create the successor block, the passed dictionary has to have
         the following fields:
         {
