@@ -3,6 +3,10 @@ from blockchain.transaction_set import TransactionSet
 import pytest
 
 
+def teardown_function(function):
+    TransactionSet().clear()
+
+
 def test_transaction_set_is_singleton():
     set_1 = TransactionSet()
     set_2 = TransactionSet()

@@ -481,6 +481,7 @@ class Chain(object):
         def get_registration_caches_by_blockhash(self, hash):
             """Return a tuple of sets containing the registered admissions, doctors,
             and vaccines at hash."""
+
             with self._lock:
                 tree_node = self._find_tree_node_by_hash(hash)
                 return set(tree_node.block_creation_cache), set(tree_node.doctors_cache), set(tree_node.vaccine_cache)
@@ -604,6 +605,8 @@ class Chain(object):
 
         def __str__(self):
             tree_representation = ""
+            if not self.chain_tree:
+                return tree_representation
             for pre, fill, node in RenderTree(self.chain_tree):
                 node_representation = "{}index: {}, hash: {}\n".format(pre,
                                                                        node.index,

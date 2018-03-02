@@ -2,6 +2,7 @@
 blockchain/blockchain_files/*
 tests/blockchain_files/*
 !blockchain/blockchain_files/0_0_*
+tests/keys/*
 
 
 # Byte-compiled / optimized / DLL files

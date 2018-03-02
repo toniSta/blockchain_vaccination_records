@@ -1,9 +1,13 @@
+"""This module provides a collection of adjustable parameters."""
+
 import logging
 from abc import ABCMeta
 import sys
 
 
 class CONFIG(ABCMeta):
+    """The CONFIG meta class holds the adjustable parameters."""
+
     # Log level of the whole system
     loglevel = logging.DEBUG
     # Current version
@@ -23,7 +27,10 @@ class CONFIG(ABCMeta):
     # Create a block every n seconds. N has to be at least 2
     block_time = 15, # with 5 seconds you will get multiple locks per index due to network latenc
     # Folder to store public/private key of the client
-    key_folder = "blockchain/keys"
+    if "pytest" in sys.modules:
+        key_folder = "tests/keys"
+    else:
+        key_folder = "blockchain/keys"
     # Names of key files
     key_file_names = ["public_key.bin", "private_key.bin"]
     # Network routes
