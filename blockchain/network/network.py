@@ -41,7 +41,7 @@ class Network(ABCMeta):
         return r.ok
 
     @staticmethod
-    def broadcast_new_transaction(node, transaction):
+    def send_transaction(node, transaction):
         """Send a transaction to a neighbour.
 
         :param node: String of complete base URI. E.g. 'http://127.0.0.1:9000'
