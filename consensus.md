@@ -53,6 +53,10 @@ During the validation the difference between parent block creation time and bloc
 >
 > While the election is robust to abandoned admissions it would be more efficient if they would be unregistered as admission.
 
+### Known Limitations
+
+**TODO** (simple list)
+
 ## Recreating the genesis block
 
 It may happen that you want to generate a new genesis block.

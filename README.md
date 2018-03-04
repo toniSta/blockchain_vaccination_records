@@ -19,9 +19,11 @@ You will find an implementation of a prototype to demonstrate the general functi
    - [Network Participants](architecture.md#network-participants)
    - [Supported Transactions](architecture.md#supported-transactions)
    - [Client Types](architecture.md#client-types)
+   - [Synchronization](architecture.md#synchronization)
 - [Consensus](consensus.md#consensus) `external`
    - [Judgements](consensus.md#judgements)
    - [Creator Election](consensus.md#creator-election)
+   - [Known Limitations](consensus.md#known-limitations)
 - [Recreating the genesis block](consensus.md#recreating-the-genesis-block )
 - [Code Documentation](#code-documentation)
 - [Versioning](#versioning)

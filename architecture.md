@@ -65,3 +65,11 @@ Doctors use the client to generate new transactions and to send them to their ne
 Meant to offer a user interface to enable search operations like Which vaccinations has a specific patient?, What are my upcoming vaccinations?... .
 This client can be used by any person and doesn't demand a valid key.
 Used with a key, it enables push notifications about upcoming vaccinations.
+
+### Synchronization
+
+**TODO** 
+
+> **Known Limitations:**
+> - If the requested block is not part of the chain of the asked neighbor the complete chain needs to be resend.
+> To sove this you would need to remeber which blocks were part of a dead branch.    
