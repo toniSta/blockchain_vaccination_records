@@ -12,9 +12,9 @@ class Judgement(object):
 
     def __init__(self, hash_of_judged_block, accept_block, sender_pubkey, signature=None, timestamp=None, version=None):
         if type(sender_pubkey).__name__ == "RsaKey":
-            sender_pubkey = key_utils.rsa_to_bytestring(sender_pubkey)
+            sender_pubkey = key_utils.rsa_to_bytes(sender_pubkey)
         elif type(sender_pubkey).__name__ == "str":
-            sender_pubkey = key_utils.hex_to_bytestring(sender_pubkey)
+            sender_pubkey = key_utils.hex_to_bytes(sender_pubkey)
 
         self.hash_of_judged_block = hash_of_judged_block
         self.accept_block = accept_block
@@ -57,7 +57,7 @@ class Judgement(object):
         if not self.signature:  # fail if object has no signature attribute
             return False
         message = crypto.get_bytes(self._get_data_for_hashing())
-        return crypto.verify(message, self.signature, key_utils.bytestring_to_rsa(self.sender_pubkey))
+        return crypto.verify(message, self.signature, key_utils.bytes_to_rsa(self.sender_pubkey))
 
     def __repr__(self):
         """

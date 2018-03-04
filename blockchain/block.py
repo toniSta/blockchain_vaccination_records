@@ -42,11 +42,11 @@ class Block(object):
             self._from_dictionary(data)
             assert public_key
             if type(public_key).__name__ == "RsaKey":
-                self.public_key = key_utils.rsa_to_bytestring(public_key)
+                self.public_key = key_utils.rsa_to_bytes(public_key)
             elif type(public_key).__name__ == "bytes":
                 self.public_key = public_key
             elif type(public_key).__name__ == "str":
-                self.public_key = key_utils.hex_to_bytestring(public_key)
+                self.public_key = key_utils.hex_to_bytes(public_key)
             self.signature = ""
         elif type(data) == str:
             self._from_string(data)
@@ -75,7 +75,7 @@ class Block(object):
         self.previous_block = header_information["previous_block"]
         self.version = header_information["version"]
         self.timestamp = int(header_information["timestamp"])
-        self.public_key = key_utils.hex_to_bytestring(header_information["public_key"])
+        self.public_key = key_utils.hex_to_bytes(header_information["public_key"])
         self.signature = header_information["signature"]
         # Block ends with \n. Thus, splitting by line terminator will create
         # an empty string. We have to ignore this at this point.
@@ -117,7 +117,7 @@ class Block(object):
                   self.previous_block,
                   self.version,
                   str(self.timestamp),
-                  key_utils.bytestring_to_hex(self.public_key),
+                  key_utils.bytes_to_hex(self.public_key),
                   self.signature]
         content = CONFIG["serializaton"]["separator"].join(fields)
         content += CONFIG["serializaton"]["line_terminator"]
@@ -142,7 +142,7 @@ class Block(object):
     def sign(self, private_key):
         """Sign creator's public key, in order to prove identity."""
         block_content = str.encode(self._get_content_for_signing())
-        self.signature = key_utils.bytestring_to_hex(crypto.sign(block_content, private_key))
+        self.signature = key_utils.bytes_to_hex(crypto.sign(block_content, private_key))
 
     def _get_content_for_signing(self):
         """Return relevant block information for signing.
@@ -157,7 +157,7 @@ class Block(object):
                   self.previous_block,
                   self.version,
                   str(self.timestamp),
-                  key_utils.bytestring_to_hex(self.public_key)]
+                  key_utils.bytes_to_hex(self.public_key)]
         content = CONFIG["serializaton"]["separator"].join(fields)
         content += CONFIG["serializaton"]["line_terminator"]
         for transaction in self.transactions:
@@ -176,7 +176,7 @@ class Block(object):
                   self.previous_block,
                   self.version,
                   str(self.timestamp),
-                  key_utils.bytestring_to_hex(self.public_key)]
+                  key_utils.bytes_to_hex(self.public_key)]
         if self.signature != "":
             fields.append(self.signature)
         if self.hash != "":

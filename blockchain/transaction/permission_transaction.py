@@ -32,7 +32,7 @@ class PermissionTransaction(TransactionBase):
             approvals = []
 
         if type(sender_pubkey).__name__ == "RsaKey":
-            sender_pubkey = key_utils.rsa_to_bytestring(sender_pubkey)
+            sender_pubkey = key_utils.rsa_to_bytes(sender_pubkey)
 
         self.requested_permission = requested_permission
         self.sender_pubkey = sender_pubkey
@@ -84,5 +84,5 @@ class PermissionTransaction(TransactionBase):
         # WONTFIX: susceptible to replay attacks because there is no clear indication
         # which transaction the approval belongs to, approvals could be copy-pasted to confirm malicious actors.
         approving_pubkey, signature = approval
-        return crypto.verify(approving_pubkey, signature, key_utils.bytestring_to_rsa(approving_pubkey))
+        return crypto.verify(approving_pubkey, signature, key_utils.bytes_to_rsa(approving_pubkey))
 

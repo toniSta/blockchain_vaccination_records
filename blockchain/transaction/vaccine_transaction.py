@@ -19,7 +19,7 @@ class VaccineTransaction(TransactionBase):
         )
 
         if type(sender_pubkey).__name__ == "RsaKey":
-            sender_pubkey = key_utils.rsa_to_bytestring(sender_pubkey)
+            sender_pubkey = key_utils.rsa_to_bytes(sender_pubkey)
 
         self.vaccine = vaccine
         self.sender_pubkey = sender_pubkey

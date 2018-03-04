@@ -47,7 +47,7 @@ class TransactionBase(metaclass=ABCMeta):
             self.validation_text = "No signature found."
             return False
         message = crypto.get_bytes(self._get_information_for_hashing())
-        result = crypto.verify(message, self.signature, key_utils.bytestring_to_rsa(self.sender_pubkey))
+        result = crypto.verify(message, self.signature, key_utils.bytes_to_rsa(self.sender_pubkey))
         if not result:
             self.validation_text = "Signature not valid"
             return False
@@ -86,7 +86,7 @@ class TransactionBase(metaclass=ABCMeta):
                 continue
 
             if type(item[1]).__name__ == "bytes":
-                instance_member_list.append((item[0].title(), key_utils.bytestring_to_hex(item[1])))
+                instance_member_list.append((item[0].title(), key_utils.bytes_to_hex(item[1])))
                 continue
 
             if type(item[1]).__name__ == "list":
@@ -96,7 +96,7 @@ class TransactionBase(metaclass=ABCMeta):
                         modified_tuple = []
                         for tuple_elem in list_elem:
                             if type(tuple_elem).__name__ == "bytes":
-                                bytes_tuple_elem = key_utils.bytestring_to_hex(tuple_elem)
+                                bytes_tuple_elem = key_utils.bytes_to_hex(tuple_elem)
                                 modified_tuple.append(bytes_tuple_elem)
                             else:
                                 modified_tuple.append(tuple_elem)

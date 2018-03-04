@@ -56,7 +56,7 @@ class FullClient(object):
 
         logger.debug("Finished full_client init.")
         logger.debug("My public key is: {} or {}".format(self.public_key,
-                                                         key_utils.bytestring_to_hex(self.public_key)))
+                                                         key_utils.bytes_to_hex(self.public_key)))
 
         if os.getenv('START_CLI') == '1':
             write_logs_to_file()
@@ -100,7 +100,7 @@ class FullClient(object):
             path = os.path.join(key_folder, CONFIG["key_file_names"][1])
             self.private_key = key_utils.load_rsa_from_pem(path)
 
-        self.public_key = key_utils.rsa_to_bytestring(self.public_key)
+        self.public_key = key_utils.rsa_to_bytes(self.public_key)
 
     def _start_election_thread(self):
         self.creator_election_thread = threading.Thread(target=self.creator_election, name="election thread", daemon=True)

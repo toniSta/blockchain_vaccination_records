@@ -19,9 +19,9 @@ class VaccinationTransaction(TransactionBase):
         del self.sender_pubkey
 
         if type(doctor_pub_key).__name__ == "RsaKey":
-            doctor_pub_key = key_utils.rsa_to_bytestring(doctor_pub_key)
+            doctor_pub_key = key_utils.rsa_to_bytes(doctor_pub_key)
         if type(patient_pub_key).__name__ == "RsaKey":
-            patient_pub_key = key_utils.rsa_to_bytestring(patient_pub_key)
+            patient_pub_key = key_utils.rsa_to_bytes(patient_pub_key)
 
         self.vaccine = vaccine
         self.doctor_signature = doctor_signature
@@ -58,14 +58,14 @@ class VaccinationTransaction(TransactionBase):
         if not self.doctor_signature or not self.patient_signature:
             return False
 
-        bin_doctor_key = key_utils.bytestring_to_rsa(self.doctor_pub_key)
+        bin_doctor_key = key_utils.bytes_to_rsa(self.doctor_pub_key)
         doctor_signature = self._verify_doctor_signature(bin_doctor_key)
         if not doctor_signature:
             logger.debug("doctor signature is not valid")
             self.validation_text = "doctor signature is not valid"
             return False
 
-        bin_patient_key = key_utils.bytestring_to_rsa(self.patient_pub_key)
+        bin_patient_key = key_utils.bytes_to_rsa(self.patient_pub_key)
         patient_signature = self._verify_patient_signature(bin_patient_key)
         if not patient_signature:
             logger.debug("patient signature is not valid")
