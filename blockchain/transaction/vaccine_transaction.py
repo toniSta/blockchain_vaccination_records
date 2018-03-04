@@ -18,11 +18,8 @@ class VaccineTransaction(TransactionBase):
             vaccine=vaccine, signature=signature, sender_pubkey=sender_pubkey, **kwargs
         )
 
-        if type(sender_pubkey).__name__ == "RsaKey":
-            sender_pubkey = key_utils.rsa_to_bytes(sender_pubkey)
-
         self.vaccine = vaccine
-        self.sender_pubkey = sender_pubkey
+        self.sender_pubkey = key_utils.cast_to_bytes(sender_pubkey)
         self.signature = signature
 
     def validate(self, admissions, doctors, vaccines):

@@ -28,6 +28,17 @@ def rsa_to_hex(key):
     return bytes_to_hex(rsa_to_bytes(key))
 
 
+def cast_to_bytes(key):
+    if type(key).__name__ == "RsaKey":
+        return rsa_to_bytes(key)
+    elif type(key).__name__ == "bytes":
+        return key
+    elif type(key).__name__ == "str":
+        return hex_to_bytes(key)
+    else:
+        raise ValueError("Given key is not of supported type RsaKey, bytes, or str!")
+
+
 def load_bytes_from_pem(key_path):
     return rsa_to_bytes(load_rsa_from_pem(key_path))
 

@@ -11,14 +11,9 @@ class Judgement(object):
     """This class implements the judgement functionality."""
 
     def __init__(self, hash_of_judged_block, accept_block, sender_pubkey, signature=None, timestamp=None, version=None):
-        if type(sender_pubkey).__name__ == "RsaKey":
-            sender_pubkey = key_utils.rsa_to_bytes(sender_pubkey)
-        elif type(sender_pubkey).__name__ == "str":
-            sender_pubkey = key_utils.hex_to_bytes(sender_pubkey)
-
         self.hash_of_judged_block = hash_of_judged_block
         self.accept_block = accept_block
-        self.sender_pubkey = sender_pubkey
+        self.sender_pubkey = key_utils.cast_to_bytes(sender_pubkey)
         self.signature = signature
         self.timestamp = timestamp or int(time())
         self.version = version or CONFIG["version"]

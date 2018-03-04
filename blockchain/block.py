@@ -41,12 +41,7 @@ class Block(object):
         if type(data) == dict:
             self._from_dictionary(data)
             assert public_key
-            if type(public_key).__name__ == "RsaKey":
-                self.public_key = key_utils.rsa_to_bytes(public_key)
-            elif type(public_key).__name__ == "bytes":
-                self.public_key = public_key
-            elif type(public_key).__name__ == "str":
-                self.public_key = key_utils.hex_to_bytes(public_key)
+            self.public_key = key_utils.cast_to_bytes(public_key)
             self.signature = ""
         elif type(data) == str:
             self._from_string(data)

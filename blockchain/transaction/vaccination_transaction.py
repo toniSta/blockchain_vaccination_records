@@ -16,18 +16,13 @@ class VaccinationTransaction(TransactionBase):
         )
 
         del self.signature  # remove the base classes single signature
-        del self.sender_pubkey
-
-        if type(doctor_pub_key).__name__ == "RsaKey":
-            doctor_pub_key = key_utils.rsa_to_bytes(doctor_pub_key)
-        if type(patient_pub_key).__name__ == "RsaKey":
-            patient_pub_key = key_utils.rsa_to_bytes(patient_pub_key)
+        del self.sender_pubkey  # remove the base classes sender signature
 
         self.vaccine = vaccine
         self.doctor_signature = doctor_signature
         self.patient_signature = patient_signature
-        self.doctor_pub_key = doctor_pub_key
-        self.patient_pub_key = patient_pub_key
+        self.doctor_pub_key = key_utils.cast_to_bytes(doctor_pub_key)
+        self.patient_pub_key = key_utils.cast_to_bytes(patient_pub_key)
 
     def sign(self, doctor_private_key, patient_private_key):
         """create signatures and add it to the transaction.

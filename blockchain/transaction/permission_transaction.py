@@ -31,11 +31,8 @@ class PermissionTransaction(TransactionBase):
         if not approvals:
             approvals = []
 
-        if type(sender_pubkey).__name__ == "RsaKey":
-            sender_pubkey = key_utils.rsa_to_bytes(sender_pubkey)
-
         self.requested_permission = requested_permission
-        self.sender_pubkey = sender_pubkey
+        self.sender_pubkey = key_utils.cast_to_bytes(sender_pubkey)
         self.approvals = approvals
 
     def _get_information_for_hashing(self):
