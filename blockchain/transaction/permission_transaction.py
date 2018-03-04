@@ -35,7 +35,7 @@ class PermissionTransaction(TransactionBase):
         self.sender_pubkey = sender_pubkey
         self.approvals = approvals
 
-    def _get_informations_for_hashing(self):
+    def _get_information_for_hashing(self):
         return str({
             "requested_permission": self.requested_permission,
             "sender_pubkey": self.sender_pubkey,

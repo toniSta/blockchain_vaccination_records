@@ -32,10 +32,10 @@ class VaccineTransaction(TransactionBase):
         return self._verify_signature()
 
     def _create_signature(self, private_key):
-        message = crypto.get_bytes(self._get_informations_for_hashing())
+        message = crypto.get_bytes(self._get_information_for_hashing())
         return crypto.sign(message, private_key)
 
-    def _get_informations_for_hashing(self):
+    def _get_information_for_hashing(self):
         string = "{}(version={}, timestamp={}, vaccine={}, sender_pub_key={})".format(
             type(self).__name__,
             self.version,

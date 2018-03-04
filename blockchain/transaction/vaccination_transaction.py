@@ -79,7 +79,7 @@ class VaccinationTransaction(TransactionBase):
         if self.doctor_signature:
             logger.debug("Doctor signature exists. Quit signing process.")
             return
-        message = crypto.get_bytes(self._get_informations_for_hashing(True))
+        message = crypto.get_bytes(self._get_information_for_hashing(True))
         return crypto.sign(message, private_key)
 
     def _create_patient_signature(self, private_key):
@@ -96,21 +96,21 @@ class VaccinationTransaction(TransactionBase):
             print("Aborting...")
             return None
         elif reply == "y":
-            message = crypto.get_bytes(self._get_informations_for_hashing(False))
+            message = crypto.get_bytes(self._get_information_for_hashing(False))
             return crypto.sign(message, private_key)
         else:
             print("No valid input. Abort...")
             return None
 
     def _verify_doctor_signature(self, pub_key):
-        message = crypto.get_bytes(self._get_informations_for_hashing(True))
+        message = crypto.get_bytes(self._get_information_for_hashing(True))
         return crypto.verify(message, self.doctor_signature, pub_key)
 
     def _verify_patient_signature(self, pub_key):
-        message = crypto.get_bytes(self._get_informations_for_hashing(False))
+        message = crypto.get_bytes(self._get_information_for_hashing(False))
         return crypto.verify(message, self.patient_signature, pub_key)
 
-    def _get_informations_for_hashing(self, as_doctor):
+    def _get_information_for_hashing(self, as_doctor):
         string = "{}(version={}, timestamp={}, vaccine={}, doctor_pub_key={}, patient_pub_key={}".format(
             type(self).__name__,
             self.version,

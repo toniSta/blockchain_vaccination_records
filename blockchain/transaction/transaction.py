@@ -28,12 +28,12 @@ class TransactionBase(metaclass=ABCMeta):
         raise NotImplementedError("Transaction must offer a validity check")
 
     @abstractmethod
-    def _get_informations_for_hashing(self):
-        """Which informations are specific to this transaction?
+    def _get_information_for_hashing(self):
+        """Which information is specific to this transaction?
 
         :returns: string
         """
-        raise NotImplementedError("Transaction must offer informations to be hashable")
+        raise NotImplementedError("Transaction must offer information to be hashable")
 
     def get_validation_result(self):
         """Result of the validation as human readable string."""
@@ -47,7 +47,7 @@ class TransactionBase(metaclass=ABCMeta):
         if not self.signature:  # fail if object has no signature attribute
             self.validation_text = "No signature found."
             return False
-        message = crypto.get_bytes(self._get_informations_for_hashing())
+        message = crypto.get_bytes(self._get_information_for_hashing())
         result = crypto.verify(message, self.signature, RSA.import_key(self.sender_pubkey))
         if not result:
             self.validation_text = "Signature not valid"
@@ -65,7 +65,7 @@ class TransactionBase(metaclass=ABCMeta):
         return self
 
     def _create_signature(self, private_key):
-        message = crypto.get_bytes(self._get_informations_for_hashing())
+        message = crypto.get_bytes(self._get_information_for_hashing())
         return crypto.sign(message, private_key)
 
     def __str__(self):
