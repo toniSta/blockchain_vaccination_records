@@ -6,7 +6,7 @@ from collections import deque
 from subprocess import CalledProcessError
 from threading import RLock, current_thread
 
-from blockchain.helper.key_utils import load_rsa_from_pem, rsa_to_bytestring
+import blockchain.helper.key_utils as key_utils
 from blockchain.network.network import Network
 from .block import Block
 from .config import CONFIG
@@ -655,7 +655,7 @@ def nodeattrfunc(node):
     """
     key_folder = CONFIG["key_folder"]
     path = os.path.join(key_folder, CONFIG["key_file_names"][0])
-    public_key = rsa_to_bytestring(load_rsa_from_pem(path))
+    public_key = key_utils.load_bytes_from_pem(path)
 
     if public_key == node.block.public_key:
         return "style = filled,fillcolor = green4, shape = rectangle"
