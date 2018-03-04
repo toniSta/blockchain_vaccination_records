@@ -8,7 +8,7 @@ import blockchain.helper.cryptography as crypto
 class TransactionBase(metaclass=ABCMeta):
     """Base class for any transaction type.
 
-    This class defines the methods each trnsaction has to implement and provides some general implementatioons
+    This class defines the methods each transaction has to implement and provides some general implementations
     that can be overwritten if necessary."""
 
     def __init__(self, signature=None, *args, **kwargs):

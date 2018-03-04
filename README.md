@@ -97,7 +97,7 @@ You can start them with the following commands (one per window):
 ./start_d3.sh
 ```
 
-To stop the demonstration you can stop the compose network by hitting `Ctrl+C`. After the container were stopped sucessfully
+To stop the demonstration you can stop the compose network by hitting `Ctrl+C`. After the container were stopped successfully
 you can run `./stop_and_clean.sh` to stop the additional clients and cleaning up the docker environment.
 Most certainly you also want to delete the contents of the directory `blockchain/blockchain_files`. 
 However, don't delete the file starting with `0_` (You can restore the file with `git checkout blockchain/blockchain_files/`).
@@ -312,7 +312,7 @@ This means the chain is going to converge to one branch.
 ### Creator Election
 We use some sort of proof of stake during the election of the next block creator.
 Every admission has an counter since it created its last block (or was added as admission).
-The counter increases continiously.
+The counter increases continuously.
 Whenever an admission node created a block its counter is cleared.
 The stake belongs to the admission with the highest counter.
 This will result in a round robin like creator queue.

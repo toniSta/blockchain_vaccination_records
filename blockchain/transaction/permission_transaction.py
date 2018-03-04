@@ -51,7 +51,7 @@ class PermissionTransaction(TransactionBase):
             return self._verify_signature() and self._validate_approvals(admissions)
 
     def _validate_approvals(self, current_admissions):
-        """Validate the includeded approvals of the transaction.
+        """Validate the included approvals of the transaction.
 
         Checks if there are duplicate approvals,
         if a sufficient number of approvals is present if the chain has at least 1 block,

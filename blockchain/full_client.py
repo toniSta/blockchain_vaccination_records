@@ -31,7 +31,7 @@ class FullClient(object):
 
         Parse neighbor list
         Load or generate RSA keypair
-        Instanciate all internal data structures
+        Instantiate all internal data structures
         Start block creation thread
         Optionally start user interface
         """
@@ -145,7 +145,7 @@ class FullClient(object):
                             self.transaction_set.add_multiple(new_block.transactions)
                             continue
                         if os.getenv('CONFIRM_BLOCKSENDING') == '1':
-                            print("Crafted the follwoing block: {}".format(new_block))
+                            print("Crafted the following block: {}".format(new_block))
                             send_now = input("Confirm to send block. (Y)").lower()
                             if send_now == "y":
                                 self._submit_block(new_block)

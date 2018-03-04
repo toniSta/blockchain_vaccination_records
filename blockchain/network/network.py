@@ -4,7 +4,7 @@ We implement the necessary network operations via REST-Api calls. All REST calls
 are bundled in this file in order to provide easy exchangeability.
 
 In general each method takes 2 arguments. First argument will be the base URI of the destination (e.g. 'http://127.0.0.1:9000').
-The second argument is the data that neeeds to be send. It will be the sting representation of a object (`repr()`).
+The second argument is the data that needs to be sent. It will be the string representation of a object (`repr()`).
 """
 import socket
 from abc import ABCMeta
@@ -67,7 +67,7 @@ class Network(ABCMeta):
         try:
             requests.post(route, data=judgement)
         except requests.exceptions.ReadTimeout as r:
-            logger.debug("Got a ReadTimeout while sending judgegment to {}: {}".format(route, r))
+            logger.debug("Got a ReadTimeout while sending judgement to {}: {}".format(route, r))
         except requests.exceptions.ConnectionError as r:
             logger.debug("Got Exception while connecting to {}: {}".format(route, r))
 
