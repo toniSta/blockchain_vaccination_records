@@ -42,8 +42,3 @@ def verify(message, signature, public_key):
     digest = SHA256.new()
     digest.update(message)
     return signer.verify(digest, signature)
-
-
-# DEPRECATED: This method will be replaced with the equivalent one in key_utils.py
-def hexify(s):
-    return s.hex() if s else ""

@@ -1,6 +1,5 @@
 from abc import ABCMeta, abstractmethod
 from blockchain.config import CONFIG
-from blockchain.helper.cryptography import hexify
 from time import time
 import blockchain.helper.key_utils as key_utils
 import blockchain.helper.cryptography as crypto
@@ -87,7 +86,7 @@ class TransactionBase(metaclass=ABCMeta):
                 continue
 
             if type(item[1]).__name__ == "bytes":
-                instance_member_list.append((item[0].title(), hexify(item[1])))
+                instance_member_list.append((item[0].title(), key_utils.bytestring_to_hex(item[1])))
                 continue
 
             if type(item[1]).__name__ == "list":
