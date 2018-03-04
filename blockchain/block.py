@@ -15,6 +15,7 @@ from time import time
 from blockchain.config import CONFIG
 from blockchain.transaction import *
 import blockchain.helper.cryptography as crypto
+import blockchain.helper.key_utils as key_utils
 from blockchain.helper.cryptography import generate_keypair
 from blockchain.helper.logger import setup_basic_logger_config
 
@@ -41,11 +42,11 @@ class Block(object):
             self._from_dictionary(data)
             assert public_key
             if type(public_key).__name__ == "RsaKey":
-                self.public_key = public_key.exportKey("DER")
+                self.public_key = key_utils.rsa_to_bytestring(public_key)
             elif type(public_key).__name__ == "bytes":
                 self.public_key = public_key
             elif type(public_key).__name__ == "str":
-                self.public_key = bytes.fromhex(public_key)
+                self.public_key = key_utils.hex_to_bytestring(public_key)
             self.signature = ""
         elif type(data) == str:
             self._from_string(data)
@@ -74,7 +75,7 @@ class Block(object):
         self.previous_block = header_information["previous_block"]
         self.version = header_information["version"]
         self.timestamp = int(header_information["timestamp"])
-        self.public_key = bytes.fromhex(header_information["public_key"])
+        self.public_key = key_utils.hex_to_bytestring(header_information["public_key"])
         self.signature = header_information["signature"]
         # Block ends with \n. Thus, splitting by line terminator will create
         # an empty string. We have to ignore this at this point.
@@ -116,7 +117,7 @@ class Block(object):
                   self.previous_block,
                   self.version,
                   str(self.timestamp),
-                  self.public_key.hex(),
+                  key_utils.bytestring_to_hex(self.public_key),
                   self.signature]
         content = CONFIG["serializaton"]["separator"].join(fields)
         content += CONFIG["serializaton"]["line_terminator"]
@@ -141,7 +142,7 @@ class Block(object):
     def sign(self, private_key):
         """Sign creator's public key, in order to prove identity."""
         block_content = str.encode(self._get_content_for_signing())
-        self.signature = crypto.sign(block_content, private_key).hex()
+        self.signature = key_utils.bytestring_to_hex(crypto.sign(block_content, private_key))
 
     def _get_content_for_signing(self):
         """Return relevant block information for signing.
@@ -156,7 +157,7 @@ class Block(object):
                   self.previous_block,
                   self.version,
                   str(self.timestamp),
-                  self.public_key.hex()]
+                  key_utils.bytestring_to_hex(self.public_key)]
         content = CONFIG["serializaton"]["separator"].join(fields)
         content += CONFIG["serializaton"]["line_terminator"]
         for transaction in self.transactions:
@@ -175,7 +176,7 @@ class Block(object):
                   self.previous_block,
                   self.version,
                   str(self.timestamp),
-                  self.public_key.hex()]
+                  key_utils.bytestring_to_hex(self.public_key)]
         if self.signature != "":
             fields.append(self.signature)
         if self.hash != "":
@@ -210,12 +211,10 @@ def create_initial_block():
     os.makedirs(CONFIG["key_folder"], exist_ok=True)
 
     path = os.path.join(key_folder, CONFIG["key_file_names"][0])
-    with open(path, "wb") as key_file:
-        key_file.write(public_key.exportKey())
+    key_utils.write_key_to_pem(public_key, path)
 
     path = os.path.join(key_folder, CONFIG["key_file_names"][1])
-    with open(path, "wb") as key_file:
-        key_file.write(private_key.exportKey())
+    key_utils.write_key_to_pem(private_key, path)
 
     if os.path.exists(CONFIG["persistance_folder"]):
         shutil.rmtree(CONFIG["persistance_folder"])
