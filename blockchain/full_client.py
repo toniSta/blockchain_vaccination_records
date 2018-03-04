@@ -3,8 +3,8 @@ import os
 import threading
 import time
 
-from Crypto.PublicKey import RSA
 
+import blockchain.helper.key_utils as key_utils
 from blockchain.helper.logger import write_logs_to_file
 from .block import Block
 from .chain import Chain
@@ -56,7 +56,7 @@ class FullClient(object):
 
         logger.debug("Finished full_client init.")
         logger.debug("My public key is: {} or {}".format(self.public_key,
-                                                         self.public_key.hex()))
+                                                         key_utils.bytestring_to_hex(self.public_key)))
 
         if os.getenv('START_CLI') == '1':
             write_logs_to_file()
@@ -82,12 +82,10 @@ class FullClient(object):
             self.public_key, self.private_key = generate_keypair()
 
             path = os.path.join(key_folder, CONFIG["key_file_names"][0])
-            with open(path, "wb") as key_file:
-                key_file.write(self.public_key.exportKey())
+            key_utils.write_key_to_pem(self.public_key, path)
 
             path = os.path.join(key_folder, CONFIG["key_file_names"][1])
-            with open(path, "wb") as key_file:
-                key_file.write(self.private_key.exportKey())
+            key_utils.write_key_to_pem(self.private_key, path)
 
         elif set(os.listdir(key_folder)) != set(CONFIG["key_file_names"]):
             # One key is missing
@@ -97,14 +95,12 @@ class FullClient(object):
         else:
             # Keys are present
             path = os.path.join(key_folder, CONFIG["key_file_names"][0])
-            with open(path, "rb") as key_file:
-                self.public_key = RSA.import_key(key_file.read())
+            self.public_key = key_utils.load_rsa_from_pem(path)
 
             path = os.path.join(key_folder, CONFIG["key_file_names"][1])
-            with open(path, "rb") as key_file:
-                self.private_key = RSA.import_key(key_file.read())
+            self.private_key = key_utils.load_rsa_from_pem(path)
 
-        self.public_key = self.public_key.exportKey("DER")
+        self.public_key = key_utils.rsa_to_bytestring(self.public_key)
 
     def _start_election_thread(self):
         self.creator_election_thread = threading.Thread(target=self.creator_election, name="election thread", daemon=True)
@@ -313,7 +309,7 @@ class FullClient(object):
             if self.chain.find_block_by_hash(new_block.hash) or \
                self.chain.is_block_dangling(new_block) or \
                self.chain.is_dead_branch_root(new_block):
-                # It would be better to check if the block is part of a dead branch. Won't implement this.
+                # WONTFIX: It would be better to check if the block is part of a dead branch
                 logger.debug("The received block is already part of chain or "
                              "a dangling block: {}".format(str(new_block)))
                 return
@@ -521,7 +517,7 @@ class FullClient(object):
             print(transaction)
             sign_now = input("Sign transaction now? (Y/N)").lower()
             if sign_now == "y":
-                doctor_privkey = self.private_key  # would it be better to visually enter the key?
+                doctor_privkey = self.private_key
                 patient_privkey = patient_privkey
                 transaction.sign(doctor_privkey, patient_privkey)
                 print("Trying to send transaction:")
@@ -540,7 +536,7 @@ class FullClient(object):
             print(transaction)
             sign_now = input("Sign transaction now? (Y/N)").lower()
             if sign_now == "y":
-                admission_privkey = self.private_key  # would it be better to visually enter the key?
+                admission_privkey = self.private_key
                 transaction.sign(admission_privkey)
                 print("Trying to send transaction:")
                 print(transaction)
