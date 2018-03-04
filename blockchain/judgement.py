@@ -65,7 +65,7 @@ class Judgement(object):
         The Class attributes will be ordered
         e.g. Class(attribute1="String", attribute2=3)
         """
-        instance_member_list =[]
+        instance_member_list = []
         for item in vars(self).items():
             instance_member_list.append(item)
         instance_member_list.sort(key=lambda tup: tup[0])

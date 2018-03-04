@@ -235,4 +235,5 @@ def create_initial_block():
     genesis.persist()
     return genesis
 
+
 from .helper.block_validator import validate_block

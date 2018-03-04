@@ -226,7 +226,7 @@ class Chain(object):
 
             :return: True if the judgement was new, False if it was already there
             """
-            changed_judgments= False
+            changed_judgments = False
             with self._lock:
                 node = self._find_tree_node_by_hash(judgement.hash_of_judged_block)
                 if node:
@@ -359,7 +359,7 @@ class Chain(object):
                 try:
                     os.remove(dead_branch)
                 except FileNotFoundError:
-                    pass  #file already removed by another thread
+                    pass  # file already removed by another thread
 
         def _resend_transactions(self, transactions):
             """Send transactions to myself.

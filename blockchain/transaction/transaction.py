@@ -5,6 +5,7 @@ from time import time
 from Crypto.PublicKey import RSA
 import blockchain.helper.cryptography as crypto
 
+
 class TransactionBase(metaclass=ABCMeta):
     """Base class for any transaction type.
 
@@ -117,7 +118,6 @@ class TransactionBase(metaclass=ABCMeta):
         string = string + "-----------------------"
         return string
 
-
     def __repr__(self):
         """Serialize object as string.
 
@@ -125,7 +125,7 @@ class TransactionBase(metaclass=ABCMeta):
         The Class attributes will be ordered
         e.g. Class(attribute1="String", attribute2=3)
         """
-        instance_member_list =[]
+        instance_member_list = []
         for item in vars(self).items():
             if item[0] == 'validation_text':
                 continue

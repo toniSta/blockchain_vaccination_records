@@ -61,8 +61,8 @@ def validate_block(block, previous_block):
     admissions, doctors, vaccines = Chain().get_registration_caches_by_blockhash(block.previous_block)
     for transaction in block.transactions:
         if not transaction.validate(admissions, doctors, vaccines):
-             logger.info("Block contains invalid transactions")
-             return False
+            logger.info("Block contains invalid transactions")
+            return False
 
     # Block has no transactions
     # if len(block.transactions) == 0:

@@ -53,7 +53,6 @@ class TransactionSet(object):
         def __repr__(self):
             return self.store.__repr__()
 
-
     __instance = None
 
     def __new__(cls, load_persisted=True):

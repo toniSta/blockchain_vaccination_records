@@ -1,7 +1,6 @@
 import logging
 from blockchain.transaction.transaction import TransactionBase
 import blockchain.helper.cryptography as crypto
-from Crypto.PublicKey import RSA
 
 # Needs to be moved later
 logging.basicConfig(level=logging.DEBUG,

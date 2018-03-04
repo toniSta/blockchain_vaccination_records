@@ -62,10 +62,10 @@ class PermissionTransaction(TransactionBase):
             logger.debug("Transaction contains duplicate approvals.")
             self.validation_text = "Transaction contains duplicate approvals."
             return False
-        #  WONTFIX: won't register admissions with approvals in presentation demo, therefore commented out
-        #if len(self.approvals) < math.ceil(len(current_admissions) / 2):
-        #   logger.debug("Transaction does not contain the required number of approvals.")
-        #   return False
+        # WONTFIX: won't register admissions with approvals in presentation demo, therefore commented out
+        # if len(self.approvals) < math.ceil(len(current_admissions) / 2):
+        #    logger.debug("Transaction does not contain the required number of approvals.")
+        #    return False
         if len(self.approvals) != len([a for a in self.approvals if self._verify_approval_signature(a)]):
             logger.debug("Transaction contains approvals with invalid signature.")
             self.validation_text = "Transaction contains approvals with invalid signature."

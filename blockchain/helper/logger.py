@@ -10,6 +10,7 @@ def setup_basic_logger_config():
                         format="[ %(asctime)s ] %(levelname)-7s %(name)-s: %(message)s",
                         datefmt="%Y-%m-%d %H:%M:%S")
 
+
 def write_logs_to_file():
     logger = logging.getLogger("LogSetup")
     file_path = '/var/log/blockchain/server.log'

@@ -37,7 +37,7 @@ class Network(ABCMeta):
             return False
         except requests.exceptions.ConnectionError as r:
             logger.debug("Got Exception while connecting to {}: {}".format(route, r))
-            return  False
+            return False
         return r.ok
 
     @staticmethod
@@ -90,6 +90,7 @@ class Network(ABCMeta):
             logger.debug("Got Exception while connecting to {}: {}".format(route, r))
             return False
         return r.ok
+
 
 def simulate_latency():
     """Wait for a short period to simulate network latency.
