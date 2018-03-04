@@ -21,12 +21,15 @@ class Permission(Enum):
 
 class PermissionTransaction(TransactionBase):
     """This class represents the transaction of wallet permissions"""
-    def __init__(self, requested_permission, sender_pubkey, approvals=[], **kwargs):
+    def __init__(self, requested_permission, sender_pubkey, approvals=None, **kwargs):
         logger.debug("Creating new permission transaction")
         super(PermissionTransaction, self).__init__(
                 requested_permission=requested_permission, sender_pubkey=sender_pubkey,
                 approvals=approvals, **kwargs
         )
+
+        if not approvals:
+            approvals = []
 
         if type(sender_pubkey).__name__ == "RsaKey":
             sender_pubkey = key_utils.rsa_to_bytestring(sender_pubkey)
