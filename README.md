@@ -15,10 +15,10 @@ You will find an implementation of a prototype to demonstrate the general functi
 - [Running the tests](#running-the-tests)
 - [Deployment of the demonstration](#deployment-of-the-demonstration)
    - [How to interact within the demonstration](#how-to-interact-within-the-demonstration)
-- [Architecture](#architecture)
-   - [Network Participants](#network-participants)
-   - [Supported Transactions](#supported-transactions)
-   - [Client Types](#client-types)
+- [Architecture](architecture.md#architecture) `external`
+   - [Network Participants](architecture.md#network-participants)
+   - [Supported Transactions](architecture.md#supported-transactions)
+   - [Client Types](architecture.md#client-types)
 - [Consensus](#consensus)
    - [Judgements](#judgements)
    - [Creator Election](#creator-election)
@@ -84,7 +84,7 @@ docker build -t full_client_image -f Full_Client.Dockerfile .
 ```
 
 After building the base image you can run `docker-compose up` to start the demo network.
-This will start and connect the following network (nodes GA, A1-3, D1-2; see [Network Participants](#network-participants))
+This will start and connect the following network (nodes GA, A1-3, D1-2; see [Network Participants](architecture.md#network-participants))
 
 ![demo network layout](img/network.png "demo network layout")
 
@@ -121,15 +121,15 @@ We use environment variables inside the docker container  to specify which clien
 This client will you allow to create blocks independently from the normal creator election.
 This client will start with the following environment variables `REGISTER_AS_ADMISSION=1` and `START_CLI=1`.
 - Confirm to broadcast a created block (`A5` + `A6`)  
-This kind of client will register itself as admission node (see [Network Participants](#network-participants)).
+This kind of client will register itself as admission node (see [Network Participants](architecture.md#network-participants)).
 It will generate block if it is its turn.
 It won't broadcast this block immediately.
 It will ask you for confirmation before broadcasting the block.
 You can start it with the environment variables `REGISTER_AS_ADMISSION=1` and `CONFIRM_BLOCKSENDING=1`.
 - Create and submit transactions (`D3`)  
-This node lets you create any kind of transaction, see [Supported Transactions](#supported-transactions). 
+This node lets you create any kind of transaction, see [Supported Transactions](architecture.md#supported-transactions). 
 The node `D3` has a uni-directional connection to the nodes `A1-3` and `GA`. 
-This means it will send new transactions to all admission nodes (see [Network Participants](#network-participants)) of the base network.
+This means it will send new transactions to all admission nodes (see [Network Participants](architecture.md#network-participants)) of the base network.
 You can start this kind of client by setting the environment variable `START_CLI=1`.
 
 There are some more environment variables to setup the nodes:
@@ -204,74 +204,6 @@ docker-compose stop d2
 ```
 
 Use `docker-compose start <name>` to start the node again.
-
-## Architecture
-
-### Network Participants
-
-In our blockchain network exist 4 kinds of participants. Admissions and doctors should be distinct sets.
-However, we don't check this in the prototype:
-- **Admission**  
-Admissions are the authorative part in the blockchain.
-The job of an admission is to register new admissions, doctors and vaccines (see [Supported Transactions](#supported-transactions)).
-It will receive transactions and create blocks containing the received transactions.
-Admissions will be driven by public institutions.
-Unlike other blockchain technologies we assume that the admission nodes are seen as trustworthy.
-- **Genesis Admission**  
-This admission is special as it generated the genesis block and obtains it right as admission within the genesis block.
-- **Doctor**  
-As the name suggests, doctors are doctors.
-They have to register as doctor within the chain to obtain the right to create vaccination transactions.
-We assume that a doctor won't DoS the network with transactions.
-- **Patient**  
-This participant will receive vaccinations and has no further rights.
-We mock this type of participant in the prototype
-
-### Supported Transactions
-We support 3 kinds of transactions:
-
-- **Permission**  
-Each participant starts without any rights. 
-This transactions allow to obtain further rights. 
-There are 3 sub-types currently:
-    - **Admission**  
-    This kind will grant the status as admission.
-    In general you would have to ask for approvals by other admissions beforehand.
-    We don't check this in the prototype.
-    - **Doctor**  
-    As well this will grant you the doctor rights.
-    In a real deployment an admission has to check if the doctor is a licensed doctor.
-    - **Patient**  
-    This will register your key as patient key
-- **Vaccine**  
-Register a new vaccine in the chain.
-Only registered vaccines can be used in vaccination transactions.
-- **Vaccination**  
-This transactions depicts the process of a patient being vaccinated.
-
-> __Currently unsupported__:
->
-> - the removal of any registration process.
-
-Transactions aren't stored on persistent storage until they are part of a block.
-To make sure that a new transaction becomes part of the chain the sender needs to send it to multiple admissions.
-We recommend at least to 6 admissions for a fault tolerance > 99,99%.
-We assume a fault probability of 20% per admission node.
-
-
-### Client Types
-
-There are 2 types of clients.
-
-- **Full Client**
-This client supports all actions within the chain dependent on the rights of the participant's key.
-It will contain a complete copy of the blockchain.
-It is used by admissions to receive and validate transactions and to receive, validate and create new blocks.
-Doctors use the client to generate new transactions and to send them to their neighbors.
-- **Look-Up Client** `currently not implemented`  
-Meant to offer a user interface to enable search operations like Which vaccinations has a specific patient?, What are my upcoming vaccinations?... .
-This client can be used by any person and doesn't demand a valid key.
-Used with a key, it enables push notifications about upcoming vaccinations.
 
 ## Consensus
 The goal of this section is to give a brief overview of the implemented consensus protocol.
