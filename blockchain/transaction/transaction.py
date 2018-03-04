@@ -2,7 +2,7 @@ from abc import ABCMeta, abstractmethod
 from blockchain.config import CONFIG
 from blockchain.helper.cryptography import hexify
 from time import time
-from Crypto.PublicKey import RSA
+import blockchain.helper.key_utils as key_utils
 import blockchain.helper.cryptography as crypto
 
 
@@ -48,7 +48,7 @@ class TransactionBase(metaclass=ABCMeta):
             self.validation_text = "No signature found."
             return False
         message = crypto.get_bytes(self._get_information_for_hashing())
-        result = crypto.verify(message, self.signature, RSA.import_key(self.sender_pubkey))
+        result = crypto.verify(message, self.signature, key_utils.bytestring_to_rsa(self.sender_pubkey))
         if not result:
             self.validation_text = "Signature not valid"
             return False
@@ -97,7 +97,7 @@ class TransactionBase(metaclass=ABCMeta):
                         modified_tuple = []
                         for tuple_elem in list_elem:
                             if type(tuple_elem).__name__ == "bytes":
-                                bytes_tuple_elem = hexify(tuple_elem)
+                                bytes_tuple_elem = key_utils.bytestring_to_hex(tuple_elem)
                                 modified_tuple.append(bytes_tuple_elem)
                             else:
                                 modified_tuple.append(tuple_elem)

@@ -1,8 +1,8 @@
 import logging
 from enum import Enum
-from Crypto.PublicKey import RSA
 
 import blockchain.helper.cryptography as crypto
+import blockchain.helper.key_utils as key_utils
 from blockchain.transaction.transaction import TransactionBase
 
 logger = logging.getLogger("blockchain")
@@ -29,7 +29,7 @@ class PermissionTransaction(TransactionBase):
         )
 
         if type(sender_pubkey).__name__ == "RsaKey":
-            sender_pubkey = sender_pubkey.exportKey("DER")
+            sender_pubkey = key_utils.rsa_to_bytestring(sender_pubkey)
 
         self.requested_permission = requested_permission
         self.sender_pubkey = sender_pubkey
@@ -79,7 +79,7 @@ class PermissionTransaction(TransactionBase):
 
     def _verify_approval_signature(self, approval):
         # WONTFIX: susceptible to replay attacks because there is no clear indication
-        # which transactions the approval belongs to, approvals could be copy-pasted to confirm malicious actors.
+        # which transaction the approval belongs to, approvals could be copy-pasted to confirm malicious actors.
         approving_pubkey, signature = approval
-        return crypto.verify(approving_pubkey, signature, RSA.import_key(approving_pubkey))
+        return crypto.verify(approving_pubkey, signature, key_utils.bytestring_to_rsa(approving_pubkey))
 

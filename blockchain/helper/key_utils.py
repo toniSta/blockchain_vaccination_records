@@ -9,7 +9,7 @@ def bytestring_to_rsa(key):
 
 
 def bytestring_to_hex(key):
-    return key.hex()
+    return key.hex() if key else ""
 
 
 def hex_to_bytestring(key):

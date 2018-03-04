@@ -1,6 +1,7 @@
 import logging
 from blockchain.transaction.transaction import TransactionBase
 import blockchain.helper.cryptography as crypto
+import blockchain.helper.key_utils as key_utils
 
 # Needs to be moved later
 logging.basicConfig(level=logging.DEBUG,
@@ -18,7 +19,7 @@ class VaccineTransaction(TransactionBase):
         )
 
         if type(sender_pubkey).__name__ == "RsaKey":
-            sender_pubkey = sender_pubkey.exportKey("DER")
+            sender_pubkey = key_utils.rsa_to_bytestring(sender_pubkey)
 
         self.vaccine = vaccine
         self.sender_pubkey = sender_pubkey
