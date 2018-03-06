@@ -67,10 +67,12 @@ def validate_block(block, previous_block):
             logger.info("Block contains invalid transactions")
             return False
 
+    # WONTFIX: Actually, a block should never be empty. However, we leave this
+    # check disabled for demo purposes.
     # Block has no transactions
-    if len(block.transactions) == 0:
-        logger.info("Block does not contain any transaction")
-        return False
+    # if len(block.transactions) == 0:
+    #     logger.info("Block does not contain any transaction")
+    #     return False
 
     # Number of transactions exceeds the maximum
     if len(block.transactions) > CONFIG.block_size:

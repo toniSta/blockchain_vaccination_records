@@ -1,7 +1,7 @@
 # Blockchain persistency related files
 blockchain/blockchain_files/*
-tests/blockchain_files/*
 !blockchain/blockchain_files/0_0_*
+tests/blockchain_files/*
 tests/keys/*
 
 
