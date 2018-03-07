@@ -1,8 +1,19 @@
+import shutil
+
 from blockchain.helper import key_utils
 from Crypto.PublicKey import RSA
 
 import pytest
 import os
+
+TMP_DIR = os.path.abspath('tests/key_test')
+
+def setup_module(module):
+    shutil.rmtree(TMP_DIR, True)
+    os.makedirs(TMP_DIR)
+
+def teardown_module(module):
+    pass #shutil.rmtree(TMP_DIR)
 
 @pytest.fixture()
 def public_key():
@@ -94,3 +105,9 @@ def test_cast_to_bytes(public_key, public_key_hex, public_key_bytes, private_key
 
     with pytest.raises(ValueError):
         key_utils.cast_to_bytes(1234)
+
+def test_write_key_to_pem(public_key, public_key_hex, public_key_bytes, private_key, private_key_hex, private_key_bytes):
+    file_path = os.path.join(TMP_DIR, 'test')
+    key_utils.write_key_to_pem(private_key, file_path)
+    with open(file_path, 'rb') as file:
+        assert file.readline().strip() == '-----BEGIN RSA PRIVATE KEY-----'
