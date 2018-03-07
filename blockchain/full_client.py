@@ -469,12 +469,12 @@ class FullClient(object):
     def _broadcast_new_transaction(self, transaction, print_nodes=False):
         """Broadcast transaction to required number of admission nodes.
 
-        WONTFIX: actually broadcasts transaction to all neighbors. Non-admissions will ignore the transaction.
+        WONTFIX: currently broadcasts transaction to all neighbors. Non-admissions will ignore the transaction.
         """
         for node in self.nodes:
             if print_nodes:
                 print("Sending transaction to {}".format(node))
-            Network.broadcast_new_transaction(node, repr(transaction))
+            Network.send_transaction(node, repr(transaction))
 
     def _check_if_transaction_in_chain(self, transaction):
         """Check if the transaction is already part of the chain.

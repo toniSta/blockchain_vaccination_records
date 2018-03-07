@@ -367,7 +367,7 @@ class Chain(object):
             :param transactions: Iterable of transactions.
             """
             for tx in transactions:
-                Network.broadcast_new_transaction('http://localhost:9000', repr(tx))
+                Network.send_transaction('http://localhost:9000', repr(tx))
 
         def _save_dead_branch(self, node):
             """Save dead branch to disk.
