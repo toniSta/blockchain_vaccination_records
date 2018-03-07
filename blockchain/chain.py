@@ -41,8 +41,8 @@ class Chain(object):
 
             True if the blockchain persistance folder and the genesis block file are present.
             """
-            return os.path.isdir(CONFIG["persistance_folder"]) and \
-                   len([f for f in os.listdir(CONFIG["persistance_folder"])
+            return os.path.isdir(CONFIG.persistance_folder) and \
+                   len([f for f in os.listdir(CONFIG.persistance_folder)
                         if f.startswith("0_")]) == 1  # there should only be one genesis file starting with '0_..._...'
 
         def _load_from_disk(self):
@@ -51,12 +51,12 @@ class Chain(object):
             Read every block from disk, search its judgements and create tree node.
             """
             current_block_level = 0
-            block_files = os.listdir(CONFIG["persistance_folder"])
+            block_files = os.listdir(CONFIG.persistance_folder)
             level_prefix = str(current_block_level) + "_"
             blocks_at_current_level = [f for f in block_files if f.startswith(level_prefix)]
             while len(blocks_at_current_level) > 0:
                 for block_name in blocks_at_current_level:
-                    block_path = os.path.join(CONFIG["persistance_folder"], block_name)
+                    block_path = os.path.join(CONFIG.persistance_folder, block_name)
                     with open(block_path, "r") as block_file:
                         logger.info("Loading block {} from disk".format(block_path))
                         recreated_block = Block(block_file.read())
@@ -261,7 +261,7 @@ class Chain(object):
         def _persist_judgements_for_node(self, node):
             """Save judgements of contained in node onto disk."""
             file_name = self._get_file_name(node=node)
-            judgement_path = os.path.join(CONFIG["persistance_folder"], 'judgements', file_name)
+            judgement_path = os.path.join(CONFIG.persistance_folder, 'judgements', file_name)
             if not os.path.exists(os.path.dirname(judgement_path)):
                 os.makedirs(os.path.dirname(judgement_path))
             with open(judgement_path, 'w') as file:
@@ -326,7 +326,7 @@ class Chain(object):
         def _remove_block_file(self, node):
             """Remove block in node from disk"""
             file_name = self._get_file_name(node=node)
-            persistence_folder = CONFIG["persistance_folder"]
+            persistence_folder = CONFIG.persistance_folder
             file_path = os.path.join(persistence_folder, file_name)
             try:
                 os.remove(file_path)
@@ -481,6 +481,7 @@ class Chain(object):
         def get_registration_caches_by_blockhash(self, hash):
             """Return a tuple of sets containing the registered admissions, doctors,
             and vaccines at hash."""
+
             with self._lock:
                 tree_node = self._find_tree_node_by_hash(hash)
                 return set(tree_node.block_creation_cache), set(tree_node.doctors_cache), set(tree_node.vaccine_cache)
@@ -562,12 +563,12 @@ class Chain(object):
             return self._lock._is_owned()
 
         def _get_judgement_path(self, file_name):
-            return os.path.join(CONFIG["persistance_folder"], 'judgements', file_name)
+            return os.path.join(CONFIG.persistance_folder, 'judgements', file_name)
 
         def _get_dead_branch_path(self, file_name=None):
             if file_name:
-                return os.path.join(CONFIG["persistance_folder"], 'dead_branches', file_name)
-            return os.path.join(CONFIG["persistance_folder"], 'dead_branches')
+                return os.path.join(CONFIG.persistance_folder, 'dead_branches', file_name)
+            return os.path.join(CONFIG.persistance_folder, 'dead_branches')
 
         def _get_file_name(self, node=None, block=None):
             if node:
@@ -586,7 +587,7 @@ class Chain(object):
                     DotExporter(self.chain_tree,
                                 nodenamefunc=nodenamefunc,
                                 nodeattrfunc=nodeattrfunc
-                                ).to_picture(os.path.join(CONFIG["persistance_folder"], 'current_state.png'))
+                                ).to_picture(os.path.join(CONFIG.persistance_folder, 'current_state.png'))
                 except CalledProcessError as e:
                     logger.debug("Couldn't print chain tree: {}".format(e.stdout))
 
@@ -604,6 +605,8 @@ class Chain(object):
 
         def __str__(self):
             tree_representation = ""
+            if not self.chain_tree:
+                return tree_representation
             for pre, fill, node in RenderTree(self.chain_tree):
                 node_representation = "{}index: {}, hash: {}\n".format(pre,
                                                                        node.index,
@@ -653,8 +656,8 @@ def nodeattrfunc(node):
     Path that is currently accepted by the client is lighter green.
     Every other path is red.
     """
-    key_folder = CONFIG["key_folder"]
-    path = os.path.join(key_folder, CONFIG["key_file_names"][0])
+    key_folder = CONFIG.key_folder
+    path = os.path.join(key_folder, CONFIG.key_file_names[0])
     with open(path, "rb") as key_file:
         public_key = RSA.import_key(key_file.read()).exportKey("DER")
 

@@ -3,6 +3,10 @@ from blockchain.transaction_set import TransactionSet
 import pytest
 
 
+def teardown_function(function):
+    TransactionSet().clear()
+
+
 def test_transaction_set_is_singleton():
     set_1 = TransactionSet()
     set_2 = TransactionSet()
@@ -79,3 +83,10 @@ def test_add_multiple(transaction_set):
     transaction_set.add_multiple(["tx2", "tx4"])
     assert len(transaction_set) == 3
     assert transaction_set.pop() == "tx2"
+
+
+def test_getattr_setattr(transaction_set):
+    store = getattr(transaction_set, "store")
+    assert type(store).__name__ == "OrderedSet"
+    setattr(transaction_set, "something", "test")
+    assert getattr(transaction_set, "something") == "test"
