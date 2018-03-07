@@ -74,9 +74,9 @@ def test_transaction_signing(unsigned_tx):
 
 
 def test_transaction_signature_verification(signed_tx):
-    assert signed_tx._verify_signature() == True
-    signed_tx.requested_permission = Permission.admission # tamper with the transaction
-    assert signed_tx._verify_signature() == False, "signature check should return False on tampered transaction"
+    assert signed_tx._verify_signature()
+    signed_tx.requested_permission = Permission.admission  # tamper with the transaction
+    assert not signed_tx._verify_signature(), "signature check should return False on tampered transaction"
 
 
 def test_transaction_validation(approvals):
@@ -87,20 +87,20 @@ def test_transaction_validation(approvals):
     wallet = crypto.generate_keypair()
     tx1 = PermissionTransaction(Permission.patient, wallet[0])
     tx1.sign(wallet[1])
-    assert tx1.validate(current_admissions, doctors, vaccines) == True, "patient permission should be granted when signed"
-    current_admissions = set([approval1[0], approval2[0], approval3[0]]) # mock 3 registered admissions
+    assert tx1.validate(current_admissions, doctors, vaccines), "patient permission should be granted when signed"
     # WONTFIX: admission approvals will not be validated in the presentation demo, therefore commented out
+    # current_admissions = set([approval1[0], approval2[0], approval3[0]])  # mock 3 registered admissions
     # tx2 = PermissionTransaction(Permission.doctor, wallet[0], [approval1])
     # tx2.sign(wallet[1])
-    # assert tx2.validate(current_admissions, doctors, vaccines) == False, "transaction need minimum number of approvals"
-    current_admissions = set([approval1[0], approval2[0]]) # mock 2 registered amissions
+    # assert not tx2.validate(current_admissions, doctors, vaccines), "transaction need minimum number of approvals"
+    current_admissions = set([approval1[0], approval2[0]])  # mock 2 registered amissions
     tx3 = PermissionTransaction(Permission.doctor, wallet[0], [approval1, approval2, fake_approval])
     tx3.sign(wallet[1])
-    assert tx3.validate(current_admissions, doctors, vaccines) == False, "transaction should not validate with tampered approvals"
+    assert not tx3.validate(current_admissions, doctors, vaccines), "transaction should not validate with tampered approvals"
     tx4 = PermissionTransaction(Permission.doctor, wallet[0], [approval1, approval1, approval1])
     tx4.sign(wallet[1])
-    assert tx4.validate(current_admissions, doctors, vaccines) == False, "transaction should not validate with duplicate approvals"
-    current_admissions = set([approval1[0], approval2[0], approval3[0]]) # mock 3 registered admissions
+    assert not tx4.validate(current_admissions, doctors, vaccines), "transaction should not validate with duplicate approvals"
+    current_admissions = set([approval1[0], approval2[0], approval3[0]])  # mock 3 registered admissions
     tx5 = PermissionTransaction(Permission.doctor, wallet[0], [approval1, approval2, approval3])
     tx5.sign(wallet[1])
-    assert tx5.validate(current_admissions, doctors, vaccines) == True, "transaction matching the requirements should succesfully validate"
+    assert tx5.validate(current_admissions, doctors, vaccines), "transaction matching the requirements should succesfully validate"

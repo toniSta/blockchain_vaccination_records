@@ -9,7 +9,7 @@ import pytest
 import os
 
 PUBLIC_KEY = load_rsa_from_pem("tests" + os.sep + "testkey_pub.bin")
-PRIVATE_KEY =load_rsa_from_pem("tests" + os.sep + "testkey_priv.bin")
+PRIVATE_KEY = load_rsa_from_pem("tests" + os.sep + "testkey_priv.bin")
 
 
 def setup_module(module):

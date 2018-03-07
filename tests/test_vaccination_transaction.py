@@ -8,12 +8,14 @@ import sys
 
 
 PUBLIC_KEY = load_rsa_from_pem("tests" + os.sep + "testkey_pub.bin")
-PRIVATE_KEY =load_rsa_from_pem("tests" + os.sep + "testkey_priv.bin")
+PRIVATE_KEY = load_rsa_from_pem("tests" + os.sep + "testkey_priv.bin")
+
 
 @pytest.fixture()
 def tx():
     tx = VaccinationTransaction(PUBLIC_KEY, PUBLIC_KEY, 'polio', timestamp=1234, version='1')
     yield tx
+
 
 @pytest.fixture()
 def signed_tx():
@@ -22,12 +24,14 @@ def signed_tx():
         tx.sign(PRIVATE_KEY, PRIVATE_KEY)
     yield tx
 
+
 @pytest.fixture()
 def declined_tx():
     tx = VaccinationTransaction(PUBLIC_KEY, PUBLIC_KEY, 'polio', timestamp=1234, version='1')
     with mock.patch.object(sys.stdin, 'read', lambda x: 'n'):
         tx.sign(PRIVATE_KEY, PRIVATE_KEY)
     yield tx
+
 
 def test_representation(signed_tx):
     representation = repr(signed_tx)
@@ -44,15 +48,17 @@ def test_representation(signed_tx):
   Version: 1
 -----------------------"""
 
+
 def test_transaction_signature_verification(signed_tx):
     current_admissions = set()  # mock empty chain with no admissions
     doctors = set()  # mock registered doctors
     doctors.add(signed_tx.doctor_pub_key)
     vaccines = set()  # mock registered vaccine
     vaccines.add('polio')
-    assert signed_tx.validate(current_admissions, doctors, vaccines) == True
-    signed_tx.vaccine = 'another vaccine' # tamper with the transaction
-    assert signed_tx.validate(current_admissions, doctors, vaccines) == False, "signature check should return False on tampered transaction"
+    assert signed_tx.validate(current_admissions, doctors, vaccines)
+    signed_tx.vaccine = 'another vaccine'  # tamper with the transaction
+    assert not signed_tx.validate(current_admissions, doctors, vaccines), "signature check should return False on tampered transaction"
+
 
 def test_transaction_patient_acceptance(declined_tx):
     assert declined_tx.patient_signature is None
