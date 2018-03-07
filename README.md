@@ -19,12 +19,12 @@ You will find an implementation of a prototype to demonstrate the general functi
    - [Network Participants](architecture.md#network-participants)
    - [Supported Transactions](architecture.md#supported-transactions)
    - [Client Types](architecture.md#client-types)
-   - [Synchronization](architecture.md#synchronization)
 - [Consensus](consensus.md#consensus) `external`
    - [Judgements](consensus.md#judgements)
    - [Creator Election](consensus.md#creator-election)
-   - [Known Limitations](consensus.md#known-limitations)
-- [Recreating the genesis block](consensus.md#recreating-the-genesis-block )
+   - [Synchronization](consensus.md#synchronization)
+- [Known Limitations](#known-limitations)
+- [Recreating the genesis block](#recreating-the-genesis-block )
 - [Code Documentation](#code-documentation)
 - [Versioning](#versioning)
 - [Authors](#authors-(alphabetical))
@@ -206,6 +206,30 @@ docker-compose stop d2
 ```
 
 Use `docker-compose start <name>` to start the node again.
+
+## Known Limitations
+
+**TODO** Any more?
+
+- If the requested block is not part of the chain of the asked neighbor the complete chain needs to be resend.
+ To solve this you would need to remember which blocks were part of a dead branch.
+- If the peer-to-peer networks is splitted up into two separated networks (e.g. A1, D1 and D3 in the example network) 
+ it won't synchronize the separate networks after reconnecting them.
+- If one admission node is broken and creates false deny judgements, it won't recover by itself. 
+ However, the network itself is still working (as long as at least half of the admission nodes work properly).
+- We trust doctor nodes. Currently they could drive a denial of service attack by creating random users and vaccination records
+- Most of the serialization for network transfer is done with `repr()`. The de-serialization uses `eval()`.
+ This allows code injections in an extremely easy way. This has to be changed to a more secure serialization if you 
+ consider a more productive scenario!
+
+## Recreating the genesis block
+
+It may happen that you want to generate a new genesis block.
+With the following command you can create a new keypair for the genesis admission and recreate the genesis block:
+
+```bash
+python recreate_genesis_block.py
+```
 
 ## Code Documentation
 

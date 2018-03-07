@@ -53,15 +53,8 @@ During the validation the difference between parent block creation time and bloc
 >
 > While the election is robust to abandoned admissions it would be more efficient if they would be unregistered as admission.
 
-### Known Limitations
+### Synchronization
 
-**TODO** (simple list)
-
-## Recreating the genesis block
-
-It may happen that you want to generate a new genesis block.
-With the following command you can create a new keypair for the genesis admission and recreate the genesis block:
-
-```bash
-python recreate_genesis_block.py
-```
+**TODO** 
+Explain How we sync, what is a dead branch
+ 
