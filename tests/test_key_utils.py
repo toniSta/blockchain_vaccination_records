@@ -13,7 +13,7 @@ def setup_module(module):
     os.makedirs(TMP_DIR)
 
 def teardown_module(module):
-    pass #shutil.rmtree(TMP_DIR)
+    shutil.rmtree(TMP_DIR)
 
 @pytest.fixture()
 def public_key():
@@ -132,4 +132,21 @@ def test_write_key_to_pem(public_key, public_key_hex, public_key_bytes, private_
     key_utils.write_key_to_pem(public_key, file_path)
     with open(file_path, 'rb') as file:
         assert file.readline().strip() == b'-----BEGIN PUBLIC KEY-----'
-    os.remove(file_path)
+
+def test_load_bytes_from_pem(public_key_bytes, private_key_bytes):
+    object = key_utils.load_bytes_from_pem(os.path.join('tests', 'testkey_pub.bin'))
+    assert object == public_key_bytes
+    object = key_utils.load_bytes_from_pem(os.path.join('tests', 'testkey_priv.bin'))
+    assert object == private_key_bytes
+
+def test_load_hex_from_pem(public_key_hex, private_key_hex):
+    object = key_utils.load_hex_from_pem(os.path.join('tests', 'testkey_pub.bin'))
+    assert object == public_key_hex
+    object = key_utils.load_hex_from_pem(os.path.join('tests', 'testkey_priv.bin'))
+    assert object == private_key_hex
+
+def test_load_rsa_from_pem(public_key, private_key):
+    object = key_utils.load_rsa_from_pem(os.path.join('tests', 'testkey_pub.bin'))
+    assert object == public_key
+    object = key_utils.load_rsa_from_pem(os.path.join('tests', 'testkey_priv.bin'))
+    assert object == private_key
