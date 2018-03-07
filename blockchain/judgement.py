@@ -16,7 +16,7 @@ class Judgement(object):
         self.sender_pubkey = key_utils.cast_to_bytes(sender_pubkey)
         self.signature = signature
         self.timestamp = timestamp or int(time())
-        self.version = version or CONFIG["version"]
+        self.version = version or CONFIG.version
 
     def sign(self, private_key):
         """Create a cryptographic signature and add it to the judgement."""

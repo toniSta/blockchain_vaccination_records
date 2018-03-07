@@ -73,31 +73,31 @@ class FullClient(object):
         Create a public/private key pair on setup and save them in files. If
         the full client restarts, file will be read in.
         """
-        key_folder = CONFIG["key_folder"]
+        key_folder = CONFIG.key_folder
         if not os.path.isdir(key_folder) or os.listdir(key_folder) == []:
             # No keys present, so generate new pair
-            os.makedirs(CONFIG["key_folder"], exist_ok=True)
+            os.makedirs(CONFIG.key_folder, exist_ok=True)
 
             logger.info("Generating new public/private key pair")
             self.public_key, self.private_key = generate_keypair()
 
-            path = os.path.join(key_folder, CONFIG["key_file_names"][0])
+            path = os.path.join(key_folder, CONFIG.key_file_names[0])
             key_utils.write_key_to_pem(self.public_key, path)
 
-            path = os.path.join(key_folder, CONFIG["key_file_names"][1])
+            path = os.path.join(key_folder, CONFIG.key_file_names[1])
             key_utils.write_key_to_pem(self.private_key, path)
 
-        elif set(os.listdir(key_folder)) != set(CONFIG["key_file_names"]):
+        elif set(os.listdir(key_folder)) != set(CONFIG.key_file_names):
             # One key is missing
             logger.error("Public or Private key are not existent!")
-            assert os.listdir(key_folder) == CONFIG["key_file_names"]
+            assert os.listdir(key_folder) == CONFIG.key_file_names
 
         else:
             # Keys are present
-            path = os.path.join(key_folder, CONFIG["key_file_names"][0])
+            path = os.path.join(key_folder, CONFIG.key_file_names[0])
             self.public_key = key_utils.load_rsa_from_pem(path)
 
-            path = os.path.join(key_folder, CONFIG["key_file_names"][1])
+            path = os.path.join(key_folder, CONFIG.key_file_names[1])
             self.private_key = key_utils.load_rsa_from_pem(path)
 
         self.public_key = key_utils.rsa_to_bytes(self.public_key)
@@ -118,7 +118,7 @@ class FullClient(object):
             try:
                 if os.getenv('CONFIRM_BLOCKSENDING') == '1':
                     print('Waiting to be next block creator...')
-                time.sleep(CONFIG["block_time"] / 2)  # block_time needs to be at least 2s
+                time.sleep(CONFIG.block_time / 2)  # block_time needs to be at least 2s
                 admission = False
                 for _, admissions in self.chain.get_admissions():
                     if self.public_key in admissions:
@@ -183,7 +183,7 @@ class FullClient(object):
 
             delta_time = int(timestamp) - int(last_block_timestamp)
 
-            nth_oldest_block = int(delta_time / CONFIG["block_time"])
+            nth_oldest_block = int(delta_time / CONFIG.block_time)
             result.append((hash, creator_history[nth_oldest_block % number_of_admissions]))
 
         return result
@@ -207,7 +207,7 @@ class FullClient(object):
         new_block.timestamp = timestamp
 
         admissions, doctors, vaccines = self.chain.get_registration_caches_by_blockhash(parent_hash)
-        for _ in range(CONFIG["block_size"]):
+        for _ in range(CONFIG.block_size):
             transaction = self.transaction_set.pop()
             if transaction:
                 if transaction.validate(admissions, doctors, vaccines):
@@ -350,7 +350,7 @@ class FullClient(object):
         creator_history = self.chain.get_block_creation_history_by_hash(number_of_admissions, block.previous_block)
 
         delta_time = int(block.timestamp) - int(parent_block.timestamp)
-        nth_oldest_block = int(delta_time / CONFIG["block_time"])
+        nth_oldest_block = int(delta_time / CONFIG.block_time)
 
         return creator_history[nth_oldest_block % number_of_admissions] == block.public_key
 
@@ -465,12 +465,12 @@ class FullClient(object):
     def _broadcast_new_transaction(self, transaction, print_nodes=False):
         """Broadcast transaction to required number of admission nodes.
 
-        WONTFIX: actually broadcasts transaction to all neighbors. Non-admissions will ignore the transaction.
+        WONTFIX: currently broadcasts transaction to all neighbors. Non-admissions will ignore the transaction.
         """
         for node in self.nodes:
             if print_nodes:
                 print("Sending transaction to {}".format(node))
-            Network.broadcast_new_transaction(node, repr(transaction))
+            Network.send_transaction(node, repr(transaction))
 
     def _check_if_transaction_in_chain(self, transaction):
         """Check if the transaction is already part of the chain.

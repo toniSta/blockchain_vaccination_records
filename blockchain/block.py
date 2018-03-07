@@ -62,8 +62,8 @@ class Block(object):
                   "signature",
                   "hash"]
         header, transactions = data.split(
-            CONFIG["serializaton"]["line_terminator"], 1)
-        header_content = header.split(CONFIG["serializaton"]["separator"])
+            CONFIG.serializaton["line_terminator"], 1)
+        header_content = header.split(CONFIG.serializaton["separator"])
         header_information = dict(zip(fields, header_content))
         assert len(fields) == len(header_information), "Wrong header format!"
         self.index = int(header_information["index"])
@@ -75,7 +75,7 @@ class Block(object):
         # Block ends with \n. Thus, splitting by line terminator will create
         # an empty string. We have to ignore this at this point.
         transaction_list = transactions.split(
-            CONFIG["serializaton"]["line_terminator"])[:-1]
+            CONFIG.serializaton["line_terminator"])[:-1]
         self.transactions = [eval(tx) for tx in transaction_list]
         self.hash = header_information["hash"]
 
@@ -84,7 +84,7 @@ class Block(object):
         logger.debug("Creating new block")
         self.index = int(data["index"]) + 1
         self.previous_block = data["hash"]
-        self.version = CONFIG["version"]
+        self.version = CONFIG.version
         self.timestamp = int(time())
         self.transactions = []
         self.hash = ""
@@ -114,15 +114,15 @@ class Block(object):
                   str(self.timestamp),
                   key_utils.bytes_to_hex(self.public_key),
                   self.signature]
-        content = CONFIG["serializaton"]["separator"].join(fields)
-        content += CONFIG["serializaton"]["line_terminator"]
+        content = CONFIG.serializaton["separator"].join(fields)
+        content += CONFIG.serializaton["line_terminator"]
         for transaction in self.transactions:
-            content += repr(transaction) + CONFIG["serializaton"]["line_terminator"]
+            content += repr(transaction) + CONFIG.serializaton["line_terminator"]
         return content
 
     def persist(self):
         """Write the block into a file for persistency."""
-        persistence_folder = CONFIG["persistance_folder"]
+        persistence_folder = CONFIG.persistance_folder
         os.makedirs(persistence_folder, exist_ok=True)
         file_name = "_".join([str(self.index), self.previous_block, self.hash])
         file_path = os.path.join(persistence_folder, file_name)
@@ -153,10 +153,12 @@ class Block(object):
                   self.version,
                   str(self.timestamp),
                   key_utils.bytes_to_hex(self.public_key)]
-        content = CONFIG["serializaton"]["separator"].join(fields)
-        content += CONFIG["serializaton"]["line_terminator"]
+
+        content = CONFIG.serializaton["separator"].join(fields)
+        content += CONFIG.serializaton["line_terminator"]
+
         for transaction in self.transactions:
-            content += repr(transaction) + CONFIG["serializaton"]["line_terminator"]
+            content += repr(transaction) + CONFIG.serializaton["line_terminator"]
         return content
 
     def __eq__(self, other):
@@ -176,10 +178,10 @@ class Block(object):
             fields.append(self.signature)
         if self.hash != "":
             fields.append(self.hash)
-        block = CONFIG["serializaton"]["separator"].join(fields)
-        block += CONFIG["serializaton"]["line_terminator"]
+        block = CONFIG.serializaton["separator"].join(fields)
+        block += CONFIG.serializaton["line_terminator"]
         for transaction in self.transactions:
-            block += repr(transaction) + CONFIG["serializaton"]["line_terminator"]
+            block += repr(transaction) + CONFIG.serializaton["line_terminator"]
         return block
 
     def __str__(self):
@@ -202,18 +204,18 @@ def create_initial_block():
     logger.info("Creating new keypair for genesis block.")
     public_key, private_key = generate_keypair()
 
-    key_folder = CONFIG["key_folder"]
-    os.makedirs(CONFIG["key_folder"], exist_ok=True)
+    key_folder = CONFIG.key_folder
+    os.makedirs(CONFIG.key_folder, exist_ok=True)
 
-    path = os.path.join(key_folder, CONFIG["key_file_names"][0])
+    path = os.path.join(key_folder, CONFIG.key_file_names[0])
     key_utils.write_key_to_pem(public_key, path)
 
-    path = os.path.join(key_folder, CONFIG["key_file_names"][1])
+    path = os.path.join(key_folder, CONFIG.key_file_names[1])
     key_utils.write_key_to_pem(private_key, path)
 
-    if os.path.exists(CONFIG["persistance_folder"]):
-        shutil.rmtree(CONFIG["persistance_folder"])
-        os.makedirs(CONFIG["persistance_folder"])
+    if os.path.exists(CONFIG.persistance_folder):
+        shutil.rmtree(CONFIG.persistance_folder)
+        os.makedirs(CONFIG.persistance_folder)
 
     logger.info("Creating new genesis block")
     genesis = Block({

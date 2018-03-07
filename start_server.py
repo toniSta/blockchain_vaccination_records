@@ -34,7 +34,7 @@ def _get_license_information():
 
 if __name__ == "__main__":
     print(_get_license_information())
-    logging.basicConfig(level=CONFIG["loglevel"],
+    logging.basicConfig(level=CONFIG.loglevel,
                         format="[ %(asctime)s ] %(levelname)-7s %(name)-s: %(message)s",
                         datefmt="%Y-%m-%d %H:%M:%S")
     _set_logger_properties()

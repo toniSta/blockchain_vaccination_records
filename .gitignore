@@ -1,6 +1,9 @@
 # Blockchain persistency related files
 blockchain/blockchain_files/*
 !blockchain/blockchain_files/0_0_*
+tests/blockchain_files/*
+tests/keys/*
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
