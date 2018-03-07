@@ -110,4 +110,26 @@ def test_write_key_to_pem(public_key, public_key_hex, public_key_bytes, private_
     file_path = os.path.join(TMP_DIR, 'test')
     key_utils.write_key_to_pem(private_key, file_path)
     with open(file_path, 'rb') as file:
-        assert file.readline().strip() == '-----BEGIN RSA PRIVATE KEY-----'
+        assert file.readline().strip() == b'-----BEGIN RSA PRIVATE KEY-----'
+    os.remove(file_path)
+    key_utils.write_key_to_pem(private_key_bytes, file_path)
+    with open(file_path, 'rb') as file:
+        assert file.readline().strip() == b'-----BEGIN RSA PRIVATE KEY-----'
+    os.remove(file_path)
+    key_utils.write_key_to_pem(private_key_hex, file_path)
+    with open(file_path, 'rb') as file:
+        assert file.readline().strip() == b'-----BEGIN RSA PRIVATE KEY-----'
+    os.remove(file_path)
+
+    key_utils.write_key_to_pem(public_key_hex, file_path)
+    with open(file_path, 'rb') as file:
+        assert file.readline().strip() == b'-----BEGIN PUBLIC KEY-----'
+    os.remove(file_path)
+    key_utils.write_key_to_pem(public_key_bytes, file_path)
+    with open(file_path, 'rb') as file:
+        assert file.readline().strip() == b'-----BEGIN PUBLIC KEY-----'
+    os.remove(file_path)
+    key_utils.write_key_to_pem(public_key, file_path)
+    with open(file_path, 'rb') as file:
+        assert file.readline().strip() == b'-----BEGIN PUBLIC KEY-----'
+    os.remove(file_path)
