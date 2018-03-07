@@ -1,5 +1,4 @@
 import shutil
-from Crypto.PublicKey import RSA
 import pytest
 import os
 
