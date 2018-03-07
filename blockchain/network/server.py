@@ -18,7 +18,7 @@ logger = logging.getLogger('server')
 app = Flask(__name__)
 
 
-@app.route(CONFIG["ROUTES"]["new_block"], methods=["POST"])
+@app.route(CONFIG.ROUTES["new_block"], methods=["POST"])
 def _new_block():
     block = request.data.decode("utf-8")
     Thread(target=handle_received_block, args=(block,), daemon=True, name="handle_received_block_thread").start()
@@ -30,13 +30,13 @@ def handle_received_block(block):
     full_client.received_new_block(block)
 
 
-@app.route(CONFIG["ROUTES"]["block_by_hash"], methods=["GET"])
+@app.route(CONFIG.ROUTES["block_by_hash"], methods=["GET"])
 def _send_block_by_hash(hash):
     block = full_client.chain.find_block_by_hash(hash)
     return repr(block)
 
 
-@app.route(CONFIG["ROUTES"]["new_transaction"], methods=["POST"])
+@app.route(CONFIG.ROUTES["new_transaction"], methods=["POST"])
 def _new_transaction():
     new_transaction = request.data
     Thread(target=handle_received_transaction, args=(new_transaction,), daemon=True, name="handle_received_tx_thread").start()
@@ -48,7 +48,7 @@ def handle_received_transaction(transaction):
     full_client.handle_incoming_transaction(transaction)
 
 
-@app.route(CONFIG["ROUTES"]["new_judgement"], methods=["POST"])
+@app.route(CONFIG.ROUTES["new_judgement"], methods=["POST"])
 def _new_judgement():
     new_judgement = request.data
     Thread(target=handle_received_judgement, args=(new_judgement,), daemon=True, name="handle_received_judgement_thread").start()
@@ -60,7 +60,7 @@ def handle_received_judgement(judgement):
     full_client.handle_received_judgement(judgement)
 
 
-@app.route(CONFIG["ROUTES"]["sync_request"], methods=["POST"])
+@app.route(CONFIG.ROUTES["sync_request"], methods=["POST"])
 def _sync_request():
     data = eval(request.data.decode("utf-8")) # Don't do this in real life!
     Thread(target=handle_sync_request, args=(data,), daemon=True, name="handle_sync_request_thread").start()
@@ -77,7 +77,7 @@ def start_server(client):
     """Start the flask server."""
     global full_client
     full_client = client
-    port = CONFIG["default_port"]
+    port = CONFIG.default_port
     if os.getenv("SERVER_PORT"):
         port = int(os.getenv("SERVER_PORT"))
     logger.debug("running on port {}".format(port))
@@ -88,4 +88,3 @@ def start_server(client):
     if os.getenv('REGISTER_AS_ADMISSION') == '1':
         client.register_self_as_admission()
     t.join()
-
