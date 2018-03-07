@@ -1,9 +1,9 @@
-from Crypto.PublicKey import RSA
 import pytest
 import os
 import shutil
 from time import time
 
+from blockchain.helper.key_utils import load_rsa_from_pem
 from blockchain.block import Block, create_initial_block
 from blockchain.transaction import *
 from blockchain.helper.block_validator import validate_block
@@ -22,8 +22,8 @@ def setup_module(module):
     public_key_path = os.path.join(CONFIG.key_folder, CONFIG.key_file_names[0])
     private_key_path = os.path.join(CONFIG.key_folder, CONFIG.key_file_names[1])
 
-    PUBLIC_KEY = RSA.import_key(open(public_key_path, "rb").read())
-    PRIVATE_KEY = RSA.import_key(open(private_key_path, "rb").read())
+    PUBLIC_KEY = load_rsa_from_pem(public_key_path)
+    PRIVATE_KEY = load_rsa_from_pem(private_key_path)
 
 
 @pytest.fixture()
