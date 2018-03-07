@@ -1,12 +1,12 @@
-from Crypto.PublicKey import RSA
+from blockchain.helper.key_utils import load_rsa_from_pem
 from blockchain.transaction.vaccine_transaction import VaccineTransaction
 
 import pytest
 import os
 
 
-PUBLIC_KEY = RSA.import_key(open("tests" + os.sep + "testkey_pub.bin", "rb").read())
-PRIVATE_KEY = RSA.import_key(open("tests" + os.sep + "testkey_priv.bin", "rb").read())
+PUBLIC_KEY = load_rsa_from_pem("tests" + os.sep + "testkey_pub.bin")
+PRIVATE_KEY = load_rsa_from_pem("tests" + os.sep + "testkey_priv.bin")
 
 @pytest.fixture()
 def tx():
