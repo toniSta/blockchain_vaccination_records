@@ -93,7 +93,7 @@ def test_transaction_validation(approvals):
     # tx2 = PermissionTransaction(Permission.doctor, wallet[0], [approval1])
     # tx2.sign(wallet[1])
     # assert not tx2.validate(current_admissions, doctors, vaccines), "transaction need minimum number of approvals"
-    current_admissions = set([approval1[0], approval2[0]])  # mock 2 registered amissions
+    current_admissions = set([approval1[0], approval2[0]])  # mock 2 registered admissions
     tx3 = PermissionTransaction(Permission.doctor, wallet[0], [approval1, approval2, fake_approval])
     tx3.sign(wallet[1])
     assert not tx3.validate(current_admissions, doctors, vaccines), "transaction should not validate with tampered approvals"
@@ -103,4 +103,4 @@ def test_transaction_validation(approvals):
     current_admissions = set([approval1[0], approval2[0], approval3[0]])  # mock 3 registered admissions
     tx5 = PermissionTransaction(Permission.doctor, wallet[0], [approval1, approval2, approval3])
     tx5.sign(wallet[1])
-    assert tx5.validate(current_admissions, doctors, vaccines), "transaction matching the requirements should succesfully validate"
+    assert tx5.validate(current_admissions, doctors, vaccines), "transaction matching the requirements should successfully validate"

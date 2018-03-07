@@ -434,7 +434,7 @@ class FullClient(object):
         If this client is an admission or is going to be a admission it adds the transaction into the transaction queue.
 
         :param transaction: Transaction to be processed
-        :param broadcast: If the transaction should be broadcasted to the neighbors
+        :param broadcast: If the transaction should be broadcast to the neighbors
         :param print_nodes: If the expected result should be printed.
         """
         if broadcast:
