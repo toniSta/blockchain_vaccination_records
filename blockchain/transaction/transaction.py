@@ -1,14 +1,14 @@
 from abc import ABCMeta, abstractmethod
 from blockchain.config import CONFIG
-from blockchain.helper.cryptography import hexify
 from time import time
-from Crypto.PublicKey import RSA
+import blockchain.helper.key_utils as key_utils
 import blockchain.helper.cryptography as crypto
+
 
 class TransactionBase(metaclass=ABCMeta):
     """Base class for any transaction type.
 
-    This class defines the methods each trnsaction has to implement and provides some general implementatioons
+    This class defines the methods each transaction has to implement and provides some general implementations
     that can be overwritten if necessary."""
 
     def __init__(self, signature=None, *args, **kwargs):
@@ -27,12 +27,12 @@ class TransactionBase(metaclass=ABCMeta):
         raise NotImplementedError("Transaction must offer a validity check")
 
     @abstractmethod
-    def _get_informations_for_hashing(self):
-        """Which informations are specific to this transaction?
+    def _get_information_for_hashing(self):
+        """Which information is specific to this transaction?
 
         :returns: string
         """
-        raise NotImplementedError("Transaction must offer informations to be hashable")
+        raise NotImplementedError("Transaction must offer information to be hashable")
 
     def get_validation_result(self):
         """Result of the validation as human readable string."""
@@ -46,8 +46,8 @@ class TransactionBase(metaclass=ABCMeta):
         if not self.signature:  # fail if object has no signature attribute
             self.validation_text = "No signature found."
             return False
-        message = crypto.get_bytes(self._get_informations_for_hashing())
-        result = crypto.verify(message, self.signature, RSA.import_key(self.sender_pubkey))
+        message = crypto.get_bytes(self._get_information_for_hashing())
+        result = crypto.verify(message, self.signature, key_utils.bytes_to_rsa(self.sender_pubkey))
         if not result:
             self.validation_text = "Signature not valid"
             return False
@@ -64,7 +64,7 @@ class TransactionBase(metaclass=ABCMeta):
         return self
 
     def _create_signature(self, private_key):
-        message = crypto.get_bytes(self._get_informations_for_hashing())
+        message = crypto.get_bytes(self._get_information_for_hashing())
         return crypto.sign(message, private_key)
 
     def __str__(self):
@@ -86,7 +86,7 @@ class TransactionBase(metaclass=ABCMeta):
                 continue
 
             if type(item[1]).__name__ == "bytes":
-                instance_member_list.append((item[0].title(), hexify(item[1])))
+                instance_member_list.append((item[0].title(), key_utils.bytes_to_hex(item[1])))
                 continue
 
             if type(item[1]).__name__ == "list":
@@ -96,7 +96,7 @@ class TransactionBase(metaclass=ABCMeta):
                         modified_tuple = []
                         for tuple_elem in list_elem:
                             if type(tuple_elem).__name__ == "bytes":
-                                bytes_tuple_elem = hexify(tuple_elem)
+                                bytes_tuple_elem = key_utils.bytes_to_hex(tuple_elem)
                                 modified_tuple.append(bytes_tuple_elem)
                             else:
                                 modified_tuple.append(tuple_elem)
@@ -117,7 +117,6 @@ class TransactionBase(metaclass=ABCMeta):
         string = string + "-----------------------"
         return string
 
-
     def __repr__(self):
         """Serialize object as string.
 
@@ -125,7 +124,7 @@ class TransactionBase(metaclass=ABCMeta):
         The Class attributes will be ordered
         e.g. Class(attribute1="String", attribute2=3)
         """
-        instance_member_list =[]
+        instance_member_list = []
         for item in vars(self).items():
             if item[0] == 'validation_text':
                 continue

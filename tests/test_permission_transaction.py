@@ -1,13 +1,13 @@
-from Crypto.PublicKey import RSA
 from blockchain.transaction.permission_transaction import Permission, PermissionTransaction
+from blockchain.helper.key_utils import load_rsa_from_pem, bytes_to_hex
 import blockchain.helper.cryptography as crypto
 
 import pytest
 import os
 
 
-PUBLIC_KEY = RSA.import_key(open("tests" + os.sep + "testkey_pub.bin", "rb").read())
-PRIVATE_KEY = RSA.import_key(open("tests" + os.sep + "testkey_priv.bin", "rb").read())
+PUBLIC_KEY = load_rsa_from_pem("tests" + os.sep + "testkey_pub.bin")
+PRIVATE_KEY = load_rsa_from_pem("tests" + os.sep + "testkey_priv.bin")
 
 
 @pytest.fixture()
@@ -70,13 +70,13 @@ def test_signed_transaction_representation(signed_tx):
 
 def test_transaction_signing(unsigned_tx):
     unsigned_tx.sign(PRIVATE_KEY)
-    assert unsigned_tx.signature.hex() == "6fb072caaf1fccf04f295a27662290bf131ac56da976222b05e38fa2d73bb82f8d4b12f70ea35e597bc6b9c91330dcee3f9f625a7fb6596ae4525d2779e99fb1e103499be57be933825b20160127ebc3cb138b567b92a0a4eaf67619fbc8b0ffcfd4c0676b17f6706e68876398aa589f0da7410188340de6d6fbe434bc76035cb8aa1a88f86c9737958629788b58e925320cf09af9264a33f21969eb5d9126c059a4f80c7b9363d4466f6dad1290c7b350f519caa1bac901a7399db7cb8ecf65b4c72a19af84aeb90ff27a1e385f2a785c2a5b95345b7638566e57fe13f3bbdfc6dfff1db7fdbefbd378587237cf2c3e12eec7a26124e5d06835c940da2c5e83"
+    assert bytes_to_hex(unsigned_tx.signature) == "6fb072caaf1fccf04f295a27662290bf131ac56da976222b05e38fa2d73bb82f8d4b12f70ea35e597bc6b9c91330dcee3f9f625a7fb6596ae4525d2779e99fb1e103499be57be933825b20160127ebc3cb138b567b92a0a4eaf67619fbc8b0ffcfd4c0676b17f6706e68876398aa589f0da7410188340de6d6fbe434bc76035cb8aa1a88f86c9737958629788b58e925320cf09af9264a33f21969eb5d9126c059a4f80c7b9363d4466f6dad1290c7b350f519caa1bac901a7399db7cb8ecf65b4c72a19af84aeb90ff27a1e385f2a785c2a5b95345b7638566e57fe13f3bbdfc6dfff1db7fdbefbd378587237cf2c3e12eec7a26124e5d06835c940da2c5e83"
 
 
 def test_transaction_signature_verification(signed_tx):
-    assert signed_tx._verify_signature() == True
-    signed_tx.requested_permission = Permission.admission # tamper with the transaction
-    assert signed_tx._verify_signature() == False, "signature check should return False on tampered transaction"
+    assert signed_tx._verify_signature()
+    signed_tx.requested_permission = Permission.admission  # tamper with the transaction
+    assert not signed_tx._verify_signature(), "signature check should return False on tampered transaction"
 
 
 def test_transaction_validation(approvals):
@@ -87,20 +87,20 @@ def test_transaction_validation(approvals):
     wallet = crypto.generate_keypair()
     tx1 = PermissionTransaction(Permission.patient, wallet[0])
     tx1.sign(wallet[1])
-    assert tx1.validate(current_admissions, doctors, vaccines) == True, "patient permission should be granted when signed"
-    current_admissions = set([approval1[0], approval2[0], approval3[0]]) # mock 3 registered admissions
+    assert tx1.validate(current_admissions, doctors, vaccines), "patient permission should be granted when signed"
     # WONTFIX: admission approvals will not be validated in the presentation demo, therefore commented out
-    #tx2 = PermissionTransaction(Permission.doctor, wallet[0], [approval1])
-    #tx2.sign(wallet[1])
-    #assert tx2.validate(current_admissions, doctors, vaccines) == False, "transaction need minimum number of approvals"
-    current_admissions = set([approval1[0], approval2[0]]) # mock 2 registered amissions
+    # current_admissions = set([approval1[0], approval2[0], approval3[0]])  # mock 3 registered admissions
+    # tx2 = PermissionTransaction(Permission.doctor, wallet[0], [approval1])
+    # tx2.sign(wallet[1])
+    # assert not tx2.validate(current_admissions, doctors, vaccines), "transaction need minimum number of approvals"
+    current_admissions = set([approval1[0], approval2[0]])  # mock 2 registered admissions
     tx3 = PermissionTransaction(Permission.doctor, wallet[0], [approval1, approval2, fake_approval])
     tx3.sign(wallet[1])
-    assert tx3.validate(current_admissions, doctors, vaccines) == False, "transaction should not validate with tampered approvals"
+    assert not tx3.validate(current_admissions, doctors, vaccines), "transaction should not validate with tampered approvals"
     tx4 = PermissionTransaction(Permission.doctor, wallet[0], [approval1, approval1, approval1])
     tx4.sign(wallet[1])
-    assert tx4.validate(current_admissions, doctors, vaccines) == False, "transaction should not validate with duplicate approvals"
-    current_admissions = set([approval1[0], approval2[0], approval3[0]]) # mock 3 registered admissions
+    assert not tx4.validate(current_admissions, doctors, vaccines), "transaction should not validate with duplicate approvals"
+    current_admissions = set([approval1[0], approval2[0], approval3[0]])  # mock 3 registered admissions
     tx5 = PermissionTransaction(Permission.doctor, wallet[0], [approval1, approval2, approval3])
     tx5.sign(wallet[1])
-    assert tx5.validate(current_admissions, doctors, vaccines) == True, "transaction matching the requirements should succesfully validate"
+    assert tx5.validate(current_admissions, doctors, vaccines), "transaction matching the requirements should successfully validate"

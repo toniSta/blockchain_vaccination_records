@@ -62,7 +62,7 @@ def handle_received_judgement(judgement):
 
 @app.route(CONFIG.ROUTES["sync_request"], methods=["POST"])
 def _sync_request():
-    data = eval(request.data.decode("utf-8")) # Don't do this in real life!
+    data = eval(request.data.decode("utf-8"))  # Don't do this in real life!
     Thread(target=handle_sync_request, args=(data,), daemon=True, name="handle_sync_request_thread").start()
     return "success"
 

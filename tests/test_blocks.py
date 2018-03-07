@@ -1,15 +1,14 @@
 import shutil
-from Crypto.PublicKey import RSA
 import pytest
 import os
 
-
+from blockchain.helper.key_utils import load_rsa_from_pem, hex_to_bytes
 from blockchain.config import CONFIG
 from blockchain.block import Block, create_initial_block
 import blockchain.helper.cryptography as crypto
 
-PUBLIC_KEY = RSA.import_key(open("tests" + os.sep + "testkey_pub.bin", "rb").read())
-PRIVATE_KEY = RSA.import_key(open("tests" + os.sep + "testkey_priv.bin", "rb").read())
+PUBLIC_KEY = load_rsa_from_pem("tests" + os.sep + "testkey_pub.bin")
+PRIVATE_KEY = load_rsa_from_pem("tests" + os.sep + "testkey_priv.bin")
 
 
 @pytest.fixture()
@@ -67,7 +66,7 @@ def test_serialization_deserialization(new_block):
 
 def test_signature_validity(new_block):
     block_content = str.encode(new_block._get_content_for_signing())
-    signature = bytes.fromhex(new_block.signature)
+    signature = hex_to_bytes(new_block.signature)
     assert crypto.verify(block_content, signature, PUBLIC_KEY)
 
 

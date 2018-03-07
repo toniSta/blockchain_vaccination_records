@@ -1,23 +1,26 @@
-from Crypto.PublicKey import RSA
+from blockchain.helper.key_utils import load_rsa_from_pem
 from blockchain.transaction.vaccine_transaction import VaccineTransaction
 
 import pytest
 import os
 
 
-PUBLIC_KEY = RSA.import_key(open("tests" + os.sep + "testkey_pub.bin", "rb").read())
-PRIVATE_KEY = RSA.import_key(open("tests" + os.sep + "testkey_priv.bin", "rb").read())
+PUBLIC_KEY = load_rsa_from_pem("tests" + os.sep + "testkey_pub.bin")
+PRIVATE_KEY = load_rsa_from_pem("tests" + os.sep + "testkey_priv.bin")
+
 
 @pytest.fixture()
 def tx():
     tx = VaccineTransaction(vaccine='a vaccine', sender_pubkey=PUBLIC_KEY, timestamp=1234, version='1')
     yield tx
 
+
 @pytest.fixture()
 def signed_tx():
     tx = VaccineTransaction(vaccine='a vaccine', sender_pubkey=PUBLIC_KEY, timestamp=1234, version='1')
     tx.sign(PRIVATE_KEY)
     yield tx
+
 
 def test_representation(signed_tx):
     representation = repr(signed_tx)
@@ -32,11 +35,12 @@ def test_representation(signed_tx):
   Version: 1
 -----------------------"""
 
+
 def test_transaction_signature_verification(signed_tx):
     current_admissions = set()  # mock empty chain with no admissions
     current_admissions.add(signed_tx.sender_pubkey)
     doctors = set()  # mock registered doctors
     vaccines = set()  # mock registered vaccines
-    assert signed_tx.validate(current_admissions, doctors, vaccines) == True
-    signed_tx.vaccine = 'another vaccine' # tamper with the transaction
-    assert signed_tx.validate(current_admissions, doctors, vaccines) == False, "signature check should return False on tampered transaction"
+    assert signed_tx.validate(current_admissions, doctors, vaccines)
+    signed_tx.vaccine = 'another vaccine'  # tamper with the transaction
+    assert not signed_tx.validate(current_admissions, doctors, vaccines), "signature check should return False on tampered transaction"

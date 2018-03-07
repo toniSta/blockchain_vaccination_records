@@ -5,8 +5,8 @@ import threading
 from collections import deque
 from subprocess import CalledProcessError
 from threading import RLock, current_thread
-from Crypto.PublicKey import RSA
 
+import blockchain.helper.key_utils as key_utils
 from blockchain.network.network import Network
 from .block import Block
 from .config import CONFIG
@@ -226,7 +226,7 @@ class Chain(object):
 
             :return: True if the judgement was new, False if it was already there
             """
-            changed_judgments= False
+            changed_judgments = False
             with self._lock:
                 node = self._find_tree_node_by_hash(judgement.hash_of_judged_block)
                 if node:
@@ -359,7 +359,7 @@ class Chain(object):
                 try:
                     os.remove(dead_branch)
                 except FileNotFoundError:
-                    pass  #file already removed by another thread
+                    pass  # file already removed by another thread
 
         def _resend_transactions(self, transactions):
             """Send transactions to myself.
@@ -658,8 +658,7 @@ def nodeattrfunc(node):
     """
     key_folder = CONFIG.key_folder
     path = os.path.join(key_folder, CONFIG.key_file_names[0])
-    with open(path, "rb") as key_file:
-        public_key = RSA.import_key(key_file.read()).exportKey("DER")
+    public_key = key_utils.load_bytes_from_pem(path)
 
     if public_key == node.block.public_key:
         return "style = filled,fillcolor = green4, shape = rectangle"
