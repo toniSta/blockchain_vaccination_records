@@ -9,6 +9,10 @@ Otherwise it is rejected.
 See [Judgements](#judgements) for more details on the judgement process.
 It will occur that at some point in time one node has more than one block with the same index that fulfills the consensus requirement.
 This means we have (temporarily) multiple possible branches and need to store the chain as a tree structure.
+Once a branch is denied by more than the half of admission nodes it is removed from the chain (and disk).
+Instead we will save the root block of the deleted branch as `dead branch`.
+More precisely we will store the judgements of this block since this is the actual proof.
+This enables us to reject this block directly if we receive it at a later point in time (e.g. due to network latency).
 
 > __Notice__:
 >
@@ -54,7 +58,22 @@ During the validation the difference between parent block creation time and bloc
 > While the election is robust to abandoned admissions it would be more efficient if they would be unregistered as admission.
 
 ### Synchronization
+A new client or temporarily shut down client needs to get the latest state of the blockchain.
+Therefore it will ask a direct neighbor to send the latest state.
+Since we may already have a part of the chain, we don't need to resend the whole chain.
 
-**TODO** 
-Explain How we sync, what is a dead branch
- 
+The started client will send a sync request to any neighbor until one commits to do the synchronization.
+Such a sync request contains the requester and the last unique block of the chain. 
+This means the client will search for the block with the lowest index that has 2 or more descendant blocks.
+
+The requested node (responder) will do the following steps to determine which part of the chain has to be send:
+1. Is the requested block somehow part of the current chain? If not: resend from genesis block.  
+*We can't determine if the requested block didn't reach the node yet or was already deleted by deny judgements.*
+2. Search if there exist a block with a lower index that has more than 1 descendant. 
+Resend from this block instead of the requested block.  
+*There exist some new branches that the requested isn't aware of.*
+
+After these steps are completed, the responder will resend all blocks and judgements since (and including) the 
+determined block.
+Additionally it will send all judgments of dead branches. 
+This is necessary to enable the requester to delete outdated branches.
