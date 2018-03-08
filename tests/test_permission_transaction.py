@@ -5,6 +5,8 @@ import blockchain.helper.cryptography as crypto
 import pytest
 import os
 
+from tests.config_fixture import setup_test_config
+setup_test_config()
 
 PUBLIC_KEY = load_rsa_from_pem("tests" + os.sep + "testkey_pub.bin")
 PRIVATE_KEY = load_rsa_from_pem("tests" + os.sep + "testkey_priv.bin")

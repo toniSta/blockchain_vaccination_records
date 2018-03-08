@@ -2,6 +2,8 @@ from blockchain.transaction_set import TransactionSet
 
 import pytest
 
+from tests.config_fixture import setup_test_config
+setup_test_config()
 
 def teardown_function(function):
     TransactionSet().clear()

@@ -9,6 +9,9 @@ from blockchain.transaction import *
 from blockchain.helper.block_validator import validate_block
 from blockchain.config import CONFIG
 
+from tests.config_fixture import setup_test_config
+setup_test_config()
+
 GENESIS = None
 PUBLIC_KEY = None
 PRIVATE_KEY = None

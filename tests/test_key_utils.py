@@ -6,6 +6,9 @@ from Crypto.PublicKey import RSA
 import pytest
 import os
 
+from tests.config_fixture import setup_test_config
+setup_test_config()
+
 TMP_DIR = os.path.abspath('tests/key_test')
 
 def setup_module(module):
