@@ -30,15 +30,15 @@ def test_chain_is_singleton():
     assert id(chain_1) == id(chain_2)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def chain():
-    chain = Chain(load_persisted=False)
+    chain = Chain(load_persisted=False, init=True)
     genesis = create_initial_block()
     chain.add_block(genesis)
     yield chain
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def next_block(chain):
     block_information = chain.genesis_block.get_block_information()
     next_block = Block(block_information, PUBLIC_KEY)
@@ -46,7 +46,7 @@ def next_block(chain):
     next_block.update_hash()
     yield next_block
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def next_next_block(chain):
     block_information = chain.genesis_block.get_block_information()
     sleep(CONFIG.block_time + 1)
@@ -74,4 +74,4 @@ def test_find_block_by_hash(chain, next_block):
 
 
 def teardown_module(module):
-    shutil.rmtree(CONFIG.persistance_folder, True)
+    pass#shutil.rmtree(CONFIG.persistance_folder, True)

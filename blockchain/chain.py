@@ -616,17 +616,17 @@ class Chain(object):
 
     __instance = None
 
-    def __new__(cls, load_persisted=True):
+    def __new__(cls, load_persisted=True, init=False):
         """Create a singleton instance of the chain."""
-        if cls.__instance is None:
+        if cls.__instance is None or init:
             cls.__instance = Chain.__Chain(load_persisted=load_persisted)
         return cls.__instance
 
     def __getattr__(self, name):
-        return getattr(self.instance, name)
+        return getattr(self.__instance, name)
 
     def __setattr__(self, name, value):
-        return setattr(self.instance, name, value)
+        return setattr(self.__instance, name, value)
 
 
 def nodenamefunc(node):
