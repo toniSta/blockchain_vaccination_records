@@ -1,7 +1,9 @@
 import shutil
 
+# noinspection PyUnresolvedReferences
+from blockchain.full_client import FullClient
 from blockchain.chain import Chain
-from blockchain.block import Block
+from blockchain.block import Block, create_initial_block
 from blockchain.config import CONFIG
 from blockchain.helper.key_utils import load_rsa_from_pem
 
@@ -29,6 +31,8 @@ def test_chain_is_singleton():
 @pytest.fixture()
 def chain():
     chain = Chain(load_persisted=False)
+    genesis = create_initial_block()
+    chain.add_block(genesis)
     yield chain
 
 
