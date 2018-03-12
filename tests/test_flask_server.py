@@ -42,3 +42,10 @@ def test_new_judgement():
 def test_sync_request():
     response = client.post(routes_to_test['sync_request'], data=repr(["host", "asd"]))
     assert response.status_code == 200
+
+
+@mock.patch('threading.Thread', autospec=True)
+def test_start_server(mock1, monkeypatch):
+    monkeypatch.setenv('SERVER_PORT', 0)
+    monkeypatch.setenv('REGISTER_AS_ADMISSION', 1)
+    assert server.start_server(mock.Mock()) is None
