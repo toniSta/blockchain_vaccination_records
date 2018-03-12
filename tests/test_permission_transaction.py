@@ -30,14 +30,17 @@ def approvals():
     admission1 = crypto.generate_keypair()
     admission2 = crypto.generate_keypair()
     admission3 = crypto.generate_keypair()
+    non_admission = crypto.generate_keypair()
     pubkey1 = admission1[0].exportKey("DER")
     pubkey2 = admission2[0].exportKey("DER")
     pubkey3 = admission3[0].exportKey("DER")
+    pubkey4 = non_admission[0].exportKey("DER")
     approval1 = (pubkey1, crypto.sign(pubkey1, admission1[1]))
     approval2 = (pubkey2, crypto.sign(pubkey2, admission2[1]))
     approval3 = (pubkey3, crypto.sign(pubkey3, admission3[1]))
+    non_admission_approval = (pubkey4, crypto.sign(pubkey4, non_admission[1]))
     fake_approval = (pubkey3, b"asdf")
-    yield approval1, approval2, approval3, fake_approval
+    yield approval1, approval2, approval3, fake_approval, non_admission_approval
 
 
 def test_transaction_representation(unsigned_tx):
@@ -85,7 +88,7 @@ def test_transaction_validation(approvals):
     current_admissions = set()  # mock empty chain with no admissions
     doctors = set()  # mock registered doctors
     vaccines = set()  # mock registered vaccines
-    approval1, approval2, approval3, fake_approval = approvals
+    approval1, approval2, approval3, fake_approval, non_admission_approval = approvals
     wallet = crypto.generate_keypair()
     tx1 = PermissionTransaction(Permission.patient, wallet[0])
     tx1.sign(wallet[1])
@@ -99,10 +102,13 @@ def test_transaction_validation(approvals):
     tx3 = PermissionTransaction(Permission.doctor, wallet[0], [approval1, approval2, fake_approval])
     tx3.sign(wallet[1])
     assert not tx3.validate(current_admissions, doctors, vaccines), "transaction should not validate with tampered approvals"
-    tx4 = PermissionTransaction(Permission.doctor, wallet[0], [approval1, approval1, approval1])
+    tx4 = PermissionTransaction(Permission.doctor, wallet[0], [approval1, approval2, non_admission_approval])
     tx4.sign(wallet[1])
-    assert not tx4.validate(current_admissions, doctors, vaccines), "transaction should not validate with duplicate approvals"
-    current_admissions = set([approval1[0], approval2[0], approval3[0]])  # mock 3 registered admissions
-    tx5 = PermissionTransaction(Permission.doctor, wallet[0], [approval1, approval2, approval3])
+    assert not tx4.validate(current_admissions, doctors, vaccines), "transaction should not validate non admission approval"
+    tx5 = PermissionTransaction(Permission.doctor, wallet[0], [approval1, approval1, approval1])
     tx5.sign(wallet[1])
-    assert tx5.validate(current_admissions, doctors, vaccines), "transaction matching the requirements should successfully validate"
+    assert not tx5.validate(current_admissions, doctors, vaccines), "transaction should not validate with duplicate approvals"
+    current_admissions = set([approval1[0], approval2[0], approval3[0]])  # mock 3 registered admissions
+    tx6 = PermissionTransaction(Permission.doctor, wallet[0], [approval1, approval2, approval3])
+    tx6.sign(wallet[1])
+    assert tx6.validate(current_admissions, doctors, vaccines), "transaction matching the requirements should successfully validate"

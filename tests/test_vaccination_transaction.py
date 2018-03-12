@@ -5,6 +5,7 @@ import pytest
 import os
 import mock
 import sys
+from copy import copy
 
 from tests.config_fixture import setup_test_config
 setup_test_config()
@@ -33,6 +34,22 @@ def declined_tx():
     with mock.patch.object(sys.stdin, 'read', lambda x: 'n'):
         tx.sign(PRIVATE_KEY, PRIVATE_KEY)
     yield tx
+
+
+@pytest.fixture()
+def wrong_input_tx():
+    tx = VaccinationTransaction(PUBLIC_KEY, PUBLIC_KEY, 'polio', timestamp=1234, version='1')
+    with mock.patch.object(sys.stdin, 'read', lambda x: 'test'):
+        tx.sign(PRIVATE_KEY, PRIVATE_KEY)
+    yield tx
+
+
+def test_double_signing():
+    tx = VaccinationTransaction(PUBLIC_KEY, PUBLIC_KEY, 'polio', timestamp=1234, version='1')
+    with mock.patch.object(sys.stdin, 'read', lambda x: 'y'):
+        tx.sign(PRIVATE_KEY, PRIVATE_KEY)
+        assert tx._create_doctor_signature(PRIVATE_KEY) is None
+        assert tx._create_patient_signature(PRIVATE_KEY) is None
 
 
 def test_representation(signed_tx):
@@ -64,3 +81,35 @@ def test_transaction_signature_verification(signed_tx):
 
 def test_transaction_patient_acceptance(declined_tx):
     assert declined_tx.patient_signature is None
+
+
+def test_transaction_patient_wring_input(wrong_input_tx):
+    assert wrong_input_tx.patient_signature is None
+
+
+def test_transaction_validation(signed_tx):
+    current_admissions = set()  # mock empty chain with no admissions
+    doctors = set()  # mock registered doctors
+    doctors.add(signed_tx.doctor_pub_key)
+    vaccines = set()  # mock registered vaccine
+    vaccines.add('polio')
+    assert signed_tx.validate(current_admissions, doctors, vaccines)
+    assert not signed_tx.validate(current_admissions, set(), vaccines),\
+        "transaction check should return false, if doctor is not in doctors set"
+
+    assert not signed_tx.validate(current_admissions, doctors, set()),\
+        "transaction check should return false, if vaccine is not in vaccines set"
+    tx_help = copy(signed_tx)
+    tx_help.doctor_signature = None
+    assert not tx_help.validate(current_admissions, doctors, vaccines),\
+        "transaction check should return false, if there is no doctors signature"
+    tx_help.doctor_signature = "test"
+    assert not tx_help.validate(current_admissions, doctors, vaccines),\
+        "transaction check should return false, if the doctors signature is false"
+    tx_help = copy(signed_tx)
+    tx_help.patient_signature = None
+    assert not tx_help.validate(current_admissions, doctors, vaccines),\
+        "transaction check should return false, if there is no patients signature"
+    tx_help.patient_signature = "test"
+    assert not tx_help.validate(current_admissions, doctors, vaccines),\
+        "transaction check should return false, if the patients signature is false"

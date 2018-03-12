@@ -40,9 +40,10 @@ def test_representation(signed_tx):
 
 def test_transaction_signature_verification(signed_tx):
     current_admissions = set()  # mock empty chain with no admissions
-    current_admissions.add(signed_tx.sender_pubkey)
     doctors = set()  # mock registered doctors
     vaccines = set()  # mock registered vaccines
+    assert not signed_tx.validate(current_admissions, doctors, vaccines), "transaction should be invalid, if sender was not an admission"
+    current_admissions.add(signed_tx.sender_pubkey)
     assert signed_tx.validate(current_admissions, doctors, vaccines)
     signed_tx.vaccine = 'another vaccine'  # tamper with the transaction
     assert not signed_tx.validate(current_admissions, doctors, vaccines), "signature check should return False on tampered transaction"
