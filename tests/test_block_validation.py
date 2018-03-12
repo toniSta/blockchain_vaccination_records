@@ -44,6 +44,13 @@ def test_initial_block_is_valid(block):
     assert is_valid is True, "Error in initial block"
 
 
+def test_no_previous_block_passed(block):
+    block.sign(PRIVATE_KEY)
+    block.update_hash()
+    is_valid = validate_block(block, None)
+    assert is_valid is False, "Validated block without previous block"
+
+
 def test_index(block):
     block.index = 2000
     block.sign(PRIVATE_KEY)
@@ -78,7 +85,7 @@ def test_timestamp(block):
 
 def test_signature_validity(block):
     block.sign(PRIVATE_KEY)
-    block.index = 302
+    block.timestamp = int(time()) - 10
     block.update_hash()
     is_valid = validate_block(block, GENESIS)
     assert is_valid is False, "Invalid signature"
