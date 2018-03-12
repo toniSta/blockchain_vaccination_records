@@ -1,12 +1,12 @@
 from blockchain.network import server
 from blockchain.config import CONFIG
-from blockchain.full_client import FullClient
+import mock
 
 
 def setup_module(module):
     server.app.config['TESTING'] = True
     module.client = server.app.test_client()
-    server.full_client = FullClient()
+    server.full_client = mock.Mock()
     module.routes_to_test = CONFIG.ROUTES
 
     # ROUTES = {
