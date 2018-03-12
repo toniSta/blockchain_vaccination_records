@@ -5,6 +5,11 @@ import pytest
 from tests.config_fixture import setup_test_config
 setup_test_config()
 
+
+def setup_function(module):
+    TransactionSet().clear()
+
+
 def teardown_function(function):
     TransactionSet().clear()
 
