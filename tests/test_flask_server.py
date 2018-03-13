@@ -1,6 +1,10 @@
 from blockchain.network import server
 from blockchain.config import CONFIG
+from tests.config_fixture import setup_test_config
 import mock
+
+
+setup_test_config()
 
 
 def setup_module(module):
