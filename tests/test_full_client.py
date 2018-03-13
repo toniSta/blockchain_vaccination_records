@@ -88,3 +88,11 @@ def test_registration_as_admission(full_client):
     with patch.object(full_client, '_broadcast_new_transaction') as mock:
         full_client.register_self_as_admission()
         assert not mock.called, "should be admission already"
+
+
+def test_neighbor_list(monkeypatch):
+    fc1 = FullClient()
+    assert fc1.nodes == ["http://127.0.0.1:9000"]
+    monkeypatch.setenv('NEIGHBORS_HOST_PORT', "node1:9000,node2:9000")
+    fc2 = FullClient()
+    assert fc2.nodes == ["http://node1:9000", "http://node2:9000"]
