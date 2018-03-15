@@ -1,8 +1,8 @@
 import logging
 from time import time
-from Crypto.PublicKey import RSA
 
 from blockchain.config import CONFIG
+import blockchain.helper.key_utils as key_utils
 import blockchain.helper.cryptography as crypto
 logger = logging.getLogger("judgement")
 
@@ -11,14 +11,9 @@ class Judgement(object):
     """This class implements the judgement functionality."""
 
     def __init__(self, hash_of_judged_block, accept_block, sender_pubkey, signature=None, timestamp=None, version=None):
-        if type(sender_pubkey).__name__ == "RsaKey":
-            sender_pubkey = sender_pubkey.exportKey("DER")
-        elif type(sender_pubkey).__name__ == "str":
-            sender_pubkey = bytes.fromhex(sender_pubkey)
-
         self.hash_of_judged_block = hash_of_judged_block
         self.accept_block = accept_block
-        self.sender_pubkey = sender_pubkey
+        self.sender_pubkey = key_utils.cast_to_bytes(sender_pubkey)
         self.signature = signature
         self.timestamp = timestamp or int(time())
         self.version = version or CONFIG.version
@@ -57,7 +52,7 @@ class Judgement(object):
         if not self.signature:  # fail if object has no signature attribute
             return False
         message = crypto.get_bytes(self._get_data_for_hashing())
-        return crypto.verify(message, self.signature, RSA.import_key(self.sender_pubkey))
+        return crypto.verify(message, self.signature, key_utils.bytes_to_rsa(self.sender_pubkey))
 
     def __repr__(self):
         """
@@ -65,7 +60,7 @@ class Judgement(object):
         The Class attributes will be ordered
         e.g. Class(attribute1="String", attribute2=3)
         """
-        instance_member_list =[]
+        instance_member_list = []
         for item in vars(self).items():
             instance_member_list.append(item)
         instance_member_list.sort(key=lambda tup: tup[0])

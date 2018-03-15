@@ -1,7 +1,7 @@
 import logging
 from blockchain.transaction.transaction import TransactionBase
 import blockchain.helper.cryptography as crypto
-from Crypto.PublicKey import RSA
+import blockchain.helper.key_utils as key_utils
 
 # Needs to be moved later
 logging.basicConfig(level=logging.DEBUG,
@@ -18,11 +18,8 @@ class VaccineTransaction(TransactionBase):
             vaccine=vaccine, signature=signature, sender_pubkey=sender_pubkey, **kwargs
         )
 
-        if type(sender_pubkey).__name__ == "RsaKey":
-            sender_pubkey = sender_pubkey.exportKey("DER")
-
         self.vaccine = vaccine
-        self.sender_pubkey = sender_pubkey
+        self.sender_pubkey = key_utils.cast_to_bytes(sender_pubkey)
         self.signature = signature
 
     def validate(self, admissions, doctors, vaccines):
@@ -33,10 +30,10 @@ class VaccineTransaction(TransactionBase):
         return self._verify_signature()
 
     def _create_signature(self, private_key):
-        message = crypto.get_bytes(self._get_informations_for_hashing())
+        message = crypto.get_bytes(self._get_information_for_hashing())
         return crypto.sign(message, private_key)
 
-    def _get_informations_for_hashing(self):
+    def _get_information_for_hashing(self):
         string = "{}(version={}, timestamp={}, vaccine={}, sender_pub_key={})".format(
             type(self).__name__,
             self.version,

@@ -13,10 +13,7 @@ class CONFIG(ABCMeta):
     # Current version
     version = "0.0.1"
     # Folder, where all blocks are written to disk
-    if "pytest" in sys.modules:
-        persistance_folder = "tests/blockchain_files"
-    else:
-        persistance_folder = "blockchain/blockchain_files"
+    persistance_folder = "blockchain/blockchain_files"
     # Serialization properties
     serializaton = {
         "separator": ",",
@@ -25,12 +22,9 @@ class CONFIG(ABCMeta):
     # Maximum amount of transactions per block
     block_size = 1024
     # Create a block every n seconds. N has to be at least 2
-    block_time = 15 # with 5 seconds you will get multiple locks per index due to network latency
+    block_time = 15  # with 5 seconds you will get multiple locks per index due to network latency
     # Folder to store public/private key of the client
-    if "pytest" in sys.modules:
-        key_folder = "tests/keys"
-    else:
-        key_folder = "blockchain/keys"
+    key_folder = "blockchain/keys"
     # Names of key files
     key_file_names = ["public_key.bin", "private_key.bin"]
     # Network routes

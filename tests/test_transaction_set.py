@@ -2,6 +2,13 @@ from blockchain.transaction_set import TransactionSet
 
 import pytest
 
+from tests.config_fixture import setup_test_config
+setup_test_config()
+
+
+def setup_function(module):
+    TransactionSet().clear()
+
 
 def teardown_function(function):
     TransactionSet().clear()
@@ -86,7 +93,7 @@ def test_add_multiple(transaction_set):
 
 
 def test_getattr_setattr(transaction_set):
-    store = getattr(transaction_set, "store")
+    store = TransactionSet.__getattr__(TransactionSet, "store")
     assert type(store).__name__ == "OrderedSet"
-    setattr(transaction_set, "something", "test")
-    assert getattr(transaction_set, "something") == "test"
+    TransactionSet.__setattr__(TransactionSet, "something", "test")
+    assert TransactionSet.__getattr__(TransactionSet, "something") == "test"

@@ -53,7 +53,6 @@ class TransactionSet(object):
         def __repr__(self):
             return self.store.__repr__()
 
-
     __instance = None
 
     def __new__(cls, load_persisted=True):
@@ -63,7 +62,7 @@ class TransactionSet(object):
         return cls.__instance
 
     def __getattr__(self, name):
-        return getattr(self.instance, name)
+        return getattr(self.__instance, name)
 
     def __setattr__(self, name, value):
-        return setattr(self.instance, name, value)
+        return setattr(self.__instance, name, value)

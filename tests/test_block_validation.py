@@ -1,13 +1,16 @@
-from Crypto.PublicKey import RSA
 import pytest
 import os
 import shutil
 from time import time
 
+from blockchain.helper.key_utils import load_rsa_from_pem
 from blockchain.block import Block, create_initial_block
 from blockchain.transaction import *
 from blockchain.helper.block_validator import validate_block
 from blockchain.config import CONFIG
+
+from tests.config_fixture import setup_test_config
+setup_test_config()
 
 GENESIS = None
 PUBLIC_KEY = None
@@ -22,8 +25,8 @@ def setup_module(module):
     public_key_path = os.path.join(CONFIG.key_folder, CONFIG.key_file_names[0])
     private_key_path = os.path.join(CONFIG.key_folder, CONFIG.key_file_names[1])
 
-    PUBLIC_KEY = RSA.import_key(open(public_key_path, "rb").read())
-    PRIVATE_KEY = RSA.import_key(open(private_key_path, "rb").read())
+    PUBLIC_KEY = load_rsa_from_pem(public_key_path)
+    PRIVATE_KEY = load_rsa_from_pem(private_key_path)
 
 
 @pytest.fixture()
@@ -39,6 +42,13 @@ def test_initial_block_is_valid(block):
     block.update_hash()
     is_valid = validate_block(block, GENESIS)
     assert is_valid is True, "Error in initial block"
+
+
+def test_no_previous_block_passed(block):
+    block.sign(PRIVATE_KEY)
+    block.update_hash()
+    is_valid = validate_block(block, None)
+    assert is_valid is False, "Validated block without previous block"
 
 
 def test_index(block):
@@ -75,7 +85,7 @@ def test_timestamp(block):
 
 def test_signature_validity(block):
     block.sign(PRIVATE_KEY)
-    block.index = 302
+    block.timestamp = int(time()) - 10
     block.update_hash()
     is_valid = validate_block(block, GENESIS)
     assert is_valid is False, "Invalid signature"

@@ -5,8 +5,8 @@ import threading
 from collections import deque
 from subprocess import CalledProcessError
 from threading import RLock, current_thread
-from Crypto.PublicKey import RSA
 
+import blockchain.helper.key_utils as key_utils
 from blockchain.network.network import Network
 from .block import Block
 from .config import CONFIG
@@ -226,7 +226,7 @@ class Chain(object):
 
             :return: True if the judgement was new, False if it was already there
             """
-            changed_judgments= False
+            changed_judgments = False
             with self._lock:
                 node = self._find_tree_node_by_hash(judgement.hash_of_judged_block)
                 if node:
@@ -359,7 +359,7 @@ class Chain(object):
                 try:
                     os.remove(dead_branch)
                 except FileNotFoundError:
-                    pass  #file already removed by another thread
+                    pass  # file already removed by another thread
 
         def _resend_transactions(self, transactions):
             """Send transactions to myself.
@@ -616,17 +616,17 @@ class Chain(object):
 
     __instance = None
 
-    def __new__(cls, load_persisted=True):
+    def __new__(cls, load_persisted=True, init=False):
         """Create a singleton instance of the chain."""
-        if cls.__instance is None:
+        if cls.__instance is None or init:
             cls.__instance = Chain.__Chain(load_persisted=load_persisted)
         return cls.__instance
 
     def __getattr__(self, name):
-        return getattr(self.instance, name)
+        return getattr(self.__instance, name)
 
     def __setattr__(self, name, value):
-        return setattr(self.instance, name, value)
+        return setattr(self.__instance, name, value)
 
 
 def nodenamefunc(node):
@@ -658,8 +658,7 @@ def nodeattrfunc(node):
     """
     key_folder = CONFIG.key_folder
     path = os.path.join(key_folder, CONFIG.key_file_names[0])
-    with open(path, "rb") as key_file:
-        public_key = RSA.import_key(key_file.read()).exportKey("DER")
+    public_key = key_utils.load_bytes_from_pem(path)
 
     if public_key == node.block.public_key:
         return "style = filled,fillcolor = green4, shape = rectangle"
