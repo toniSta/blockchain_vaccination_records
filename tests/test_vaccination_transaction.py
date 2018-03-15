@@ -83,7 +83,7 @@ def test_transaction_patient_acceptance(declined_tx):
     assert declined_tx.patient_signature is None
 
 
-def test_transaction_patient_wring_input(wrong_input_tx):
+def test_transaction_patient_wrong_input(wrong_input_tx):
     assert wrong_input_tx.patient_signature is None
 
 

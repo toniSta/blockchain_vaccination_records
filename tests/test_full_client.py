@@ -3,6 +3,10 @@ import shutil
 # noinspection PyUnresolvedReferences
 from time import sleep, time
 
+import sys
+
+import re
+
 from blockchain.full_client import FullClient
 from blockchain.chain import Chain
 from blockchain.block import Block, create_initial_block
@@ -96,3 +100,27 @@ def test_neighbor_list(monkeypatch):
     monkeypatch.setenv('NEIGHBORS_HOST_PORT', "node1:9000,node2:9000")
     fc2 = FullClient()
     assert fc2.nodes == ["http://node1:9000", "http://node2:9000"]
+
+
+def test_create_transaction(capsys, full_client):
+    stdin = sys.stdin
+    sys.stdin = open(os.path.join("tests", "fixture_create_transactions.txt"))
+    full_client._create_transaction()
+    full_client._create_transaction()
+    full_client._create_transaction()
+    captured = capsys.readouterr()
+    sys.stdout.write(captured.out)
+    sys.stderr.write(captured.err)
+    assert "Vaccine: polio" in captured.out
+    my_regex = re.compile("Transaction: VaccineTransaction(.*\n){2}.*Signature: [0-9a-z]+")
+    assert my_regex.search(captured.out) is not None
+
+    my_regex = re.compile("Transaction: VaccinationTransaction(.*\n){2}.*Doctor_Signature: [0-9a-z]+(.*\n){2}.*Patient_Signature: [0-9a-z]+")
+    assert my_regex.search(captured.out) is not None
+
+    assert "Transaction: PermissionTransaction" in captured.out
+    assert "Requested_Permission: Permission.doctor" in captured.out
+    my_regex = re.compile("Requested_Permission: (.*\n){2}.*Signature: [0-9a-z]+")
+    assert my_regex.search(captured.out) is not None
+
+    sys.stdin = stdin

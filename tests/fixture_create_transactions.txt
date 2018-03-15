@@ -1,0 +1,10 @@
+vaccine
+Polio
+y
+permission
+doctor
+y
+vaccination
+polio
+y
+y

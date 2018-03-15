@@ -104,6 +104,17 @@ def test_get_parent_node(chain, next_block_branch2):
     assert parent.hash == chain.genesis_block.hash
 
 
+def test_get_tree_list_at_hash(chain, next_block_branch1, next_block_branch2):
+    genesis = chain.genesis_block
+    list = chain.get_tree_list_at_hash(genesis.hash)
+    assert len(list) == 2
+    assert next_block_branch1 in list
+    assert next_block_branch2 in list
+
+    list = chain.get_tree_list_at_hash("123abc")
+    assert list == []
+
+
 @pytest.fixture(scope="module")
 def dangling_block(chain):
     dangling_block = Block({"index": 4, "hash": "ab1234"}, PUBLIC_KEY)
