@@ -40,8 +40,8 @@ def validate_block(block, previous_block):
         return False
 
     # Matching versions
-    if block.version != CONFIG.version:
-        logger.info("Different versions, block version {}, chain version {}"
+    if block.version < CONFIG.version:
+        logger.info("Older version, block version {}, chain version {}"
                     .format(block.version, CONFIG.version))
         return False
 

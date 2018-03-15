@@ -62,7 +62,7 @@ class TransactionSet(object):
         return cls.__instance
 
     def __getattr__(self, name):
-        return getattr(self.instance, name)
+        return getattr(self.__instance, name)
 
     def __setattr__(self, name, value):
-        return setattr(self.instance, name, value)
+        return setattr(self.__instance, name, value)
