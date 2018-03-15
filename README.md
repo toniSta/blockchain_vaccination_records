@@ -111,7 +111,7 @@ First of all you can have a look on the state of the blockchain as seen by the `
 It will store its files in the directory `blockchain/blockchain_files`.
 It will also contain an image `current_state.png`. 
 This is a rendered image of the current chain. 
-It will be renewed whenever the `GA` node adds or removes blocks from its chain.
+It will be renewed whenever the `GA` node adds a block to its chain.
 You may want to use an image viewer with an auto-refresh feature (see [Prerequisites](#prerequisites)).
 
 **Interactive clients**
