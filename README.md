@@ -41,9 +41,9 @@ purposes.
 The prototype is implemented with Python 3.x. We recommend a version >= 3.6.
 We use Docker to deploy our demonstration. 
 You will need to install `docker` (>= 17.10) and `docker-compose` (>=1.16).
-We visualize the current chain state as png image. 
+We visualize the current chain state as a PNG image. 
 You may want to install an image viewer which is able to refresh the opened image. 
-On windows, we recommend [JPEGView](https://sourceforge.net/projects/jpegview/).
+On Windows, we recommend [JPEGView](https://sourceforge.net/projects/jpegview/).
 
 ### Installing
 
@@ -99,8 +99,8 @@ You can start them with the following commands (one per window):
 ./start_d3.sh
 ```
 
-To stop the demonstration you can stop the compose network by hitting `Ctrl+C`. After the container were stopped sucessfully
-you can run `./stop_and_clean.sh` to stop the additional clients and cleaning up the docker environment.
+To stop the demonstration you can stop the compose network by hitting `Ctrl+C`. After the containers were stopped successfully
+you can run `./stop_and_clean.sh` to stop the additional clients and clean up the docker environment.
 Most certainly you also want to delete the contents of the directory `blockchain/blockchain_files`. 
 However, don't delete the file starting with `0_` (You can restore the file with `git checkout blockchain/blockchain_files/`).
 
@@ -111,7 +111,7 @@ First of all you can have a look on the state of the blockchain as seen by the `
 It will store its files in the directory `blockchain/blockchain_files`.
 It will also contain an image `current_state.png`. 
 This is a rendered image of the current chain. 
-It will be renewed whenever the `GA` node adds a block to its chain.
+It will be renewed whenever the `GA` node adds or removes blocks from its chain.
 You may want to use an image viewer with an auto-refresh feature (see [Prerequisites](#prerequisites)).
 
 **Interactive clients**
@@ -138,13 +138,13 @@ There are some more environment variables to setup the nodes:
 
 - `NEIGHBORS_HOST_PORT`  
 This is a `,`-separated list of the nodes neighbors. 
-One entry contains the (resolvable) hostname/ip and the port the neighbor listens to (default is `9000`).
+Entries contain the (resolvable) hostname/ip and port the neighbor listens on (default is `9000`).
 A list may look like this: `a2:9000,d2:9000`.
-If you want to extend the demo network, keep in mind that you need at least 1 bi-directional connection with the existing network.
+If you want to extend the demo network, keep in mind that you need at least 1 bi-directional connection to the existing network.
 - `SERVER_PORT`  
 This is the port the client listens on (defaults to `9000`).
 - `RENDER_CHAIN_TREE`  
-If set to `1` the client will render the chain as image.
+If set to `1` the client will render the chain as an image.
 
 You can also add host volumes to the client. 
 These are the directories inside the container that can be replaced with a hostmount:
@@ -193,7 +193,7 @@ The blockchain files are located in the former mentioned directories.
 
 **Stopping network nodes**
 
-You can stop nodes of the base network and restart them at later time.
+You can stop nodes of the base network and restart them at a later time.
 
 Commands to stop nodes:
 ```bash
@@ -209,15 +209,15 @@ Use `docker-compose start <name>` to start the node again.
 
 ## Known Limitations
 
-**TODO** Any more?
-
-- If the requested block is not part of the chain of the asked neighbor the complete chain needs to be resend.
+- If the requested block is not part of the chain of the asked neighbor the complete chain needs to be resent.
  To solve this you would need to remember which blocks were part of a dead branch.
-- If the peer-to-peer networks is splitted up into two separated networks (e.g. A1, D1 and D3 in the example network) 
+- If the peer-to-peer networks is split up into two separate networks (e.g. A1, D1 and D3 in the example network) 
  it won't synchronize the separate networks after reconnecting them.
 - If one admission node is broken and creates false deny judgements, it won't recover by itself. 
  However, the network itself is still working (as long as at least half of the admission nodes work properly).
 - We trust doctor nodes. Currently they could drive a denial of service attack by creating random users and vaccination records
+- Approvals for the registration of doctor or admission nodes are susceptible to replay attacks as they currently have no indication of which transaction they belong to. To mitigate this you would need to add some transaction identifier to the approval.
+- The complete blockchain is kept in memory ultimately letting the application exhaust its memory. To prevent this you would need to only load the necessary blocks from disk on demand.
 - Most of the serialization for network transfer is done with `repr()`. The de-serialization uses `eval()`.
  This allows code injections in an extremely easy way. This has to be changed to a more secure serialization if you 
  consider a more productive scenario!
@@ -235,9 +235,9 @@ python recreate_genesis_block.py
 
 [![Documentation Status](https://readthedocs.org/projects/blockchain-vaccination-records/badge/?version=latest)](http://blockchain-vaccination-records.readthedocs.io/en/latest/?badge=latest)
 
-We use python doc strings inside the source files. Each method has it's own documentation. You can find a online version at [readthedocs.io](http://blockchain-vaccination-records.readthedocs.io/en/latest/?badge=latest).
+We use python doc strings inside the source files. Each method has its own documentation. You can find an online version at [readthedocs.io](http://blockchain-vaccination-records.readthedocs.io/en/latest/?badge=latest).
 
-You can create a offline documentation with the following commands.
+You can create an offline documentation with the following commands.
 You will find the documentation in `docs/build/html`:
 ```bash
 cd docs
