@@ -13,14 +13,6 @@ def setup_module(module):
     server.full_client = mock.Mock()
     module.routes_to_test = CONFIG.ROUTES
 
-    # ROUTES = {
-    #     "new_block": "/new_block",
-    #     "block_by_hash": "/request_block/hash/<hash>",
-    #     "new_transaction": "/new_transaction",
-    #     "new_judgement": "/new_judgement",
-    #     "sync_request": "/sync_request"
-    # }
-
 
 def test_new_block():
     response = client.post(routes_to_test['new_block'])
