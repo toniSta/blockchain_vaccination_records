@@ -35,7 +35,7 @@ At the same time every alternative branch (every sub-tree with the same index as
 If one of the questions is answered with no the block will get a `deny` judgement.
 
 As you can see every admission has only one active branch at every point in time.
-Since blocks and judgements are broadcasted in the network every admission will base its decision on the same information over time.
+Since blocks and judgements are broadcast in the network every admission will base its decision on the same information over time.
 This means the chain is going to converge to one branch.
 
 ### Creator Election
