@@ -11,7 +11,7 @@ class CONFIG(ABCMeta):
     # Log level of the whole system
     loglevel = logging.DEBUG
     # Current version
-    version = "0.0.1"
+    version = "1.0.0"
     # Folder, where all blocks are written to disk
     persistance_folder = "blockchain/blockchain_files"
     # Serialization properties
